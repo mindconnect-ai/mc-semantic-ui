@@ -32,14 +32,17 @@
     -sui-danger:         #dc2626;
     -sui-danger-bg:      #fee2e2;
 
+    /* Helvetica Neue (macOS) / Arial (Windows) have a real bold face that
+       JavaFX renders with correct advance widths. The default "System" font on
+       macOS is SF Pro, whose bold JavaFX lays out with glyphs that touch — and
+       neither gray smoothing nor letter-spacing (which JavaFX CSS lacks) fixes
+       that; only avoiding the SF Pro bold face does. */
+    -fx-font-family: "Helvetica Neue", "Arial", sans-serif;
     -fx-font-size: 13px;
     -fx-background-color: -sui-bg;
     -fx-text-base-color: -sui-text-body;
 
-    /* Gray, not LCD, subpixel smoothing. On macOS the default LCD smoothing
-       smears bold text so the letters look like they overlap; gray renders
-       each glyph cleanly. (JavaFX CSS has no letter-spacing to fix it another
-       way, and no -fx-font-family override helps — the smoothing is the cause.) */
+    /* Gray, not LCD, subpixel smoothing — keeps bold edges crisp on macOS. */
     -fx-font-smoothing-type: gray;
 
     /* A clean blue focus ring instead of the default fuzzy glow. */
@@ -295,20 +298,33 @@
 
 /* ── tabs ───────────────────────────────────────────────────────────────── */
 
-.tab-pane .tab-header-area .tab-header-background {
+/* "Register" tabs, like the web: a line under the whole tab row, and the
+   active tab a bordered card whose bottom edge merges into the panel below. */
+.tab-pane > .tab-header-area {
+    -fx-padding: 0;
+    -fx-border-color: transparent transparent -sui-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+.tab-pane > .tab-header-area > .tab-header-background {
     -fx-background-color: transparent;
 }
 .tab-pane .tab {
     -fx-background-color: transparent;
     -fx-background-radius: 8 8 0 0;
-    -fx-padding: 6 14 6 14;
-    -fx-border-width: 0;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-border-width: 1;
+    -fx-border-radius: 8 8 0 0;
+    -fx-padding: 7 16 7 16;
 }
 .tab-pane .tab:hover {
     -fx-background-color: -sui-surface-alt;
 }
 .tab-pane .tab:selected {
     -fx-background-color: -sui-surface;
+    /* top/right/left slate, bottom in the surface colour so the card opens
+       seamlessly into the panel — the same trick the web tabs use. */
+    -fx-border-color: -sui-border-strong -sui-border-strong -sui-surface -sui-border-strong;
 }
 .tab-pane .tab .tab-label {
     -fx-text-fill: -sui-text-muted;
