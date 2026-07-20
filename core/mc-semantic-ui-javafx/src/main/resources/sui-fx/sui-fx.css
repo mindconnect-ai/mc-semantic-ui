@@ -33,10 +33,10 @@
     -sui-danger-bg:      #fee2e2;
 
     /* Helvetica Neue (macOS) / Arial (Windows) have a real bold face that
-       JavaFX renders with correct advance widths. The default "System" font on
-       macOS is SF Pro, whose bold JavaFX lays out with glyphs that touch — and
-       neither gray smoothing nor letter-spacing (which JavaFX CSS lacks) fixes
-       that; only avoiding the SF Pro bold face does. */
+       JavaFX renders with correct advance widths. macOS's SF Pro is not usable
+       here: JavaFX maps every SF name ("SF Pro Text", …) to the logical
+       "System" font, whose bold lays out with glyphs that touch — and neither
+       gray smoothing nor letter-spacing (which JavaFX CSS lacks) fixes it. */
     -fx-font-family: "Helvetica Neue", "Arial", sans-serif;
     -fx-font-size: 13px;
     -fx-background-color: -sui-bg;
