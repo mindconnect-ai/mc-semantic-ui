@@ -19,6 +19,22 @@
   <link rel="stylesheet" href="../sui/sui-dark.css">
   <style>
     body { padding: 16px; background: transparent; }
+    /* This embed sits in a half-width column on the overview page, which is
+       narrower than the table's natural ~570px — the Delete row action ended up
+       cut off. Scaling the whole widget down keeps the layout identical to the
+       JavaFX screenshot beside it, which restacking (UiTable.stackOnMobile) or
+       squeezing columns would not.
+
+       zoom, not font-size: sui.css sizes padding and controls in px, so
+       shrinking the font alone changes the table's width by exactly nothing
+       (measured: 12px and 10px root font both leave it at 568px).
+
+       zoom scales the font along with everything else, so a larger zoom is a
+       larger, more readable table. 0.65 is chosen for legibility over an exact
+       fit: at a 1280px viewport the Delete button ends slightly past the column
+       edge, so overflow-x lets that last bit scroll into view rather than being
+       clipped. Everything up to Status is visible without scrolling. */
+    body { zoom: 0.65; overflow-x: auto; }
   </style>
   <script>
     // Follow the docs site's light/dark toggle (same-origin).
