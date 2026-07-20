@@ -417,7 +417,7 @@ for a custom one. Never touch business code.
 - Developer writes **structure + behaviour**.
 - Designer owns **stylesheets + renderer**.
 - Multiple output formats fall out of the same model
-  **for free** — SSR HTML, SPA, a Swing desktop client,
+  **for free** — SSR HTML, SPA, a JavaFX desktop client,
   native mobile, even a terminal UI.
 
 <br>
@@ -437,7 +437,7 @@ Three pieces. **One model. One controller. Many renderers.**
   ┌──────────┐        ┌──────────┐        ┌──────────────┐
   │  Spring  │ ─────▶ │  UiPage  │ ─────▶ │  SSR (HTML)  │
   │  @GetMap │        │  UiForm  │        │  SPA (TS)    │
-  │   load() │        │  UiTable │        │  Swing       │
+  │   load() │        │  UiTable │        │  JavaFX      │
   └──────────┘        └──────────┘        │  …           │
                                           └──────────────┘
        ▲                                          │
@@ -781,7 +781,7 @@ as production just the events are disabled.
 
 **The real difference:** HTMX and Datastar ship **already-rendered HTML**.
 We ship an **abstract UI model** the renderer interprets — so the same
-model can become HTML today, a Swing UI tomorrow, a terminal app after that.
+model can become HTML today, a JavaFX UI tomorrow, a terminal app after that.
 
 ---
 
