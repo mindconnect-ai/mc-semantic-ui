@@ -229,23 +229,39 @@ tokens) without re-shipping the full tree.
 
 ## Embed it as a UI island
 
-You don't need a full SPA shell. Drop a `<div>` into any existing page
-and mount the renderer on it:
+You don't need a full SPA shell. Drop a `<div>` into any existing page,
+mount the renderer on it, and attach an event bus so the island is
+actually alive:
 
 ```html
 <link rel="stylesheet" href="/sui/sui.css">
 <div id="product-table"></div>
 <script type="module">
   import { SuiRenderer, installDefaultHandlers } from "/sui/renderer.js";
+  import { SuiEventBus } from "/sui/eventbus.js";
+
   const host = document.getElementById("product-table");
   const renderer = installDefaultHandlers(new SuiRenderer(host));
+
+  // Without the bus the island is a picture: triggers do nothing.
+  // History off — this is someone else's page, not ours.
+  const bus = new SuiEventBus(renderer, host).setHistoryEnabled(false);
+
   const tree = await fetch("/api/products", {
       headers: { Accept: "application/json" } }).then(r => r.json());
   renderer.mount(tree);
 </script>
 ```
 
-The host page's layout is untouched; use as many islands as you want.
+`renderer.mount()` paints the tree; the bus is what makes buttons, row
+actions and form submits fetch and apply updates — scoped to your
+`<div>`. Leave it out only for a genuinely static island.
+
+The host page's layout is untouched; use as many islands as you want —
+each gets its own renderer and bus.
+
+See **[Embed as a UI island](https://github.com/mindconnect-ai/mc-semantic-ui/blob/main/website/docs/semantic-ui/ui-island.md)**
+for local handlers, patches and the history caveat.
 
 ## How it compares
 
