@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui — the JavaFX demo's table, in the browser</title>
+  <!--
+    The counterpart to the JavaFX screenshot on the overview page: the *same*
+    UiNode tree, painted by the browser renderer instead of by JavaFX.
+
+    The tree below is not hand-written — it was serialised out of the running
+    Java model (DemoApplication.ordersTable()) with Jackson, so "the same tree"
+    is a fact rather than a claim.
+
+    The iframe is the isolation boundary: sui.css ships a global reset which
+    would wreck the surrounding Docusaurus layout if loaded into the page.
+  -->
+  <link rel="stylesheet" href="../sui/sui.css">
+  <link rel="stylesheet" href="../sui/sui-dark.css">
+  <style>
+    body { padding: 16px; background: transparent; }
+  </style>
+  <script>
+    // Follow the docs site's light/dark toggle (same-origin).
+    (function syncTheme() {
+      function apply() {
+        try {
+          const dark = window.parent?.document?.documentElement?.dataset?.theme === "dark";
+          document.documentElement.className = dark ? "sui-theme-dark" : "";
+        } catch { /* different origin — keep the light theme */ }
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] });
+      } catch { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createDefaultRenderer, setIconSpriteUrl } from "../sui/renderer.js";
+    import { SuiEventBus } from "../sui/eventbus.js";
+
+    setIconSpriteUrl("../sui/icons.svg");
+
+    const host = document.getElementById("app");
+    const renderer = createDefaultRenderer().attach(host);
+
+    // History off: this is a widget inside someone else's page.
+    const bus = new SuiEventBus(renderer, host).setHistoryEnabled(false);
+
+    let rows = [
+      { id: "1001", product: "Keyboard", amount: "89.00",  status: "shipped" },
+      { id: "1002", product: "Monitor",  amount: "329.50", status: "open"    }
+    ];
+    let nextId = 1003;
+
+    /** The toolbar above the table: an overflow menu and the fulfilment bar. */
+    const toolbar = () => {
+      const shipped = rows.filter(r => r.status === "shipped").length;
+      return {
+        type: "stack", direction: "HORIZONTAL", gap: 16,
+        children: [
+          { type: "menu-button", id: "orders-overflow", label: "More…", items: [
+            { type: "menu-item", id: "export", label: "Export as CSV",
+              onClick: { behavior: "INVOKE", handler: "notImplemented" } },
+            { type: "menu-item", id: "reports", label: "Reports", children: [
+              { type: "menu-item", id: "monthly", label: "Monthly",
+                onClick: { behavior: "INVOKE", handler: "notImplemented" } },
+              { type: "menu-item", id: "yearly", label: "Yearly",
+                onClick: { behavior: "INVOKE", handler: "notImplemented" } }
+            ] },
+            { type: "menu-item", divider: true },
+            { type: "menu-item", id: "purge", label: "Delete all orders", danger: true,
+              confirm: "Delete every order? This cannot be undone.",
+              onClick: { behavior: "INVOKE", handler: "purgeOrders" } }
+          ] },
+          // Share of orders already shipped — recomputed on every change, so
+          // adding or deleting an order moves the bar.
+          { type: "progress", id: "fulfilment", value: shipped,
+            max: Math.max(1, rows.length), showValue: true,
+            status: shipped === rows.length ? "SUCCESS" : "NORMAL" }
+        ]
+      };
+    };
+
+    /** The tree exactly as DemoApplication builds it for the JavaFX window. */
+    const table = () => ({
+      type: "table", id: "orders-table", title: "Orders",
+      columns: [
+        { type: "column", id: "col-id",      label: "Order",   dataKey: "id",      sortable: true  },
+        { type: "column", id: "col-product", label: "Product", dataKey: "product", sortable: false },
+        { type: "column", id: "col-amount",  label: "Amount",  dataKey: "amount",  sortable: false },
+        { type: "column", id: "col-status",  label: "Status",  dataKey: "status",  sortable: false }
+      ],
+      rows: rows.map(r => ({ type: "row", id: r.id, data: r })),
+      actions: [
+        { type: "action", id: "add-order", label: "Add order", style: "PRIMARY",
+          onClick: { behavior: "INVOKE", handler: "addOrder" } },
+        { type: "action", id: "sync", label: "Sync inventory", style: "SECONDARY",
+          onClick: { behavior: "INVOKE", handler: "syncInventory" } }
+      ],
+      rowActions: [
+        { type: "action", id: "delete-order", label: "Delete", style: "DANGER",
+          onClick: { behavior: "INVOKE", handler: "deleteOrder" } }
+      ],
+      selectMode: "SINGLE"
+    });
+
+    /** Toolbar + table, exactly as the demo's Orders tab composes them. */
+    const panel = () => ({
+      type: "stack", id: "orders-panel", gap: 12,
+      children: [toolbar(), table()]
+    });
+
+    // Patch the whole panel, not just the table: the progress bar sits in the
+    // toolbar and has to move when the rows change.
+    const refresh = (toast) => ({
+      patches: [{ op: "REPLACE", targetId: "orders-panel", node: panel() }],
+      ...(toast ? { toasts: [toast] } : {})
+    });
+
+    // Plain local handlers — no backend behind this page at all.
+    const products = ["Dock", "Webcam", "Headset", "Mouse"];
+    bus.registerClientHandler("addOrder", () => {
+      const id = String(nextId++);
+      rows = [...rows, {
+        id, product: products[(nextId - 1004) % products.length],
+        amount: (Math.round(Math.random() * 40000) / 100).toFixed(2), status: "open"
+      }];
+      return refresh({ level: "SUCCESS", message: `Order ${id} added.` });
+    });
+
+    bus.registerClientHandler("deleteOrder", (ctx) => {
+      // The renderer emits <tr id="…"> per row, so the clicked button knows
+      // which order it belongs to.
+      const id = ctx.sourceElement?.closest("tr")?.id;
+      rows = rows.filter(r => r.id !== id);
+      return refresh({ level: "INFO", message: `Order ${id} deleted.` });
+    });
+
+    bus.registerClientHandler("syncInventory", () =>
+        refresh({ level: "SUCCESS", message: `${rows.length} orders in sync.` }));
+
+    bus.registerClientHandler("purgeOrders", () => {
+      rows = [];
+      return refresh({ level: "WARN", message: "All orders deleted." });
+    });
+
+    bus.registerClientHandler("notImplemented", () =>
+        ({ toasts: [{ level: "INFO", message: "Not wired up in this embed." }] }));
+
+    renderer.mount(panel());
+  </script>
+</body>
+</html>

@@ -43,11 +43,34 @@ up to you — a JavaScript object in the page, or any backend that emits the JSO
 
 ![Semantic UI — how it works](/img/semantic-ui/how-it-works.svg)
 
-The rightmost box is not hypothetical. Here is a `UiNode` tree — the same kind
-this page describes for the browser — painted by the
-[JavaFX renderer](./javafx.md) as a native desktop window:
+The rightmost box is not hypothetical. Below is **one** `UiNode` tree, drawn
+twice: on the left by the [JavaFX renderer](./javafx.md) as a native desktop
+window, on the right by the browser renderer — live, right here on this page.
+The tree on the right was serialised straight out of the running Java demo, so
+it really is the same model and not a lookalike.
 
-![The same UiNode tree as a native JavaFX desktop app](/img/semantic-ui/javafx/orders-table.png)
+<div class="row margin-bottom--md">
+<div class="col col--6">
+
+![The tree as a native JavaFX desktop window](/img/semantic-ui/javafx/orders-table.png)
+
+*JavaFX — a real `TableView`, `Button`, `ProgressBar`.*
+
+</div>
+<div class="col col--6">
+
+<iframe
+  src="/mc-semantic-ui/embed/orders-in-browser.html"
+  title="The same UiNode tree, rendered live in the browser"
+  loading="lazy"
+  style={{width: '100%', height: '360px', border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px'}}
+></iframe>
+
+*Browser — real DOM, and interactive: add or delete orders and the fulfilment
+bar moves with them.*
+
+</div>
+</div>
 
 ## The two shapes you'll write
 
@@ -60,10 +83,19 @@ same JSON from anything — they are the identical wire format.
 <TabItem value="java" label="Java">
 
 ```java
-UiPage.of("/products",
-    UiTable.of("products", "Products")
-        .column(UiColumn.text("name", "Name"))
-        .row(Map.of("id", "p1", "name", "Widget")));
+// The table in both screenshots above — this is the whole source.
+UiPage.of("/orders",
+    UiTable.of("orders-table", "Orders")
+        .column(UiColumn.text("id", "Order").asSortable())
+        .column(UiColumn.text("product", "Product"))
+        .column(UiColumn.number("amount", "Amount"))
+        .column(UiColumn.text("status", "Status"))
+        .action(UiAction.primary("add-order", "Add order")
+                .onClick(UiTrigger.invoke("addOrder")))
+        .rowAction(UiAction.danger("delete-order", "Delete")
+                .onClick(UiTrigger.invoke("deleteOrder")))
+        .row(Map.of("id", "1001", "product", "Keyboard",
+                    "amount", "89.00", "status", "shipped")));
 ```
 
 </TabItem>
@@ -72,14 +104,26 @@ UiPage.of("/products",
 ```json
 {
   "type": "page",
-  "navigate": "/products",
+  "navigate": "/orders",
   "node": {
-    "type": "table", "id": "products", "title": "Products",
+    "type": "table", "id": "orders-table", "title": "Orders",
     "columns": [
-      { "type": "column", "id": "c-name", "label": "Name", "dataKey": "name" }
+      { "type": "column", "id": "c-id",      "label": "Order",   "dataKey": "id", "sortable": true },
+      { "type": "column", "id": "c-product", "label": "Product", "dataKey": "product" },
+      { "type": "column", "id": "c-amount",  "label": "Amount",  "dataKey": "amount" },
+      { "type": "column", "id": "c-status",  "label": "Status",  "dataKey": "status" }
     ],
     "rows": [
-      { "type": "row", "id": "p1", "data": { "name": "Widget" } }
+      { "type": "row", "id": "1001",
+        "data": { "id": "1001", "product": "Keyboard", "amount": "89.00", "status": "shipped" } }
+    ],
+    "actions": [
+      { "type": "action", "id": "add-order", "label": "Add order", "style": "PRIMARY",
+        "onClick": { "behavior": "INVOKE", "handler": "addOrder" } }
+    ],
+    "rowActions": [
+      { "type": "action", "id": "delete-order", "label": "Delete", "style": "DANGER",
+        "onClick": { "behavior": "INVOKE", "handler": "deleteOrder" } }
     ]
   }
 }
@@ -88,16 +132,9 @@ UiPage.of("/products",
 </TabItem>
 </Tabs>
 
-The same model — two more columns, two more rows, a row action — drawn live
-below by the real renderer with the stock stylesheet. No build step, no
-components, nothing else on the page:
-
-<iframe
-  src="/mc-semantic-ui/embed/products.html"
-  title="A live semantic-ui island: the products table"
-  loading="lazy"
-  style={{width: '100%', height: '330px', border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px'}}
-></iframe>
+That is the entire source of the table you saw twice at the top of this page —
+once as a JavaFX window, once live in the browser. No build step, no components,
+nothing else on the page.
 
 **`UiPatch`** — a surgical update. What you return to change *part* of the
 screen without resending it. Each operation targets a node by `id`
@@ -165,8 +202,8 @@ reasonable way to *learn* the model: build a screen, export it, read the code.
 
 ## Choose your path
 
-semantic-ui fits three setups. Pick the one that matches your stack and start
-there — all three share the same [core concepts](./node-vocabulary.md).
+semantic-ui fits four setups. Pick the one that matches your stack and start
+there — all four share the same [core concepts](./node-vocabulary.md).
 
 - **[Java / Spring Boot](./quickstart-spring-boot.md)** — a controller returns a
   `UiPage`; get no-JS server HTML (SSR) and/or a live SPA client from the same
@@ -175,6 +212,8 @@ there — all three share the same [core concepts](./node-vocabulary.md).
   the runtime from a `<script>` and render `UiNode` literals in the browser.
 - **[Node.js backend](./quickstart-node.md)** — an Express (or any) server emits
   the `UiPage` JSON; the browser renderer paints it.
+- **[JavaFX desktop client](./javafx.md)** — no browser at all: the same tree
+  painted as a native desktop window, with local Java handlers.
 
 :::tip Try it live
 Open the **[interactive widget showcase ↗](pathname:///widget-demo/)** — a fully
