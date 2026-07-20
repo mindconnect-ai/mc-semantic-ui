@@ -37,8 +37,10 @@
 You describe a screen as a tree of typed `UiNode`s (`UiForm`, `UiTable`,
 `UiSection`, `UiField`, …) — plain typed data. A small TypeScript renderer turns
 that tree into a live, interactive UI in the browser; on the JVM a matching
-Handlebars renderer produces the **same** markup as no-JS server HTML. One model,
-many renderers: a live app, no-JS HTML, and a built-in visual editor. Where the
+Handlebars renderer produces the **same** markup as no-JS server HTML, and a
+JavaFX renderer draws the very same tree as a native desktop client. One model,
+many renderers: a live app, no-JS HTML, a desktop client, and a built-in visual
+editor. Where the
 data comes from is up to you — a JavaScript object in the page, or any backend
 (Java, Node.js, …) that emits the JSON.
 
@@ -84,6 +86,7 @@ is a sweet spot, and where it explicitly isn't.
 | Module                                | What it is                                                                 |
 |---------------------------------------|----------------------------------------------------------------------------|
 | `core/mc-semantic-ui-core`            | UiNode model + dual renderer (Handlebars SSR + TypeScript SPA bus + CSS)   |
+| `core/mc-semantic-ui-javafx`          | Third renderer: the same tree as a native JavaFX desktop client ([README](core/mc-semantic-ui-javafx/README.md)) |
 | `ext/mc-semantic-ui-ext-json`         | `UiJsonViewer` — collapsible JSON view (browser-side, auto-config)         |
 | `ext/mc-semantic-ui-ext-markdown`     | `UiMarkdown` — Markdown → HTML (browser-side, auto-config)                 |
 | `ext/mc-semantic-ui-ext-diagram`      | Diagram extension (canvas-style graph nodes / edges)                       |
@@ -391,6 +394,11 @@ mc-semantic-ui/                            — repo root (the build reactor)
 │           ├── renderers/*.ts             — one file per UiNode
 │           ├── eventbus.ts                — SuiEventBus (SPA upgrade)
 │           └── sui-bootstrap.ts           — entry script for SPA mode
+│   └── mc-semantic-ui-javafx/             — the same tree as a desktop client
+│       ├── src/main/java/.../javafx/       — SuiFxRenderer + SuiFxEventBus
+│       ├── .../javafx/renderers/*.java     — one file per UiNode
+│       ├── .../javafx/demo/                — runnable DemoApplication
+│       └── src/main/resources/sui-fx/      — sui-fx.css (the FX design system)
 │
 ├── ext/                                   — optional modules; each adds node
 │   │                                        types the core can't draw itself
