@@ -75,7 +75,6 @@
     <line x1="800" y1="245" x2="855" y2="190" stroke="#1F2D5C" stroke-width="2" marker-end="url(#arrowhead)"/>
     <line x1="800" y1="262" x2="855" y2="248" stroke="#1F2D5C" stroke-width="2" marker-end="url(#arrowhead)"/>
     <line x1="800" y1="278" x2="855" y2="308" stroke="#1F2D5C" stroke-width="2" marker-end="url(#arrowhead)"/>
-    <line x1="800" y1="295" x2="855" y2="368" stroke="#1F2D5C" stroke-width="2" marker-end="url(#arrowhead)"/>
   </g>
 
   <g transform="translate(870, 170)">
@@ -88,15 +87,11 @@
   </g>
   <g transform="translate(870, 290)">
     <rect width="140" height="50" rx="10" fill="#FFF4E6" stroke="#FF9800" stroke-width="2"/>
-    <text x="70" y="32" text-anchor="middle" font-size="15" font-weight="700" fill="#B25C00">🖥 Swing</text>
-  </g>
-  <g transform="translate(870, 350)">
-    <rect width="140" height="50" rx="10" fill="#F4F4F4" stroke="#5C6B82" stroke-width="2"/>
-    <text x="70" y="32" text-anchor="middle" font-size="15" font-weight="700" fill="#1F2D5C">⌨ Terminal</text>
+    <text x="70" y="32" text-anchor="middle" font-size="15" font-weight="700" fill="#B25C00">🖥 JavaFX</text>
   </g>
 
-  <text x="940" y="425" text-anchor="middle" font-size="20" fill="#5C6B82">⋮</text>
-  <text x="940" y="446" text-anchor="middle" font-size="13" fill="#5C6B82" font-style="italic">your own renderer</text>
+  <text x="940" y="365" text-anchor="middle" font-size="20" fill="#5C6B82">⋮</text>
+  <text x="940" y="386" text-anchor="middle" font-size="13" fill="#5C6B82" font-style="italic">your own renderer</text>
 
   <!-- ── User box ────────────────────────────────────────────── -->
   <g transform="translate(870, 500)">
