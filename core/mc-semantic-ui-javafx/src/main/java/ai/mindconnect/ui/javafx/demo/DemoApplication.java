@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx.demo;
 
 import ai.mindconnect.ui.javafx.SuiFxEventBus;
 import ai.mindconnect.ui.javafx.SuiFxOverlay;
+import ai.mindconnect.ui.javafx.SuiFxRenderer;
 import ai.mindconnect.ui.model.UiAction;
 import ai.mindconnect.ui.model.UiColumn;
 import ai.mindconnect.ui.model.UiDetail;
@@ -29,7 +30,6 @@ import ai.mindconnect.ui.model.UiTrigger;
 import ai.mindconnect.ui.model.UiUpload;
 import javafx.application.Application;
 import javafx.scene.Scene;
-import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
 import java.util.ArrayList;
@@ -99,7 +99,12 @@ public class DemoApplication extends Application {
             + "&current=temperature_2m,wind_speed_10m,weather_code"
             + "&timezone=Europe%2FBerlin";
 
-    private final SuiFxEventBus bus = new SuiFxEventBus();
+    // The overlay is the host surface ("the DOM"); the renderer paints into it;
+    // the bus drives the renderer and routes toasts + busy state to the overlay.
+    // The overlay loads sui-fx.css itself, so there is no stylesheet wiring here.
+    private final SuiFxOverlay overlay = new SuiFxOverlay();
+    private final SuiFxRenderer renderer = new SuiFxRenderer().attach(overlay);
+    private final SuiFxEventBus bus = new SuiFxEventBus(renderer);
     private DemoServer server;
 
     @Override
@@ -107,17 +112,10 @@ public class DemoApplication extends Application {
         server = new DemoServer();
         installHandlers();
 
-        // The overlay is what turns toasts into cards and gives slow dispatches
-        // a busy scrim. Without it, toasts fall back to modal alerts.
-        var overlay = new SuiFxOverlay(new BorderPane(bus.mount(ui())));
-        bus.setOverlay(overlay);
-
-        var scene = new Scene(overlay, 900, 640);
-        scene.getStylesheets().add(
-                DemoApplication.class.getResource("/sui-fx/sui-fx.css").toExternalForm());
+        renderer.mount(ui());
 
         stage.setTitle("Semantic UI — JavaFX renderer demo");
-        stage.setScene(scene);
+        stage.setScene(new Scene(overlay, 900, 640));
         stage.show();
     }
 

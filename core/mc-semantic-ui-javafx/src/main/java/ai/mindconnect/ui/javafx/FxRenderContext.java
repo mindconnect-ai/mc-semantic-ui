@@ -17,19 +17,17 @@ import java.util.Map;
  */
 public class FxRenderContext {
 
-    private final SuiFxEventBus bus;
     private final SuiFxRenderer renderer;
     private final FxFormScope form;
     /** id → painted node, for patches. Shared across the whole mount. */
     private final Map<String, Node> index;
 
-    FxRenderContext(SuiFxEventBus bus, SuiFxRenderer renderer) {
-        this(bus, renderer, null, new LinkedHashMap<>());
+    FxRenderContext(SuiFxRenderer renderer) {
+        this(renderer, null, new LinkedHashMap<>());
     }
 
-    private FxRenderContext(SuiFxEventBus bus, SuiFxRenderer renderer,
+    private FxRenderContext(SuiFxRenderer renderer,
                             FxFormScope form, Map<String, Node> index) {
-        this.bus = bus;
         this.renderer = renderer;
         this.form = form;
         this.index = index;
@@ -42,11 +40,16 @@ public class FxRenderContext {
 
     /** A sibling context whose fields register into {@code scope}. See {@link FxFormScope}. */
     public FxRenderContext withForm(FxFormScope scope) {
-        return new FxRenderContext(bus, renderer, scope, index);
+        return new FxRenderContext(renderer, scope, index);
     }
 
+    /**
+     * The event bus driving this mount. Read lazily from the renderer, so a
+     * trigger wired at paint time picks up whichever bus is attached when the
+     * click actually happens.
+     */
     public SuiFxEventBus bus() {
-        return bus;
+        return renderer.bus();
     }
 
     public SuiFxRenderer renderer() {

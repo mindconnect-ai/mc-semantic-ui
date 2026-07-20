@@ -107,6 +107,50 @@ class SuiFxRendererTest {
     }
 
     @Test
+    void theOverlayHostPatternMountsPatchesAndAutoWiresToasts() {
+        // The documented pattern: overlay is the host, the renderer paints into
+        // it, the bus drives the renderer. No setOverlay / setToastHandler call.
+        SuiFxOverlay overlay = onFxThread(() -> new SuiFxOverlay());
+        var renderer = new SuiFxRenderer().attach(overlay);
+        var bus      = new SuiFxEventBus(renderer);
+
+        var panel = UiStack.of(UiText.of("before"));
+        panel.setId("panel");
+        onFxThread(() -> renderer.mount(UiStack.of(panel)));
+
+        // mount put the tree inside the overlay, and the id index found it.
+        Node found = onFxThread(() -> renderer.context().byId("panel"));
+        assertThat(found).isNotNull();
+
+        // A patch with a toast: the node op is applied AND the toast lands on
+        // the overlay, purely because the renderer was attached to it.
+        var replacement = UiStack.of(UiText.of("after"));
+        replacement.setId("panel");
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of()
+                    .patch(UiPatch.Operation.replace("panel", replacement))
+                    .toast(UiToast.success("done")));
+            return null;
+        });
+
+        String toastText = onFxThread(() -> textOf(overlay.toastPane()));
+        assertThat(toastText).contains("done");
+        String panelText = onFxThread(() -> textOf(renderer.context().byId("panel")));
+        assertThat(panelText).contains("after").doesNotContain("before");
+    }
+
+    /** All the label text anywhere under a node, joined — a crude but handy probe. */
+    private static String textOf(Node root) {
+        if (root instanceof Label l) return l.getText() == null ? "" : l.getText();
+        if (root instanceof javafx.scene.Parent p) {
+            var sb = new StringBuilder();
+            for (var child : p.getChildrenUnmodifiable()) sb.append(textOf(child)).append(' ');
+            return sb.toString();
+        }
+        return "";
+    }
+
+    @Test
     void paintsTextTableAndTabs() {
         var table = UiTable.of("orders", "Orders")
                 .column(ai.mindconnect.ui.model.UiColumn.text("id", "Id"))

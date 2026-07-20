@@ -16,7 +16,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -105,7 +104,6 @@ public class SuiFxEventBus {
         return t;
     });
 
-    private FxRenderContext context;
     private FxLoadingPolicy loadingPolicy = FxLoadingPolicy.AUTO;
     private Consumer<Boolean> busyIndicator = busy -> { };
     private Consumer<UiToast> toastHandler = SuiFxEventBus::defaultToast;
@@ -117,33 +115,52 @@ public class SuiFxEventBus {
             System.getLogger(SuiFxEventBus.class.getName())
                     .log(System.Logger.Level.INFO, "SuiFxEventBus: downloaded to " + file);
 
-    public SuiFxEventBus() {
-        this(new SuiFxRenderer(), new ObjectMapper());
+    /**
+     * The primary constructor: a bus driving {@code renderer}. If the renderer
+     * was {@link SuiFxRenderer#attach}ed to a {@link SuiFxOverlay}, toasts and
+     * the busy scrim are wired to it automatically.
+     *
+     * <pre>{@code
+     * var overlay  = new SuiFxOverlay();
+     * var renderer = new SuiFxRenderer().attach(overlay);
+     * var bus      = new SuiFxEventBus(renderer);
+     * renderer.mount(tree);
+     * }</pre>
+     */
+    public SuiFxEventBus(SuiFxRenderer renderer) {
+        this(renderer, new ObjectMapper());
     }
 
     public SuiFxEventBus(SuiFxRenderer renderer, ObjectMapper mapper) {
         this.renderer = renderer;
         this.mapper = mapper;
-        this.context = renderer.newContext(this);
+        renderer.setBus(this);
         installDefaultBehaviors();
+        // The overlay is both the host and the toast/busy surface, so if the
+        // renderer is already attached to one, wire it up with no extra call.
+        if (renderer.host() != null) setOverlay(renderer.host());
+    }
+
+    /** @deprecated Prefer {@code new SuiFxEventBus(new SuiFxRenderer().attach(overlay))}. */
+    @Deprecated
+    public SuiFxEventBus() {
+        this(new SuiFxRenderer());
     }
 
     // ── mounting ──────────────────────────────────────────────────────────
 
     /**
-     * Paints {@code root} and makes it the live tree this bus patches against.
-     * The JavaFX answer to mounting the SPA on {@code #sui-root}.
-     *
-     * @return the painted node, ready to drop into a {@link javafx.scene.Scene}
+     * @deprecated Mounting moved to the renderer, mirroring the SPA's
+     *     {@code renderer.mount(node)}. Call {@link SuiFxRenderer#mount} instead.
      */
+    @Deprecated
     public Node mount(UiNode root) {
-        this.context = renderer.newContext(this);
-        return context.render(root);
+        return renderer.mount(root);
     }
 
     /** The render context of the current mount — mostly useful for tests. */
     public FxRenderContext context() {
-        return context;
+        return renderer.context();
     }
 
     public SuiFxRenderer renderer() {
@@ -197,14 +214,12 @@ public class SuiFxEventBus {
     }
 
     /**
-     * Routes toasts and the global busy state into an overlay layer — the one
-     * call that gives an app proper toast cards instead of modal alerts, and a
-     * busy scrim instead of nothing.
+     * Routes toasts and the global busy state into an overlay layer — proper
+     * toast cards instead of modal alerts, and a busy scrim instead of nothing.
      *
-     * <pre>{@code
-     * var overlay = new SuiFxOverlay(bus.mount(tree));
-     * bus.setOverlay(overlay);
-     * }</pre>
+     * <p>Usually you need not call this: constructing the bus with a renderer
+     * that was {@link SuiFxRenderer#attach}ed to an overlay wires it for you.
+     * Use it only to attach or swap an overlay after the fact.
      */
     public SuiFxEventBus setOverlay(SuiFxOverlay overlay) {
         if (overlay == null) return this;
@@ -263,7 +278,7 @@ public class SuiFxEventBus {
 
         var payload = resolvePayload(trigger, source, ctx);
         var triggerCtx = new FxTriggerContext(this, trigger, source,
-                ctx == null ? context : ctx, payload, files);
+                ctx == null ? renderer.context() : ctx, payload, files);
 
         // Busy for exactly as long as the behaviour runs: until handle()
         // returns for synchronous work, until its stage completes for async.
@@ -429,51 +444,11 @@ public class SuiFxEventBus {
     public void applyPatch(UiPatch patch) {
         if (patch == null) return;
         onFxThread(() -> {
-            for (var op : patch.getPatches()) {
-                try {
-                    apply(op);
-                } catch (Exception e) {
-                    reportError(e);
-                }
-            }
+            // Node operations are the renderer's job (it owns the id index);
+            // toasts are the bus's, since only it knows the toast handler.
+            renderer.applyPatch(patch);
             if (patch.getToasts() != null) patch.getToasts().forEach(toastHandler);
         });
-    }
-
-    private void apply(UiPatch.Operation op) {
-        var target = context.byId(op.getTargetId());
-        if (target == null) {
-            reportError(new IllegalArgumentException(
-                    "Patch target '" + op.getTargetId() + "' is not in the mounted tree"));
-            return;
-        }
-        switch (op.getOp()) {
-            case REPLACE -> replace(target, context.render(op.getNode()));
-            case REMOVE -> children(target.getParent()).ifPresent(c -> c.remove(target));
-            case APPEND -> children(target).ifPresent(c -> c.add(context.render(op.getNode())));
-            case CLEAR -> children(target).ifPresent(List::clear);
-        }
-    }
-
-    private void replace(Node target, Node replacement) {
-        var parent = target.getParent();
-        var siblings = children(parent);
-        if (siblings.isEmpty()) {
-            reportError(new IllegalStateException(
-                    "Cannot replace '" + target.getId() + "': its parent is not a Pane"));
-            return;
-        }
-        var list = siblings.get();
-        int index = list.indexOf(target);
-        if (index < 0) return;
-        list.set(index, replacement);
-    }
-
-    /** The mutable child list of a node, when it has one. */
-    private java.util.Optional<javafx.collections.ObservableList<Node>> children(Node node) {
-        return node instanceof Pane pane
-                ? java.util.Optional.of(pane.getChildren())
-                : java.util.Optional.empty();
     }
 
     /** Shows a toast through the configured handler. */
@@ -509,7 +484,7 @@ public class SuiFxEventBus {
             }
         }
 
-        var content = context.render(dialog);
+        var content = renderer.context().render(dialog);
 
         var stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
@@ -528,7 +503,7 @@ public class SuiFxEventBus {
         // the model's closeHref fires exactly once.
         stage.setOnHidden(e -> {
             if (dialog.getCloseHref() != null) {
-                dispatch(UiTrigger.go(dialog.getCloseHref()), dialog, context);
+                dispatch(UiTrigger.go(dialog.getCloseHref()), dialog, renderer.context());
             }
         });
 
@@ -692,7 +667,7 @@ public class SuiFxEventBus {
             } else if (tree.has("type")) {
                 var node = mapper.treeToValue(tree, UiNode.class);
                 var id = node.getId();
-                if (id != null && context.byId(id) != null) {
+                if (id != null && renderer.context() != null && renderer.context().byId(id) != null) {
                     applyPatch(UiPatch.of().patch(UiPatch.Operation.replace(id, node)));
                 } else {
                     // Nothing to patch into — hand it to the app to remount.

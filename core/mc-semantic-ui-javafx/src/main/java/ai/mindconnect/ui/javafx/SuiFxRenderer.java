@@ -37,14 +37,18 @@ import ai.mindconnect.ui.model.UiTable;
 import ai.mindconnect.ui.model.UiText;
 import ai.mindconnect.ui.model.UiTree;
 import ai.mindconnect.ui.model.UiUpload;
+import ai.mindconnect.ui.model.UiPatch;
 import ai.mindconnect.ui.model.UiTrigger;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
+import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Pane;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * The third renderer for the {@code UiNode} vocabulary: same model as the SSR
@@ -73,10 +77,12 @@ import java.util.Map;
  * {@link SuiFxOverlay}.
  *
  * <pre>{@code
- * var bus = new SuiFxEventBus();
+ * var overlay  = new SuiFxOverlay();                    // the host surface
+ * var renderer = new SuiFxRenderer().attach(overlay);   // paints into it
+ * var bus      = new SuiFxEventBus(renderer);           // drives it, routes toasts
  * bus.registerClientHandler("save", ctx -> repo.save(ctx.payload()));
- * Node ui = bus.mount(myUiTree);
- * stage.setScene(new Scene(new BorderPane(ui), 900, 600));
+ * renderer.mount(myUiTree);
+ * stage.setScene(new Scene(overlay, 900, 600));
  * }</pre>
  *
  * <p>Instances are not thread-safe and are meant to be used from the JavaFX
@@ -89,8 +95,116 @@ public class SuiFxRenderer {
     /** Model class → the {@code type} discriminator, read off {@link UiNode}'s Jackson config. */
     private static final Map<Class<?>, String> TYPE_NAMES = readTypeNames();
 
+    /** The host surface painted into, once {@link #attach} has been called. */
+    private SuiFxOverlay host;
+    /** The event bus driving this renderer; set by the bus that owns it. */
+    private SuiFxEventBus bus;
+    /** The context of the current mount — holds the id → node index for patches. */
+    private FxRenderContext context;
+
     public SuiFxRenderer() {
         installDefaultRenderers();
+    }
+
+    // ── host + bus wiring (the JavaFX twin of renderer.attach(host)) ─────────
+
+    /**
+     * Binds this renderer to the {@link SuiFxOverlay} it paints into — the
+     * JavaFX equivalent of the SPA's {@code renderer.attach(hostElement)}. The
+     * overlay is both the scene root and the surface toasts and the busy scrim
+     * live on.
+     *
+     * @return this, so the call chains: {@code new SuiFxRenderer().attach(overlay)}
+     */
+    public SuiFxRenderer attach(SuiFxOverlay host) {
+        this.host = host;
+        return this;
+    }
+
+    /** The host surface, or {@code null} when the renderer is used detached (e.g. tests). */
+    public SuiFxOverlay host() {
+        return host;
+    }
+
+    /** The bus driving this renderer, or {@code null} before one is constructed with it. */
+    public SuiFxEventBus bus() {
+        return bus;
+    }
+
+    /** Called by {@link SuiFxEventBus}'s constructor so triggers can dispatch to it. */
+    void setBus(SuiFxEventBus bus) {
+        this.bus = bus;
+    }
+
+    // ── mount + patch (moved here from the bus, mirroring the SPA renderer) ──
+
+    /**
+     * Paints {@code root} and makes it the live tree this renderer patches
+     * against. If a host was {@link #attach}ed, the painted node becomes its
+     * content; either way the node is returned so a detached caller can place
+     * it. Mirrors the SPA's {@code renderer.mount(node)}.
+     *
+     * @return the painted node
+     */
+    public Node mount(UiNode root) {
+        this.context = newContext();
+        Node node = context.render(root);
+        if (host != null) host.setContent(node);
+        return node;
+    }
+
+    /** The render context of the current mount — mostly useful for tests. */
+    public FxRenderContext context() {
+        return context;
+    }
+
+    /**
+     * Applies the node operations of a {@link UiPatch} against the mounted tree:
+     * each finds its target by id in the render index and repaints just that
+     * subtree. Toasts are the bus's job — see {@link SuiFxEventBus#applyPatch}.
+     */
+    public void applyPatch(UiPatch patch) {
+        if (patch == null || context == null) return;
+        for (var op : patch.getPatches()) {
+            try {
+                apply(op);
+            } catch (Exception e) {
+                if (bus != null) bus.reportError(e);
+            }
+        }
+    }
+
+    private void apply(UiPatch.Operation op) {
+        var target = context.byId(op.getTargetId());
+        if (target == null) {
+            if (bus != null) bus.reportError(new IllegalArgumentException(
+                    "Patch target '" + op.getTargetId() + "' is not in the mounted tree"));
+            return;
+        }
+        switch (op.getOp()) {
+            case REPLACE -> replace(target, context.render(op.getNode()));
+            case REMOVE -> children(target.getParent()).ifPresent(c -> c.remove(target));
+            case APPEND -> children(target).ifPresent(c -> c.add(context.render(op.getNode())));
+            case CLEAR -> children(target).ifPresent(ObservableList::clear);
+        }
+    }
+
+    private void replace(Node target, Node replacement) {
+        var siblings = children(target.getParent());
+        if (siblings.isEmpty()) {
+            if (bus != null) bus.reportError(new IllegalStateException(
+                    "Cannot replace '" + target.getId() + "': its parent is not a Pane"));
+            return;
+        }
+        var list = siblings.get();
+        int index = list.indexOf(target);
+        if (index < 0) return;
+        list.set(index, replacement);
+    }
+
+    /** The mutable child list of a node, when it has one. */
+    private Optional<ObservableList<Node>> children(Node node) {
+        return node instanceof Pane pane ? Optional.of(pane.getChildren()) : Optional.empty();
     }
 
     /**
@@ -124,9 +238,9 @@ public class SuiFxRenderer {
         return this;
     }
 
-    /** A fresh render context bound to {@code bus} — one per mount. */
-    public FxRenderContext newContext(SuiFxEventBus bus) {
-        return new FxRenderContext(bus, this);
+    /** A fresh render context — one per mount. The bus is read back through this renderer. */
+    public FxRenderContext newContext() {
+        return new FxRenderContext(this);
     }
 
     /**

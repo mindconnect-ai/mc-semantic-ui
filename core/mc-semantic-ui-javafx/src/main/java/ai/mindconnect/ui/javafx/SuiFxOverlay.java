@@ -20,13 +20,19 @@ import javafx.util.Duration;
  *
  * <p>Neither belongs in the {@code UiNode} tree — a toast is not a node, and
  * the busy state is a property of a dispatch, not of the model. So they get a
- * layer of their own that the app wraps around the mounted content:
+ * layer of their own: the overlay is the scene root ("the DOM"), the renderer
+ * paints into it, and the bus routes toasts and busy state to it.
  *
  * <pre>{@code
- * var overlay = new SuiFxOverlay(bus.mount(tree));
- * bus.setOverlay(overlay);            // toasts and busy state now land here
+ * var overlay  = new SuiFxOverlay();                    // the host surface
+ * var renderer = new SuiFxRenderer().attach(overlay);   // paints into it
+ * var bus      = new SuiFxEventBus(renderer);           // toasts/busy land here
+ * renderer.mount(tree);
  * stage.setScene(new Scene(overlay, 900, 640));
  * }</pre>
+ *
+ * <p>It loads {@code sui-fx.css} onto itself, so an app needs no stylesheet
+ * wiring of its own.
  *
  * <p>The busy scrim appears only after {@link #BUSY_DELAY}. A local
  * {@code INVOKE} handler usually finishes in microseconds, and flashing a
@@ -38,12 +44,14 @@ public class SuiFxOverlay extends StackPane {
     /** How long a dispatch may take before the scrim shows up. */
     public static final Duration BUSY_DELAY = Duration.millis(250);
 
+    private final StackPane content = new StackPane();
     private final VBox toasts = new VBox(8);
     private final StackPane scrim = new StackPane(new ProgressIndicator());
     private final PauseTransition busyDelay = new PauseTransition(BUSY_DELAY);
     private int busyCount;
 
-    public SuiFxOverlay(Node content) {
+    /** An empty host surface. The renderer fills it via {@link #setContent}. */
+    public SuiFxOverlay() {
         getStyleClass().add("sui-overlay");
 
         toasts.setAlignment(Pos.TOP_RIGHT);
@@ -57,6 +65,24 @@ public class SuiFxOverlay extends StackPane {
         busyDelay.setOnFinished(e -> scrim.setVisible(busyCount > 0));
 
         getChildren().addAll(content, scrim, toasts);
+
+        var css = SuiFxOverlay.class.getResource("/sui-fx/sui-fx.css");
+        if (css != null) getStylesheets().add(css.toExternalForm());
+    }
+
+    /**
+     * @deprecated Wrap-the-content style. Prefer {@code new SuiFxOverlay()} as
+     *     the host and let the renderer fill it — see the class javadoc.
+     */
+    @Deprecated
+    public SuiFxOverlay(Node content) {
+        this();
+        setContent(content);
+    }
+
+    /** Replaces the painted content this overlay wraps. Called by the renderer's mount. */
+    public void setContent(Node node) {
+        content.getChildren().setAll(node);
     }
 
     // ── toasts ────────────────────────────────────────────────────────────

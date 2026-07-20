@@ -12,22 +12,19 @@ client** — same model, same triggers, same vocabulary, no shared markup.
 in this module.*
 
 ```java
-var bus = new SuiFxEventBus();
+// The overlay is the host ("the DOM"); the renderer paints into it; the bus
+// drives the renderer. Same shape as the browser's renderer + SuiEventBus.
+var overlay  = new SuiFxOverlay();
+var renderer = new SuiFxRenderer().attach(overlay);
+var bus      = new SuiFxEventBus(renderer);
 
 bus.registerClientHandler("saveCustomer", ctx -> {
     customerService.save(ctx.payload());       // plain Java, runs off the FX thread
-    bus.toast(UiToast.success("Saved."));
+    bus.toast(UiToast.success("Saved."));       // a card, because the overlay is wired
 });
 
-// The overlay turns toasts into cards and gives slow dispatches a busy
-// scrim; without it, toasts fall back to modal alerts.
-var overlay = new SuiFxOverlay(new BorderPane(bus.mount(page())));
-bus.setOverlay(overlay);
-
-var scene = new Scene(overlay, 900, 640);
-scene.getStylesheets().add(
-        getClass().getResource("/sui-fx/sui-fx.css").toExternalForm());
-stage.setScene(scene);
+renderer.mount(page());
+stage.setScene(new Scene(overlay, 900, 640));   // overlay loads sui-fx.css itself
 ```
 
 `page()` returns a `UiNode` tree. Nothing in it is JavaFX-specific — hand the
@@ -81,10 +78,21 @@ Six of the seven `UiTrigger.Behavior`s work: `APPLY_RESPONSE`, `INVOKE`,
 it is registered as a behaviour that throws, so you get a clear error instead of
 silence, and you can register your own.
 
-## The event bus
+## Renderer, bus and overlay
 
-`SuiFxEventBus` is to this module what `SuiEventBus` is to the SPA: it owns the
-mounted tree, resolves triggers, and applies patches.
+Three objects, the same split as the browser:
+
+- **`SuiFxRenderer`** — paints `UiNode`s into a JavaFX scene graph and owns
+  mounting: `attach(overlay)`, `mount(tree)`, `applyPatch(...)`. The twin of the
+  SPA's `SuiRenderer`.
+- **`SuiFxEventBus`** — resolves triggers, runs handlers, routes toasts. Driven
+  by a renderer: `new SuiFxEventBus(renderer)`. The twin of `SuiEventBus`.
+- **`SuiFxOverlay`** — the host surface ("the DOM"): the scene root the renderer
+  paints into, and where toasts and the busy scrim live. It loads `sui-fx.css`
+  itself.
+
+If the renderer was `attach`ed to an overlay, the bus wires toasts and busy
+state to it automatically — no `setOverlay` call.
 
 **Handlers are plain Java and run off the FX thread.** A handler is a lambda
 taking an `FxTriggerContext`; the bus hops back to the FX thread for you when it

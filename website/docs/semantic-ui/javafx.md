@@ -34,7 +34,11 @@ hand the very same object to `SuiServerRenderer` and you get HTML instead.
 ```java
 public class MiniApp extends Application {
 
-    private final SuiFxEventBus bus = new SuiFxEventBus();
+    // The overlay is the host ("the DOM"); the renderer paints into it; the bus
+    // drives the renderer — the same split as the browser's renderer + event bus.
+    private final SuiFxOverlay   overlay  = new SuiFxOverlay();
+    private final SuiFxRenderer  renderer = new SuiFxRenderer().attach(overlay);
+    private final SuiFxEventBus  bus      = new SuiFxEventBus(renderer);
 
     /** Plain data. Nothing here is JavaFX-specific. */
     private UiNode ui() {
@@ -56,17 +60,12 @@ public class MiniApp extends Application {
         bus.registerClientHandler("saveCustomer", ctx ->
                 bus.toast(UiToast.success("Saved " + ctx.string("name"))));
 
-        // The overlay turns toasts into cards and gives slow dispatches a busy
-        // scrim. Without it, toasts fall back to modal alerts.
-        var overlay = new SuiFxOverlay(new BorderPane(bus.mount(ui())));
-        bus.setOverlay(overlay);
+        renderer.mount(ui());
 
-        var scene = new Scene(overlay, 520, 360);
-        scene.getStylesheets().add(
-                MiniApp.class.getResource("/sui-fx/sui-fx.css").toExternalForm());
-
+        // The overlay loads sui-fx.css itself, and toasts already land on it —
+        // no stylesheet wiring, no setOverlay call.
         stage.setTitle("Semantic UI — JavaFX");
-        stage.setScene(scene);
+        stage.setScene(new Scene(overlay, 520, 360));
         stage.show();
     }
 }
@@ -91,17 +90,23 @@ the browser does: every named field inside the enclosing `UiForm`, across
 arbitrary nesting — and across unselected tabs, because tab panels are painted
 eagerly.
 
-## The event bus
+## Renderer, bus and overlay
 
-`SuiFxEventBus` is the desktop counterpart of the browser's `SuiEventBus`. It
-owns the mounted tree, resolves triggers and applies patches.
+The same split as the browser. `SuiFxRenderer` is the desktop counterpart of
+`SuiRenderer`, `SuiFxEventBus` of `SuiEventBus`.
 
 | | |
 |---|---|
-| `mount(UiNode)` | paints a tree and returns the JavaFX `Node` |
-| `registerClientHandler(name, handler)` | a local Java handler for `INVOKE` |
-| `applyPatch(UiPatch)` | applies `REPLACE`/`APPEND`/`CLEAR`/`REMOVE` to the live scene |
-| `toast(UiToast)` / `showDialog(UiDialog)` | feedback and modals |
+| `renderer.attach(overlay)` | binds the renderer to its host surface |
+| `renderer.mount(UiNode)` | paints a tree into the host, returns the `Node` |
+| `renderer.applyPatch(UiPatch)` | applies `REPLACE`/`APPEND`/`CLEAR`/`REMOVE` to the live scene |
+| `new SuiFxEventBus(renderer)` | the bus that drives the renderer |
+| `bus.registerClientHandler(name, handler)` | a local Java handler for `INVOKE` |
+| `bus.toast(UiToast)` / `bus.showDialog(UiDialog)` | feedback and modals |
+
+The renderer owns mounting and patching (as in the browser); the bus owns
+triggers, handlers and feedback. `bus.applyPatch` also exists — it applies the
+node ops through the renderer and shows any toasts the patch carries.
 
 Handlers run on a background thread by default; the bus hops back to the FX
 thread on its own when it applies the result. Pass `FxHandlerThread.FX` for the
