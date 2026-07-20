@@ -5,9 +5,10 @@ sidebar_position: 8
 
 # Rendering modes
 
-The same `UiPage` tree renders three ways. The mode is chosen by content
-negotiation and whether the SPA bootstrap script is loaded — never by changing
-the controller.
+The same `UiPage` tree renders several ways. On the web the mode is chosen by
+content negotiation and whether the SPA bootstrap script is loaded — never by
+changing the controller. Off the web, the same tree drives a native JavaFX
+desktop client.
 
 ## Server-side rendering (SSR)
 
@@ -40,6 +41,15 @@ Streaming chat is a natural fit: each token batch is an `APPEND` patch targeting
 the message node.
 
 ![Chat stream patch](/img/semantic-ui/chat-stream-patch.svg)
+
+## Off the web entirely: JavaFX
+
+The same tree also renders as a **native desktop client**. `UiTable` becomes a
+real JavaFX `TableView`, `UiField` a real `TextField` — no web view involved.
+Triggers and `UiPatch` are the same objects, so an endpoint that already answers
+a browser can answer the desktop client unchanged.
+
+See **[JavaFX desktop client](./javafx.md)**.
 
 ## Not a full page? Embed an island
 

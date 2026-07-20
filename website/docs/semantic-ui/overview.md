@@ -35,8 +35,10 @@ semantic-ui flips the relationship:
 
 The model is plain typed JSON. A small TypeScript renderer turns the tree into a
 live, interactive UI in the browser; on the JVM a matching Handlebars renderer
-produces the **same** markup as no-JS server HTML. One model, many renderers: a
-live app, no-JS HTML, and a built-in visual editor. Where the data comes from is
+produces the **same** markup as no-JS server HTML, and a JavaFX renderer draws
+the very same tree as a native desktop client. One model, many renderers: a
+live app, no-JS HTML, a [desktop client](./javafx.md), and a built-in visual
+editor. Where the data comes from is
 up to you — a JavaScript object in the page, or any backend that emits the JSON.
 
 ![Semantic UI — how it works](/img/semantic-ui/how-it-works.svg)
@@ -222,6 +224,8 @@ the rest.
   — the two topics that cut across many node types.
 - **[Rendering modes](./rendering-modes.md)** — SSR, SPA, and partial updates
   with `UiPatch`.
+- **[JavaFX desktop client](./javafx.md)** — the same tree as a native desktop
+  app, with a complete small example.
 - **[How it compares](./how-it-compares.md)** — versus HTMX, Datastar,
   Inertia.js and Vaadin Flow.
 

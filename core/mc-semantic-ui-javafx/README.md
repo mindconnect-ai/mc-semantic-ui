@@ -6,14 +6,21 @@ client** — same model, same triggers, same vocabulary, no shared markup.
 
 ```java
 var bus = new SuiFxEventBus();
-var overlay = new SuiFxOverlay(bus);          // toasts + busy scrim
 
 bus.registerClientHandler("saveCustomer", ctx -> {
     customerService.save(ctx.payload());       // plain Java, runs off the FX thread
     bus.toast(UiToast.success("Saved."));
 });
 
-stage.setScene(new Scene(overlay.wrap(bus.mount(page())), 1100, 720));
+// The overlay turns toasts into cards and gives slow dispatches a busy
+// scrim; without it, toasts fall back to modal alerts.
+var overlay = new SuiFxOverlay(new BorderPane(bus.mount(page())));
+bus.setOverlay(overlay);
+
+var scene = new Scene(overlay, 900, 640);
+scene.getStylesheets().add(
+        getClass().getResource("/sui-fx/sui-fx.css").toExternalForm());
+stage.setScene(scene);
 ```
 
 `page()` returns a `UiNode` tree. Nothing in it is JavaFX-specific — hand the

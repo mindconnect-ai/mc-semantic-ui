@@ -130,6 +130,13 @@ const sidebars = {
         },
         {
           type: 'category',
+          label: 'JavaFX desktop client',
+          items: [
+            'semantic-ui/javafx',
+          ],
+        },
+        {
+          type: 'category',
           label: 'Tooling',
           items: [
             'semantic-ui/editor',
