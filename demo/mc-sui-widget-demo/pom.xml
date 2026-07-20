@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ai.mindconnect</groupId>
+        <artifactId>mc-semantic-ui-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mc-sui-widget-demo</artifactId>
+    <packaging>pom</packaging>
+    <description>
+        Static, backend-free showcase of every Semantic UI widget. The build
+        assembles a self-contained site under target/dist: the compiled core
+        renderer + stylesheets (unpacked from the mc-semantic-ui-core jar) plus
+        an index.html and a plain-JS demo that mounts UiNode literals — no
+        Spring, no server, no fetch. Serve target/dist from any static host.
+    </description>
+
+    <!-- Not a published artifact — it's a static site, produced under target/dist. -->
+    <properties>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+    <dependencies>
+        <!-- Reactor-orders this module after core and provides the jar we unpack. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-core</artifactId>
+        </dependency>
+        <!-- Diagram extension — its browser bundle (/sui-ext) powers the
+             client-side diagram specimen. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-ext-diagram</artifactId>
+        </dependency>
+        <!-- The chart extension paints the core's chart node; the demo shows
+             the shipped behaviour rather than a hand-rolled painter. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-ext-chart</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+                Assemble the static site: the hand-written page + demo JS at the
+                dist root, the unpacked core assets under dist/sui/. The result
+                is fully self-contained — open it from any static file server.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-demo-sources</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dist</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/static</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-sui-assets</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dist/sui</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${sui.core.assets}</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-sui-ext-assets</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <!--
+                                Both extensions publish into /sui-ext, each
+                                under its own subdirectory (diagram/, chart/),
+                                so they merge here without colliding.
+                            -->
+                            <outputDirectory>${project.build.directory}/dist/sui-ext</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${sui.ext.diagram.assets}</directory>
+                                </resource>
+                                <resource>
+                                    <directory>${sui.ext.chart.assets}</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

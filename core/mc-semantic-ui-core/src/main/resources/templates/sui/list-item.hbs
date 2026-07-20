@@ -1,0 +1,22 @@
+{{!--
+  UiList.Item → <li> with label (clickable if onClick), description-or-content,
+  optional <details> collapsible wrapper, and an actions row.
+  Parity with defaultRenderItem() in renderer.ts.
+--}}
+<li class="sui-list-item" id="{{id}}" data-id="{{id}}">
+  <div class="sui-list-item-main">
+    {{~#if collapseSummary~}}
+      <details class="sui-activity"{{#if collapseClientControlled}} data-sui-client-collapse{{else}}{{#if collapseOpen}} open{{/if}}{{/if}}>
+        <summary class="sui-activity-summary">{{#if collapseSummaryId}}<span id="{{collapseSummaryId}}">{{collapseSummary}}</span>{{else}}{{collapseSummary}}{{/if}}</summary>
+        <div class="sui-activity-body">
+          {{#if onClick}}<a class="sui-list-item-label" href="#" data-trigger='{{{trigger onClick}}}'>{{#if labelNode}}{{{render labelNode}}}{{else}}{{#if icon}}{{{icon icon}}} {{/if}}{{label}}{{/if}}</a>{{else}}<span class="sui-list-item-label">{{#if labelNode}}{{{render labelNode}}}{{else}}{{#if icon}}{{{icon icon}}} {{/if}}{{label}}{{/if}}</span>{{/if}}
+          {{#if content}}{{{render content}}}{{else}}{{#if description}}<span class="sui-list-item-desc">{{description}}</span>{{/if}}{{/if}}
+        </div>
+      </details>
+    {{~else~}}
+      {{#if onClick}}<a class="sui-list-item-label" href="#" data-trigger='{{{trigger onClick}}}'>{{#if labelNode}}{{{render labelNode}}}{{else}}{{#if icon}}{{{icon icon}}} {{/if}}{{label}}{{/if}}</a>{{else}}<span class="sui-list-item-label">{{#if labelNode}}{{{render labelNode}}}{{else}}{{#if icon}}{{{icon icon}}} {{/if}}{{label}}{{/if}}</span>{{/if}}
+      {{#if content}}{{{render content}}}{{else}}{{#if description}}<span class="sui-list-item-desc">{{description}}</span>{{/if}}{{/if}}
+    {{~/if~}}
+  </div>
+  <div class="sui-list-item-actions">{{#each actions}}{{> action this}}{{/each}}</div>
+</li>

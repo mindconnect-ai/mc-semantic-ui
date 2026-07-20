@@ -1,0 +1,25 @@
+/*
+ * Styling for charts painted by mc-semantic-ui-ext-chart.
+ *
+ * The SVG itself carries only geometry and palette colours; everything about
+ * how the chart sits on the page lives here, so an app can restyle it without
+ * touching the painter. Override --sui-chart-1 … --sui-chart-6 to recolour.
+ */
+
+.sui-chart { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); padding: 16px 18px; }
+.sui-chart > h2 { font-size: 15px; font-weight: 600; margin: 0 0 10px; }
+
+.sui-chart-svg { display: block; width: 100%; height: auto; max-width: 420px; }
+
+/* Pie / donut: the drawing and its legend sit side by side, wrapping on narrow
+   screens rather than squeezing the chart. */
+.sui-chart-radial { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.sui-chart-radial .sui-chart-svg { width: 170px; flex: 0 0 auto; }
+
+.sui-chart-legend { list-style: none; margin: 0; padding: 0; display: flex;
+                    flex-direction: column; gap: 6px; font-size: 13px;
+                    color: var(--sui-color-text-body); }
+.sui-chart-legend li { display: flex; align-items: center; gap: 8px; }
+.sui-chart-swatch { width: 10px; height: 10px; border-radius: 2px; flex: 0 0 auto; }
+
+.sui-chart-empty { color: var(--sui-color-empty, #94a3b8); font-style: italic; margin: 0; }

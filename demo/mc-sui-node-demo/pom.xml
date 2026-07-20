@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ai.mindconnect</groupId>
+        <artifactId>mc-semantic-ui-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mc-sui-node-demo</artifactId>
+    <!--
+        No Java, no artifact to publish: packaging is `pom` so Maven skips the
+        compiler and jar plugins entirely. This module exists in the reactor for
+        one reason — to make the build fail when the Node demo breaks.
+
+        Until now it had no pom at all and no <module> entry, so nothing ever
+        built or checked it. Its client-copy script hard-codes a path into the
+        core module, which means a directory move elsewhere in the repo can
+        break it silently; that is exactly what a reactor build catches.
+    -->
+    <packaging>pom</packaging>
+    <description>
+        Pure Node.js / Express demo — serves a semantic-ui product list as plain
+        JSON, no Java backend. Built here only to keep it honest: `npm install`
+        must resolve and the core client assets must still be where the demo
+        expects them.
+    </description>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <goals><goal>install-node-and-npm</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>npm-install</id>
+                        <goals><goal>npm</goal></goals>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <!--
+                        The real check: copy-client resolves the core module's
+                        compiled TypeScript and stylesheets into public/sui/ and
+                        exits non-zero when it can't find them. Bound to `test`
+                        rather than `compile` so it runs in a plain `mvn test`
+                        too — the demo has no unit tests, and this is the
+                        closest thing it has to one.
+                    -->
+                    <execution>
+                        <id>npm-copy-client</id>
+                        <phase>test</phase>
+                        <goals><goal>npm</goal></goals>
+                        <configuration>
+                            <arguments>run copy-client</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

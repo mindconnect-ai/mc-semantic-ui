@@ -1,0 +1,14 @@
+{
+  "name": "mc-semantic-ui-ext-json",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Browser-side renderer for the semantic-ui json-viewer node.",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

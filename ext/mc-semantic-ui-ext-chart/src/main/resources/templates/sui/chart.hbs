@@ -1,0 +1,16 @@
+{{!--
+  UiChart → the real drawing, overriding the core's placeholder template.
+
+  This file shadows mc-semantic-ui-core's templates/sui/chart.hbs purely by
+  being on the classpath — the mechanism the core documents for app overrides.
+  The maths lives in ChartPainter (Java), reached through the {{{chartSvg}}}
+  helper that ChartHelpers contributes; a logic-less template cannot compute
+  SVG geometry.
+
+  Parity with renderChart() in src/main/ts/chart/extension.ts. Output is plain
+  SVG with <title> tooltips, so a server-rendered chart needs no JavaScript.
+--}}
+<div class="sui-chart{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui="chart">
+  {{#if title}}<h2>{{title}}</h2>{{/if}}
+  {{{chartSvg this}}}
+</div>

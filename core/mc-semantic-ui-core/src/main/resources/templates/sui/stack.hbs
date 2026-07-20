@@ -1,0 +1,7 @@
+{{!--
+  UiStack → simple composition box. Stacks children vertically (default) or
+  horizontally; no tabs, no chrome. Parity with renderStack() in renderer.ts.
+--}}
+<div class="sui-stack sui-stack--{{#if direction}}{{lower direction}}{{else}}vertical{{/if}}{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}}{{#if id}} id="{{id}}"{{/if}}{{#if gap}} style="gap: {{gap}}px"{{/if}}>
+  {{#each children}}{{{render this}}}{{/each}}
+</div>

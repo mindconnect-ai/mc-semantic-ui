@@ -1,0 +1,19 @@
+{{!--
+  UiDetail → definition-list of label/value rows + action bar + links.
+  Parity with renderDetail() in renderer.ts.
+--}}
+<div class="sui-detail{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}">
+  {{#if title}}<h2>{{title}}</h2>{{/if}}
+  <dl class="sui-detail-grid">
+    {{#each fields}}
+    <div class="sui-detail-row">
+      <dt>{{label}}</dt>
+      <dd>{{#if value}}{{value}}{{else}}<span class="sui-empty">—</span>{{/if}}</dd>
+    </div>
+    {{/each}}
+  </dl>
+  <div class="sui-form-footer">
+    {{#each actions}}{{> action this}}{{/each}}
+    {{#each links}}{{> link this}}{{/each}}
+  </div>
+</div>

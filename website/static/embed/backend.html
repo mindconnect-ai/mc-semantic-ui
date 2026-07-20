@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui — pages fetched over HTTP</title>
+  <link rel="stylesheet" href="../sui/sui.css">
+  <link rel="stylesheet" href="../sui/sui-dark.css">
+  <style>
+    body { padding: 16px; background: var(--sui-color-surface); color: var(--sui-color-text-body); }
+  </style>
+  <script>
+    (function syncTheme() {
+      function apply() {
+        try {
+          const parentTheme = window.parent !== window
+              ? window.parent?.document?.documentElement?.dataset?.theme : null;
+          const dark = parentTheme
+              ? parentTheme === "dark"
+              : window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+          document.documentElement.className = dark ? "sui-theme-dark" : "";
+        } catch { /* ignore */ }
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] });
+      } catch { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createDefaultRenderer, setIconSpriteUrl } from "../sui/renderer.js";
+    import { SuiEventBus } from "../sui/eventbus.js";
+
+    setIconSpriteUrl("../sui/icons.svg");
+    const host = document.getElementById("app");
+    const renderer = createDefaultRenderer().attach(host);
+    const bus = new SuiEventBus(renderer, host).setHistoryEnabled(false);
+
+    // Nothing else. No page-local tree, no handlers: every screen below is a
+    // UiPage fetched over real HTTP. The "backend" here is a directory of
+    // static .json files — which is exactly the point: the browser side does
+    // not care who produced the JSON.
+    bus.navigate("api/products.json");
+  </script>
+</body>
+</html>

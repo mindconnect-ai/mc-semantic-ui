@@ -1,0 +1,66 @@
+# Maven
+target/
+*.class
+# Left behind by release/versions plugins
+release.properties
+dependency-reduced-pom.xml
+pom.xml.versionsBackup
+pom.xml.releaseBackup
+pom.xml.tag
+pom.xml.next
+buildNumber.properties
+.flattened-pom.xml
+.mvn/timing.properties
+
+# JVM crash dumps (a JavaFX demo that dies leaves these next to the pom)
+hs_err_pid*.log
+replay_pid*.log
+
+# Node / frontend build (semantic-ui renderers + editor SPA)
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+*.tsbuildinfo
+# Shared Node install (frontend-maven-plugin installDirectory at repo root)
+.node/
+
+# Docusaurus (website/)
+website/node_modules/
+website/build/
+website/.docusaurus/
+website/.cache-loader/
+# Browser bundles + backend-free apps staged into the site by
+# website/scripts/copy-sui-assets.mjs
+website/static/sui/
+website/static/sui-ext/
+website/static/widget-demo/
+website/static/editor/
+
+# Local secrets. demo/mc-sui-shop-demo/docker-compose.yml reads .env.docker,
+# which is a copy of the committed .env.docker.example with real credentials.
+.env
+.env.*
+!.env*.example
+
+# Logs
+*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+out/
+
+# OS
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+*~
+*.swp
+*.swo

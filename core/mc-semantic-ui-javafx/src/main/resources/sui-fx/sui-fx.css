@@ -1,0 +1,247 @@
+/*
+ * Default look for the JavaFX renderer — the counterpart of sui.css.
+ * Every painted node carries a "sui-<type>" style class (plus whatever the
+ * model's cssClass adds), so an app restyles the vocabulary without touching
+ * the renderers:
+ *
+ *   scene.getStylesheets().add(getClass().getResource("/sui-fx/sui-fx.css").toExternalForm());
+ */
+
+.root {
+    -fx-font-size: 13px;
+}
+
+.sui-form-title,
+.sui-table-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.sui-fieldgroup-title {
+    -fx-font-weight: bold;
+}
+
+.sui-field-label {
+    -fx-font-size: 12px;
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.sui-field-hint,
+.sui-fieldgroup-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: derive(-fx-text-base-color, 40%);
+}
+
+.sui-field-error,
+.sui-form-error {
+    -fx-font-size: 11px;
+    -fx-text-fill: #b3261e;
+}
+
+.sui-form-error {
+    -fx-font-size: 13px;
+    -fx-padding: 8;
+    -fx-background-color: #fce8e6;
+    -fx-background-radius: 4;
+}
+
+.sui-field-readonly {
+    -fx-padding: 4 0 4 0;
+}
+
+.sui-action-primary {
+    -fx-base: #1a73e8;
+    -fx-text-fill: white;
+}
+
+.sui-action-danger {
+    -fx-base: #b3261e;
+    -fx-text-fill: white;
+}
+
+.sui-table-pagination {
+    -fx-padding: 4 0 0 0;
+}
+
+/* ── toasts ─────────────────────────────────────────────────────────────
+   Cards stacked in the top-right corner by SuiFxOverlay. The left border
+   carries the level; the card itself stays neutral. */
+
+.sui-toast {
+    -fx-background-color: white;
+    -fx-background-radius: 6;
+    -fx-padding: 12 16 12 16;
+    -fx-border-width: 0 0 0 4;
+    -fx-border-color: #5f6368;
+    -fx-border-radius: 6 0 0 6;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 12, 0, 0, 3);
+}
+
+.sui-toast-title {
+    -fx-font-weight: bold;
+}
+
+.sui-toast-message {
+    -fx-text-fill: #3c4043;
+}
+
+.sui-toast-success { -fx-border-color: #1e8e3e; }
+.sui-toast-warn    { -fx-border-color: #f29900; }
+.sui-toast-error   { -fx-border-color: #b3261e; }
+.sui-toast-info    { -fx-border-color: #1a73e8; }
+
+/* ── busy ───────────────────────────────────────────────────────────────
+   The scrim only appears for dispatches slower than SuiFxOverlay.BUSY_DELAY,
+   so fast local handlers never flash it. */
+
+.sui-busy-scrim {
+    -fx-background-color: rgba(255, 255, 255, 0.55);
+}
+
+/* A control whose own trigger is in flight — set by the bus, and by the
+   model's UiAction.loading flag. */
+.is-loading {
+    -fx-opacity: 0.7;
+}
+
+/* ── dialog ─────────────────────────────────────────────────────────── */
+
+.sui-dialog-panel {
+    -fx-background-color: white;
+}
+
+.sui-dialog-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.sui-tree-title {
+    -fx-font-weight: bold;
+}
+
+/* ── menu ───────────────────────────────────────────────────────────── */
+
+.sui-menu {
+    -fx-background-color: #f8f9fa;
+}
+
+.sui-menu-title {
+    -fx-font-weight: bold;
+    -fx-padding: 4 0 8 0;
+}
+
+/* Nav items are buttons, but should read as list rows: no chrome until
+   hovered or selected. */
+.sui-menu-item {
+    -fx-background-color: transparent;
+    -fx-background-radius: 4;
+    -fx-padding: 6 10 6 10;
+}
+
+.sui-menu-item:hover {
+    -fx-background-color: #e8eaed;
+}
+
+.sui-menu-item-selected {
+    -fx-background-color: #e8f0fe;
+    -fx-text-fill: #1a73e8;
+    -fx-font-weight: bold;
+}
+
+.sui-menu-item-danger {
+    -fx-text-fill: #b3261e;
+}
+
+.sui-menu-badge {
+    -fx-background-color: #1a73e8;
+    -fx-text-fill: white;
+    -fx-background-radius: 10;
+    -fx-padding: 1 7 1 7;
+    -fx-font-size: 11px;
+}
+
+.sui-menu-toggle {
+    -fx-background-color: transparent;
+    -fx-padding: 4 8 4 8;
+}
+
+/* ── detail and list ────────────────────────────────────────────────── */
+
+.sui-detail-title,
+.sui-list-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.sui-detail-label {
+    -fx-text-fill: derive(-fx-text-base-color, 35%);
+}
+
+.sui-empty {
+    -fx-text-fill: derive(-fx-text-base-color, 55%);
+}
+
+.sui-list-item {
+    -fx-background-color: white;
+    -fx-background-radius: 4;
+    -fx-border-color: #dadce0;
+    -fx-border-radius: 4;
+}
+
+.sui-list-label {
+    -fx-font-weight: bold;
+}
+
+.sui-list-description {
+    -fx-font-size: 11px;
+    -fx-text-fill: derive(-fx-text-base-color, 40%);
+}
+
+/* Rows that carry an onClick should look like they do. */
+.sui-clickable:hover {
+    -fx-background-color: #f1f3f4;
+    -fx-cursor: hand;
+}
+
+/* ── upload ─────────────────────────────────────────────────────────── */
+
+.sui-upload-zone {
+    -fx-border-color: #a0a0a0;
+    -fx-border-style: segments(6, 4) line-cap round;
+    -fx-border-width: 2;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+}
+
+/* Same class name the web renderer uses for the drag highlight. */
+.sui-upload--dragover {
+    -fx-border-color: #1a73e8;
+    -fx-background-color: #e8f0fe;
+}
+
+.sui-upload-label {
+    -fx-font-weight: bold;
+}
+
+.sui-upload-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: derive(-fx-text-base-color, 40%);
+}
+
+/* ── progress ───────────────────────────────────────────────────────── */
+
+.sui-progress-success .bar { -fx-background-color: #1e8e3e; }
+.sui-progress-warning .bar { -fx-background-color: #f29900; }
+.sui-progress-error   .bar { -fx-background-color: #b3261e; }
+
+.sui-progress-value {
+    -fx-font-size: 11px;
+    -fx-text-fill: derive(-fx-text-base-color, 40%);
+}
+
+.sui-unsupported {
+    -fx-text-fill: #8a6d3b;
+    -fx-background-color: #fcf8e3;
+    -fx-padding: 4 8 4 8;
+    -fx-background-radius: 4;
+}

@@ -1,0 +1,12 @@
+{{!--
+  UiFieldGroup → a native <fieldset> with a <legend> title, grouping related
+  fields. Parity with renderFieldGroup() in renderers/fieldgroup.ts. Children
+  go through the {{render}} helper, so a group can hold fields or any layout
+  node. A fieldset is transparent to form submission — the inputs inside keep
+  their name= and ride along in the single form payload.
+--}}
+<fieldset class="sui-fieldgroup{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}">
+  {{#if title}}<legend class="sui-fieldgroup-title">{{title}}</legend>{{/if}}
+  {{#if hint}}<small class="sui-hint">{{hint}}</small>{{/if}}
+  {{#each content}}{{{render this}}}{{/each}}
+</fieldset>

@@ -1,0 +1,25 @@
+server:
+  port: 9092
+
+spring:
+  servlet:
+    multipart:
+      # Generous limits so the drop zone can accept real files in the demo.
+      max-file-size: 25MB
+      max-request-size: 100MB
+
+# Activates the server-side Handlebars renderer in mc-semantic-ui-core.
+mindconnect:
+  sui:
+    ssr:
+      enabled: true
+
+# Sandbox root for the explorer — every path is resolved under here and
+# traversal outside it is rejected. Relative to the working directory; created
+# and seeded with sample content on first start.
+explorer:
+  root: explorer-root
+
+logging:
+  level:
+    ai.mindconnect: INFO

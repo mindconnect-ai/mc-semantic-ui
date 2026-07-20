@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui — dialogs &amp; toasts, live</title>
+  <link rel="stylesheet" href="../sui/sui.css">
+  <link rel="stylesheet" href="../sui/sui-dark.css">
+  <style>
+    body { padding: 16px; background: var(--sui-color-surface); color: var(--sui-color-text-body); }
+  </style>
+  <script>
+    (function syncTheme() {
+      function apply() {
+        try {
+          const parentTheme = window.parent !== window
+              ? window.parent?.document?.documentElement?.dataset?.theme : null;
+          const dark = parentTheme
+              ? parentTheme === "dark"
+              : window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+          document.documentElement.className = dark ? "sui-theme-dark" : "";
+        } catch { /* ignore */ }
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] });
+      } catch { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createDefaultRenderer, setIconSpriteUrl } from "../sui/renderer.js";
+    import { SuiEventBus } from "../sui/eventbus.js";
+
+    setIconSpriteUrl("../sui/icons.svg");
+    const host = document.getElementById("app");
+    const renderer = createDefaultRenderer().attach(host);
+    const bus = new SuiEventBus(renderer, host).setHistoryEnabled(false);
+
+    // A dialog is opened by APPENDing a `dialog` node into the body-level
+    // host (#sui-dialogs); the bus closes it on the × or a backdrop click.
+    bus.registerClientHandler("openDialog", () => ({
+      patches: [
+        { op: "APPEND", targetId: "sui-dialogs", node: {
+            type: "dialog", id: "demo-dialog", title: "Delete product?",
+            node: { type: "stack", id: "dlg-body", gap: 12, children: [
+              { type: "text", id: "dlg-t",
+                text: "This removes “Widget” permanently. This dialog is a normal UiNode — its body can be any tree, including a form." },
+              { type: "stack", id: "dlg-actions", direction: "HORIZONTAL", gap: 8, children: [
+                { type: "action", id: "dlg-del", label: "Delete", style: "DANGER",
+                  onClick: { behavior: "INVOKE", handler: "confirmDelete" } }
+              ]}
+            ]}
+        }}
+      ]
+    }));
+
+    // Closing from inside: REMOVE the dialog by its id.
+    bus.registerClientHandler("confirmDelete", () => ({
+      patches: [ { op: "REMOVE", targetId: "demo-dialog" } ],
+      toasts:  [ { level: "SUCCESS", message: "Product deleted" } ]
+    }));
+
+    // `patches: []` is required: the bus identifies a UiPatch by
+    // Array.isArray(body.patches), so a toast-only object is discarded.
+    const toast = (level, message) => () => ({ patches: [], toasts: [ { level, message } ] });
+    bus.registerClientHandler("toastInfo",  toast("INFO",    "Just so you know"));
+    bus.registerClientHandler("toastWarn",  toast("WARN",    "Careful with that"));
+    bus.registerClientHandler("toastError", toast("ERROR",   "Something went wrong"));
+
+    const b = (id, label, handler, style, icon) => ({
+      type: "action", id, label, style, icon,
+      onClick: { behavior: "INVOKE", handler }
+    });
+
+    renderer.mount({
+      type: "stack", id: "ov", gap: 12, children: [
+        { type: "text", id: "ov-t", text: "Dialogs open over the page; toasts stack in the corner and fade." },
+        { type: "stack", id: "ov-row", direction: "HORIZONTAL", gap: 8, children: [
+          b("open", "Open dialog", "openDialog", "PRIMARY", "info"),
+          b("ti", "Info toast",  "toastInfo",  "SECONDARY", "info"),
+          b("tw", "Warn toast",  "toastWarn",  "SECONDARY", "warning"),
+          b("te", "Error toast", "toastError", "DANGER",    "error")
+        ]}
+      ]
+    });
+  </script>
+</body>
+</html>

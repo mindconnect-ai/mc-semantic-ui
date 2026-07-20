@@ -1,0 +1,32 @@
+{{!--
+  UiHeader → page-level chrome: brand left, optional extras + user widget right.
+
+  Layout is flex-driven by .sui-header in sui.css. The right side is wrapped
+  in a .sui-header-right container so the extras and user widget sit on the
+  same line; extras render in their own flex group (.sui-header-extras) for
+  consistent spacing.
+--}}
+<header class="sui-header{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}}{{#if id}} id="{{id}}"{{/if}}>
+  {{#if menuToggle}}<button type="button" class="sui-menu-toggle sui-header-burger" data-menu-toggle="{{menuToggle}}" aria-label="Toggle menu">{{{icon "menu"}}}</button>{{/if}}
+  {{#if brandHref}}
+    <a class="sui-header-brand" href="{{brandHref}}" data-href="{{brandHref}}">
+      {{#if brandLogo}}<img class="sui-header-logo" src="{{brandLogo}}" alt="{{brand}}">{{/if}}{{brand}}</a>
+  {{else}}
+    <span class="sui-header-brand">
+      {{#if brandLogo}}<img class="sui-header-logo" src="{{brandLogo}}" alt="{{brand}}">{{/if}}{{brand}}</span>
+  {{/if}}
+
+  <div class="sui-header-right">
+    {{#if extras}}
+    <div class="sui-header-extras"{{#if (eq extrasOverflow "MENU")}} data-sui-overflow="menu"{{/if}}>
+      {{#each extras}}{{{render this}}}{{/each}}
+    </div>
+    {{/if}}
+    {{#if user}}
+    <a class="sui-header-user" href="{{user.profileHref}}" data-href="{{user.profileHref}}" title="{{user.name}}">
+      <span class="sui-header-avatar">{{user.initials}}</span>
+      <span class="sui-header-username">{{user.name}}</span>
+    </a>
+    {{/if}}
+  </div>
+</header>

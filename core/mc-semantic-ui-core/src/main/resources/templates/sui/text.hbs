@@ -1,0 +1,6 @@
+{{!--
+  UiText → bare <span>. Mirror of renderText() in renderer.ts.
+  The wrapper id="{{id}}" keeps the editor's id-based selection working
+  for {@code UiText} nodes embedded inside cellTemplate / stacks / etc.
+--}}
+<span class="sui-text{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}}{{#if id}} id="{{id}}"{{/if}}>{{text}}</span>

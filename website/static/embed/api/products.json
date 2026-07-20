@@ -1,0 +1,28 @@
+{
+  "type": "page",
+  "navigate": "api/products.json",
+  "node": {
+    "type": "stack", "id": "products-page", "gap": 12,
+    "children": [
+      { "type": "text", "id": "hint",
+        "text": "GET api/products.json — a real HTTP response. Open a product to fetch its detail page." },
+      {
+        "type": "table", "id": "products", "title": "Products", "stackOnMobile": true,
+        "columns": [
+          { "type": "column", "id": "c-sku",   "label": "SKU",   "dataKey": "sku"   },
+          { "type": "column", "id": "c-name",  "label": "Name",  "dataKey": "name"  },
+          { "type": "column", "id": "c-price", "label": "Price", "dataKey": "price" }
+        ],
+        "rows": [
+          { "type": "row", "id": "p1", "data": { "sku": "A-1", "name": "Widget",    "price": "€ 19.00" } },
+          { "type": "row", "id": "p2", "data": { "sku": "B-2", "name": "Gadget",    "price": "€ 49.00" } },
+          { "type": "row", "id": "p3", "data": { "sku": "C-3", "name": "Doohickey", "price": "€ 7.50"  } }
+        ],
+        "rowActions": [
+          { "type": "action", "id": "open", "label": "Open", "style": "SECONDARY",
+            "onClick": { "behavior": "APPLY_RESPONSE", "method": "GET", "url": "api/{id}.json" } }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "mc-semantic-ui-ext-chart",
+  "version": "0.0.1",
+  "description": "Chart extension for the Semantic UI renderer — draws the core chart node as SVG",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

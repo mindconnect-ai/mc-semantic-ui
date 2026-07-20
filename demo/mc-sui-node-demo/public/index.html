@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui · Node.js demo</title>
+  <link rel="stylesheet" href="/sui/sui.css">
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    .demo-banner {
+      padding: 10px 20px; background: #1a3a5c; color: #fff; font-size: 14px;
+    }
+    main { padding: 24px; max-width: 900px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <div class="demo-banner">
+    semantic-ui rendered from a <strong>pure Node.js / Express</strong> backend —
+    the server only returns JSON.
+  </div>
+  <main id="app"></main>
+
+  <script type="module">
+    import { SuiRenderer, installDefaultHandlers } from "/sui/renderer.js";
+    import { SuiEventBus } from "/sui/eventbus.js";
+
+    const host = document.getElementById("app");
+    const renderer = installDefaultHandlers(new SuiRenderer(host));
+    const bus = new SuiEventBus(renderer, host);
+
+    // Load the first screen — the bus fetches the UiPage JSON and renders it.
+    bus.navigate("/products");
+  </script>
+</body>
+</html>

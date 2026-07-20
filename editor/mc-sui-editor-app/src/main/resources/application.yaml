@@ -1,0 +1,24 @@
+# Standalone SUI editor showcase configuration.
+#
+# Runs on port 9092 — shop demo holds 9091, leaving 9090 free for whatever
+# else lives in the monorepo. No database, no auth: the editor lives in
+# memory and resets on restart, which is fine for a showcase.
+
+server:
+  port: 9092
+
+spring:
+  application:
+    name: mc-sui-editor-app
+  # The editor lib ships its static assets via META-INF/resources/sui-editor/*;
+  # Spring Boot's static-handler picks them up automatically. We only need to
+  # toggle DevTools' resource cache for the inevitable JS / HTML iteration.
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
+
+logging:
+  level:
+    ai.mindconnect.ui.editor: INFO

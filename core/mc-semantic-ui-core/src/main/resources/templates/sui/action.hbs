@@ -1,0 +1,13 @@
+{{!--
+  UiAction → native JS-free HTML via the {{action}} helper. The whole
+  decision tree (anchor vs form-wrapped button, _method hidden field for
+  DELETE/PUT, OPEN_IN_TAB target, confirm dialog) lives in
+  SsrTriggerMapper.render() — keeping the template trivial avoids Handlebars
+  conditionals on Trigger.method/behavior/payload at render time.
+
+  Containers (form.hbs, detail.hbs, list-item.hbs) call this partial via
+  {{> action this}}. Table row-actions need to substitute {id} per row, so
+  table.hbs uses {{{rowAction this ../this}}} directly instead of this
+  partial.
+--}}
+{{{action this}}}

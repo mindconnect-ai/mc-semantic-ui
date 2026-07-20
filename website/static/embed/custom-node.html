@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui — a custom node type, live</title>
+  <link rel="stylesheet" href="../sui/sui.css">
+  <link rel="stylesheet" href="../sui/sui-dark.css">
+  <style>
+    body { padding: 16px; background: var(--sui-color-surface); color: var(--sui-color-text-body); }
+
+    /* The only CSS the custom nodes need — they use the same design tokens
+       as every built-in node, so they inherit the theme for free. */
+    .my-rating { font-size: 1.15rem; letter-spacing: 2px; color: var(--sui-color-warning, #e0a300); }
+    .my-card {
+      border: 1px solid var(--sui-color-border);
+      border-radius: var(--sui-radius-md, 8px);
+      padding: 12px 14px;
+      background: var(--sui-color-surface-raised, transparent);
+    }
+    .my-card > h3 { margin: 0 0 6px; font-size: .95rem; }
+  </style>
+  <script>
+    (function syncTheme() {
+      function apply() {
+        try {
+          const parentTheme = window.parent !== window
+              ? window.parent?.document?.documentElement?.dataset?.theme : null;
+          const dark = parentTheme
+              ? parentTheme === "dark"
+              : window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+          document.documentElement.className = dark ? "sui-theme-dark" : "";
+        } catch { /* ignore */ }
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] });
+      } catch { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createDefaultRenderer, setIconSpriteUrl } from "../sui/renderer.js";
+    import { SuiEventBus } from "../sui/eventbus.js";
+
+    setIconSpriteUrl("../sui/icons.svg");
+    const host = document.getElementById("app");
+    const renderer = createDefaultRenderer().attach(host);
+    const bus = new SuiEventBus(renderer, host).setHistoryEnabled(false);
+
+    // ── Two node types that don't exist in the core vocabulary ──────────────
+
+    // A leaf node.
+    renderer.register("rating", (node) => {
+      const stars = "★".repeat(node.stars) + "☆".repeat(5 - node.stars);
+      return `<span class="my-rating" id="${node.id}">${stars}</span>`;
+    });
+
+    // A container node — recurses through the renderer, so its children can be
+    // any node type: built-ins, or other custom ones.
+    renderer.register("card", (node, r) =>
+      `<div class="my-card" id="${node.id}">
+         <h3>${node.title}</h3>
+         ${node.children.map(child => r.render(child)).join("")}
+       </div>`);
+
+    // ── Proof they are first-class: a patch targets a custom node by id ─────
+
+    let stars = 3;
+    bus.registerClientHandler("rate", () => {
+      stars = stars >= 5 ? 1 : stars + 1;
+      return {
+        patches: [ { op: "REPLACE", targetId: "r1", node: { type: "rating", id: "r1", stars } } ],
+        toasts:  [ { level: "INFO", message: `Rated ${stars} / 5` } ]
+      };
+    });
+
+    renderer.mount({
+      type: "stack", id: "demo", gap: 12, children: [
+        // A custom container holding a built-in node and a custom leaf.
+        { type: "card", id: "c1", title: "Widget", children: [
+          { type: "text", id: "c1-t", text: "A custom \"card\" node, rendered by 6 lines of JavaScript." },
+          { type: "rating", id: "r1", stars: 3 }
+        ]},
+        { type: "action", id: "rate", label: "Rate it", style: "PRIMARY",
+          onClick: { behavior: "INVOKE", handler: "rate" } }
+      ]
+    });
+  </script>
+</body>
+</html>

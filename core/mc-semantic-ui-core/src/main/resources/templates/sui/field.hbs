@@ -1,0 +1,52 @@
+{{!--
+  UiField → labelled form field. Parity with renderField()/renderInput() in
+  renderer.ts. Editable fields render an input by type; non-editable render a
+  read-only value span.
+
+  ID placement convention: the wrapper <div> carries id="{{id}}" (the UiNode
+  identity, used by every consumer of the model-id including the editor's
+  highlight/click logic). The inner control gets id="{{id}}__input" so HTML
+  id uniqueness holds and <label for=> still hooks up. Form submission uses
+  name= which keeps the original model id, so the server-facing payload is
+  unchanged.
+
+  Every editable control carries data-sui-type with the semantic field type
+  (NUMBER, CURRENCY, BOOLEAN, MULTISELECT, …). The SPA EventBus reads it
+  when harvesting an SSR-rendered form's values so a CURRENCY input stays
+  CURRENCY even though it shares the HTML type="number" attribute with
+  NUMBER and PERCENT.
+--}}
+<div class="sui-field {{#if validationError}}sui-field--error{{/if}}"{{{events this "change"}}} id="{{id}}" data-field="{{id}}">
+  <label for="{{id}}__input">{{label}}{{#if required}} <span class="sui-required">*</span>{{/if}}</label>
+  {{~#if editable~}}
+    {{~#if icon}}<div class="sui-input-icon">{{{icon icon}}}{{/if~}}
+    {{~#if (eq fieldType "TEXTAREA")~}}
+      <textarea id="{{id}}__input" name="{{id}}" rows="4" data-sui-type="{{fieldType}}"{{#if submitOnEnter}} data-submit-on-enter="true"{{/if}}{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>{{value}}</textarea>
+    {{~else if (eq fieldType "BOOLEAN")~}}
+      <input type="checkbox" id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}{{#if value}} checked{{/if}}>
+    {{~else if (eq fieldType "SELECT")~}}
+      <select id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>{{#each options}}<option value="{{value}}"{{#if (eq ../value value)}} selected{{/if}}>{{label}}</option>{{/each}}</select>
+    {{~else if (eq fieldType "MULTISELECT")~}}
+      <select id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}} multiple size="{{min (add (len options) 1) 6}}">{{#each options}}<option value="{{value}}"{{#if (includes ../value value)}} selected{{/if}}>{{label}}</option>{{/each}}</select>
+    {{~else if (eq fieldType "NUMBER")~}}
+      <input type="number" id="{{id}}__input" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}"{{#if this.min}} min="{{this.min}}"{{/if}}{{#if max}} max="{{max}}"{{/if}}{{#if step}} step="{{step}}"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
+    {{~else if (eq fieldType "CURRENCY")~}}
+      <input type="number" id="{{id}}__input" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}"{{#if this.min}} min="{{this.min}}"{{/if}}{{#if max}} max="{{max}}"{{/if}}{{#if step}} step="{{step}}"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
+    {{~else if (eq fieldType "PERCENT")~}}
+      <input type="number" id="{{id}}__input" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}"{{#if this.min}} min="{{this.min}}"{{/if}}{{#if max}} max="{{max}}"{{/if}}{{#if step}} step="{{step}}"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
+    {{~else if (eq fieldType "DATE")~}}
+      <input type="date" id="{{id}}__input" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}"{{#if this.min}} min="{{this.min}}"{{/if}}{{#if max}} max="{{max}}"{{/if}}{{#if step}} step="{{step}}"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
+    {{~else if (eq fieldType "DATETIME")~}}
+      <input type="datetime-local" id="{{id}}__input" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}"{{#if this.min}} min="{{this.min}}"{{/if}}{{#if max}} max="{{max}}"{{/if}}{{#if step}} step="{{step}}"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
+    {{~else if (eq fieldType "FILE")~}}
+      <input type="file" id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if accept}} accept="{{accept}}"{{/if}}{{#if multiple}} multiple{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
+    {{~else~}}
+      <input type="text" id="{{id}}__input" name="{{id}}" value="{{value}}" placeholder="{{placeholder}}" data-sui-type="{{fieldType}}"{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
+    {{~/if~}}
+    {{~#if icon}}</div>{{/if~}}
+  {{~else~}}
+    <span class="sui-value">{{#if value}}{{value}}{{else}}—{{/if}}</span>
+  {{~/if~}}
+  {{~#if hint}}<small class="sui-hint">{{hint}}</small>{{/if~}}
+  {{~#if validationError}}<span class="sui-error">{{validationError}}</span>{{/if~}}
+</div>

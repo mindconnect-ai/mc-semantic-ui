@@ -1,0 +1,11 @@
+{{!--
+  UiMenuButton → a button that opens a floating dropdown / context menu.
+  Mirror of renderMenuButton() in renderers/menu-button.ts. A native <details>
+  so it opens with no JS; the SPA (wireMenuButtons) takes over to position the
+  popover with position:fixed so it escapes any overflow-clipping ancestor.
+  Items are inlined here (popover markup differs from the sidebar menu-item).
+--}}
+<details class="sui-menu-button sui-menu-button--{{#if variant}}{{lower variant}}{{else}}{{#if label}}button{{else}}icon{{/if}}{{/if}} sui-menu-button--align-{{lower align "END"}}{{#if cssClass}} {{cssClass}}{{/if}}" id="{{id}}" data-sui="menu-button">
+    <summary class="sui-menu-button-trigger" role="button" aria-haspopup="menu" aria-expanded="false"{{#unless label}} aria-label="{{#if title}}{{title}}{{else}}Menu{{/if}}"{{/unless}}><span class="sui-menu-button-glyph"{{{events this}}}>{{#if icon}}{{{icon icon}}}{{else}}{{{icon "more"}}}{{/if}}</span>{{#if label}}<span class="sui-menu-button-text">{{label}}</span><span class="sui-menu-button-caret">{{{icon "chevron-down"}}}</span>{{/if}}</summary>
+    <div class="sui-menu-button-popover" role="menu">{{#each items}}{{> menu-button-item}}{{/each}}</div>
+</details>

@@ -1,0 +1,14 @@
+{{!--
+  Pagination → prev / page-indicator / next. Parity with renderPagination()
+  in renderer.ts: pages = ceil(total / size); prev disabled on page 1, next
+  disabled on the last page.
+
+  Per-button {page} substitution and disabled-state are computed in the
+  pageButton helper because the prev/next buttons need different target
+  pages — too much arithmetic for a logic-less template.
+--}}
+<div class="sui-pagination">
+  {{{pageButton this "‹ Prev" (subtract page 1) (eq page 1)}}}
+  <span>{{page}} / {{pageCount this}} ({{total}} total)</span>
+  {{{pageButton this "Next ›" (add page 1) (eq page (pageCount this))}}}
+</div>

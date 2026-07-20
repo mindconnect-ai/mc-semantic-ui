@@ -1,0 +1,40 @@
+{{!--
+  Titled section: <h2> header + tab bar + panels.
+  Active tab = initialSection if set, else the first section's id.
+
+  Implementation note: a previous version used `{{#with ... as |activeId|}}`
+  to lift the active id, but `../sections` inside the `with` block didn't
+  resolve the outer UiSection's `sections` collection reliably in
+  handlebars.java — the tab loop accidentally iterated over a shape that
+  surfaced the outer section's own `id`/`title` instead of the child
+  entries. The `activeSection` helper now does the lookup once on the
+  outer node, and `../this` (the parent context inside #each) gives us
+  the outer UiSection to pass in.
+--}}
+<div class="sui-section{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}">
+  {{#if title}}<h2>{{title}}</h2>{{/if}}
+  {{#if (stackOnly this)}}
+    {{!-- Stack mode: no titles, no hrefs → just emit every panel without
+         a tab bar so all of them are visible. Pattern used by the chat
+         session (messages on top, input form below). --}}
+    <div class="sui-panels">
+      {{#each sections}}<div class="sui-panel" id="{{id}}">{{{render content}}}</div>{{/each}}
+    </div>
+  {{else}}
+    <nav class="sui-tabs"{{#if (eq tabOverflow "MENU")}} data-sui-overflow="menu" data-sui-overflow-items=".sui-tab"{{/if}}>
+      {{#each sections~}}
+        {{~#if href~}}
+          {{!-- SSR-friendly tab: real anchor, native navigation. The EventBus,
+               when loaded, can still intercept the click via data-href as for
+               any other link in the SPA. --}}
+          <a class="sui-tab{{#if (eq id (activeSection ../this))}} active{{/if}}" href="{{href}}" data-href="{{href}}" data-target="{{id}}"{{#if (eq selectOnClick false)}} data-sui-no-select{{/if}}{{#if onClick}} data-trigger='{{{trigger onClick}}}'{{/if}}>{{#if icon}}{{{icon icon}}} {{/if}}{{title}}</a>
+        {{~else~}}
+          <button class="sui-tab{{#if (eq id (activeSection ../this))}} active{{/if}}" data-target="{{id}}"{{#if (eq selectOnClick false)}} data-sui-no-select{{/if}}{{#if onClick}} data-trigger='{{{trigger onClick}}}'{{/if}}>{{#if icon}}{{{icon icon}}} {{/if}}{{title}}</button>
+        {{~/if~}}
+      {{~/each}}
+    </nav>
+    <div class="sui-panels">
+      {{#each sections}}<div class="sui-panel" id="{{id}}"{{#unless (eq id (activeSection ../this))}} hidden{{/unless}}>{{{render content}}}</div>{{/each}}
+    </div>
+  {{/if}}
+</div>

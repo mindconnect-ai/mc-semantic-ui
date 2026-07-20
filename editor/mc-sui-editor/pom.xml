@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ai.mindconnect</groupId>
+        <artifactId>mc-semantic-ui-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mc-sui-editor</artifactId>
+    <packaging>jar</packaging>
+    <description>
+        Semantic UI WYSIWYG editor — embeddable Spring Boot library exposing
+        REST endpoints + a static TypeScript-built UI for editing arbitrary
+        UiNode trees. Host apps @Import the auto-configuration; the bundled
+        static assets are served from /sui-editor/* automatically.
+    </description>
+
+    <dependencies>
+        <!-- The model + base TS renderer the editor edits and previews. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+            Build-time only: UiNodeSchemaDump derives ui-node.schema.json from
+            the real UiNode classes for the Monaco JSON editor's validation.
+            Optional so consumers of this library never pull the generator; it
+            is on this module's own build classpath, which is all the schema
+            generation (run via exec-maven-plugin below) needs.
+        -->
+        <dependency>
+            <groupId>com.github.victools</groupId>
+            <artifactId>jsonschema-generator</artifactId>
+            <version>4.37.0</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.github.victools</groupId>
+            <artifactId>jsonschema-module-jackson</artifactId>
+            <version>4.37.0</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!--
+            Spring pieces stay optional so the model + TS bundle could be
+            consumed without a Spring Boot host if someone wanted to. The
+            auto-configuration is gated on these being on the classpath.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+                TS toolchain mirrors the core module: source under src/main/ts,
+                emit to target/ts-dist, then fold into the JAR under
+                META-INF/resources/sui-editor/* so /sui-editor/* serves them
+                to any Spring Boot host.
+            -->
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <goals><goal>install-node-and-npm</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>npm-install</id>
+                        <goals><goal>npm</goal></goals>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm-build</id>
+                        <goals><goal>npm</goal></goals>
+                        <phase>compile</phase>
+                        <configuration>
+                            <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Generate ui-node.schema.json from the real UiNode classes
+                (UiNodeSchemaDump) after the Java compiles, so the copy step
+                below can fold it into the served assets. Declared before the
+                resources plugin so it runs first within process-classes.
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>generate-ui-node-schema</id>
+                        <phase>process-classes</phase>
+                        <goals><goal>java</goal></goals>
+                        <configuration>
+                            <mainClass>ai.mindconnect.ui.editor.UiNodeSchemaDump</mainClass>
+                            <arguments>
+                                <argument>${project.build.directory}/sui-editor-data</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <!--
+                        Stage the core's .d.ts into src/main/sui/ before tsc
+                        runs, so "../sui/renderer.js" from src/main/ts resolves
+                        to the real declarations.
+
+                        Read straight from the core module's build output, not
+                        from its JAR. Unpacking the JAR (maven-dependency-plugin
+                        :unpack) is the obvious way to do this and it is what
+                        this module used to do — but it breaks `mvn test` from
+                        the reactor root: a `test` run never reaches `package`,
+                        so the sibling artifact does not exist yet and the
+                        plugin aborts with MDEP-98. The reactor still guarantees
+                        ordering (core compiles its TS in `compile`, well before
+                        this module starts), so reading the directory is both
+                        correct and one step shorter than unpack-then-copy.
+
+                        Consequence: building this module alone requires the
+                        core to have been built first — which is the documented
+                        workflow anyway.
+                    -->
+                    <execution>
+                        <id>stage-core-types</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/src/main/sui</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${sui.core.tsdist}</directory>
+                                    <includes>
+                                        <include>**/*.d.ts</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-static-assets</id>
+                        <phase>process-classes</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/META-INF/resources/sui-editor</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>target/ts-dist</directory>
+                                </resource>
+                                <resource>
+                                    <directory>src/main/resources/static</directory>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </resource>
+                                <!-- The generated UiNode JSON Schema. -->
+                                <resource>
+                                    <directory>target/sui-editor-data</directory>
+                                    <includes>
+                                        <include>ui-node.schema.json</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

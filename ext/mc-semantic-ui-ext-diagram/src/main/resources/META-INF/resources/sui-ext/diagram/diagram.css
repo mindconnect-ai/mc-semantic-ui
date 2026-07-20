@@ -1,0 +1,205 @@
+/*
+ * Base styling for the <sui-diagram> element this extension ships — the canvas,
+ * primitive shapes, edges (with their arrow lines and markers), waypoints, and
+ * the plus/delete buttons. Without it edges have no stroke (so no arrows show)
+ * and the buttons fall back to unstyled black.
+ *
+ * Served straight out of this jar's META-INF/resources at
+ * {@code /sui-ext/diagram/diagram.css}; any app that embeds the diagram should
+ * link it. Domain-specific colours (workflow event-start, decision, …) are a
+ * separate layer — see workflow-diagram.css in mc-workflow-ui-diagram.
+ */
+
+/* ── Diagram canvas ─────────────────────────────────────────────────────── */
+
+.sui-diagram {
+    display: block;
+    flex: 1 1 auto;
+    background: #ffffff;
+    border: 1px solid #d8dde3;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    position: relative;
+}
+
+.sui-diagram-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    user-select: none;  /* don't text-select when dragging */
+}
+
+.sui-diagram--mode-pan {
+    cursor: grab;
+}
+.sui-diagram--mode-pan:active {
+    cursor: grabbing;
+}
+/* While panning, override the per-node "cursor: move" inline style so the
+ * hand stays consistent across the whole canvas. */
+.sui-diagram--mode-pan .sui-diagram-node {
+    cursor: inherit !important;
+}
+
+.sui-diagram:focus-within {
+    outline: 2px solid #3b6fd9;
+    outline-offset: 2px;
+}
+
+/* ── Shapes & labels ────────────────────────────────────────────────────── */
+
+.sui-diagram-shape {
+    fill: #f0f4ff;
+    stroke: #3b6fd9;
+    stroke-width: 1.5;
+}
+
+.sui-diagram-label {
+    font: 12px system-ui, -apple-system, "Segoe UI", sans-serif;
+    fill: #1d2129;
+    pointer-events: none;
+    white-space: pre;
+}
+
+/* Header-band label rendered by the container-with-header shape. */
+.sui-diagram-label--header {
+    font-weight: 600;
+    fill: #5b6470;
+}
+
+/* First line of a header label (the step name). */
+.sui-diagram-label--header-line {
+    font-weight: 600;
+}
+
+/* Subsequent lines (step-type detail like "GET /api/foo" or "[python]"). */
+.sui-diagram-label--detail {
+    font-size: 0.85em;
+    fill: #5b6470;
+}
+
+.sui-diagram-marker {
+    font: bold 14px monospace;
+    fill: #2f7f53;
+    pointer-events: none;
+}
+
+/* Selection highlight — stroke widens, drop-shadow lifts the selected node. */
+.sui-diagram-node--selected .sui-diagram-shape {
+    stroke-width: 3;
+    filter: drop-shadow(0 0 6px rgba(59, 111, 217, 0.6));
+}
+
+/* ── Edges ──────────────────────────────────────────────────────────────── */
+
+.sui-diagram-edge-line {
+    stroke: #5b6470;
+    stroke-width: 1.5;
+    fill: none;
+}
+
+.sui-diagram-edge--structural .sui-diagram-edge-line {
+    stroke: #c89c00;
+}
+
+.sui-diagram-edge-label {
+    font: 11px system-ui, -apple-system, "Segoe UI", sans-serif;
+    fill: #5b6470;
+    pointer-events: none;
+}
+
+.sui-diagram-edge {
+    color: #5b6470;
+}
+
+.sui-diagram-edge--structural {
+    color: #c89c00;
+}
+
+/* Generous transparent hit area over the thin visible line, for waypoint drag. */
+.sui-diagram-edge-hit {
+    cursor: grab;
+}
+.sui-diagram-edge-hit:active {
+    cursor: grabbing;
+}
+.sui-diagram-edge:hover .sui-diagram-edge-line {
+    stroke-width: 2.5;
+}
+
+/* Waypoints — hidden until the user hovers the edge they belong to. */
+.sui-diagram-edge-waypoint {
+    fill: #ffffff;
+    stroke: #3b6fd9;
+    stroke-width: 1.5;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+}
+.sui-diagram-edge:hover .sui-diagram-edge-waypoint {
+    opacity: 1;
+    pointer-events: auto;
+}
+.sui-diagram-edge-waypoint:hover {
+    fill: #3b6fd9;
+}
+
+/* ── Plus buttons ──────────────────────────────────────────────────────── */
+
+.sui-diagram-plus-bg {
+    fill: #ffffff;
+    stroke: #3b6fd9;
+    stroke-width: 1.5;
+    transition: fill 0.1s ease, transform 0.1s ease;
+}
+.sui-diagram-plus:hover .sui-diagram-plus-bg {
+    fill: #3b6fd9;
+}
+.sui-diagram-plus-label {
+    font: bold 14px monospace;
+    fill: #3b6fd9;
+    pointer-events: none;
+}
+.sui-diagram-plus:hover .sui-diagram-plus-label {
+    fill: #ffffff;
+}
+/* Hidden by default; fade in while the owning node is hovered. */
+.sui-diagram-plus {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+}
+.sui-diagram-node:hover .sui-diagram-plus {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ── Delete buttons ─────────────────────────────────────────────────────── */
+
+/* Mirrors the plus pattern; red to flag the destructive action. */
+.sui-diagram-delete-bg {
+    fill: #ffffff;
+    stroke: #b3261e;
+    stroke-width: 1.5;
+    transition: fill 0.1s ease;
+}
+.sui-diagram-delete:hover .sui-diagram-delete-bg {
+    fill: #b3261e;
+}
+.sui-diagram-delete-label {
+    font: bold 14px monospace;
+    fill: #b3261e;
+    pointer-events: none;
+}
+.sui-diagram-delete:hover .sui-diagram-delete-label {
+    fill: #ffffff;
+}
+.sui-diagram-delete {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+}
+.sui-diagram-node:hover .sui-diagram-delete {
+    opacity: 1;
+    pointer-events: auto;
+}

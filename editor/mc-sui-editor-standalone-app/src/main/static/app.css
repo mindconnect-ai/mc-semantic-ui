@@ -1,0 +1,89 @@
+/*
+ * Shell chrome for the standalone visual editor. The editor's own three-pane
+ * layout is styled by sui-editor/editor.css; the widgets by sui/sui.css. This
+ * file only styles the app-level views: the projects home, the live preview,
+ * and the export dialog.
+ */
+
+html, body { height: 100%; margin: 0; }
+#app { height: 100%; }
+
+body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--sui-color-text, #1a1a1a);
+    background: var(--sui-color-bg, #f6f7f9);
+}
+
+/* ── Editor view (app toolbar + embedded <sui-editor>) ──────────────────────── */
+
+.editor-view { display: flex; flex-direction: column; height: 100%; }
+.editor-view .editor-toolbar { flex: 0 0 auto; }
+.editor-view .editor-host { flex: 1 1 auto; min-height: 0; }
+.editor-status { font-size: 12px; color: var(--sui-color-text-muted, #666); }
+
+.fatal {
+    max-width: 640px; margin: 80px auto; padding: 20px 24px;
+    border: 1px solid var(--sui-color-border, #d9dce1); border-radius: 8px;
+    background: var(--sui-color-surface, #fff); color: var(--sui-color-danger, #b42318);
+}
+
+/* ── Projects home ──────────────────────────────────────────────────────────── */
+
+.home-root { max-width: 900px; margin: 0 auto; padding: 20px 20px 80px; }
+
+.home-empty {
+    margin-top: 24px; padding: 28px 24px; text-align: center;
+    border: 1px dashed var(--sui-color-border, #d9dce1); border-radius: 10px;
+    background: var(--sui-color-surface, #fff);
+}
+.home-empty-title { display: block; font-size: 16px; font-weight: 600; }
+.home-empty-note  { display: block; margin-top: 6px; color: var(--sui-color-text-muted, #666); font-size: 13px; }
+
+/* Each tree row's labelNode is a horizontal stack: name + inline buttons. */
+.tree-row-label { align-items: center; }
+.tree-row-label .row-name { font-weight: 600; }
+.tree-row-label .sui-btn,
+.tree-row-label .sui-action {
+    padding: 1px 8px; font-size: 12px; line-height: 1.6;
+}
+.tree-muted { color: var(--sui-color-text-muted, #888); font-style: italic; font-size: 13px; }
+
+/* ── Live preview ──────────────────────────────────────────────────────────── */
+
+.preview-shell { display: flex; flex-direction: column; height: 100%; }
+.preview-bar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 10px 16px; border-bottom: 1px solid var(--sui-color-border, #d9dce1);
+    background: var(--sui-color-surface, #fff); position: sticky; top: 0; z-index: 5;
+}
+.preview-project { font-size: 14px; }
+.preview-pages { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.preview-page-btn { padding: 3px 10px; font-size: 12px; }
+.preview-page-btn.active {
+    background: var(--sui-color-primary, #2563eb); color: #fff;
+    border-color: var(--sui-color-primary, #2563eb);
+}
+.preview-canvas { flex: 1; overflow: auto; padding: 24px; }
+.preview-empty { color: var(--sui-color-text-muted, #666); text-align: center; margin-top: 60px; }
+
+/* ── Export dialog ─────────────────────────────────────────────────────────── */
+
+.export-dialog {
+    border: none; border-radius: 12px; padding: 0; max-width: 460px; width: 92%;
+    box-shadow: 0 12px 40px rgba(0,0,0,.22);
+}
+.export-dialog::backdrop { background: rgba(0,0,0,.35); }
+.export-body { padding: 22px 24px; }
+.export-body h3 { margin: 0 0 4px; font-size: 17px; }
+.export-note { margin: 0 0 16px; color: var(--sui-color-text-muted, #666); font-size: 13px; }
+.export-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.export-list button {
+    display: block; width: 100%; text-align: left; cursor: pointer;
+    padding: 12px 14px; border: 1px solid var(--sui-color-border, #d9dce1);
+    border-radius: 10px; background: var(--sui-color-surface, #fff);
+}
+.export-list button:hover { border-color: var(--sui-color-primary, #2563eb); background: var(--sui-color-surface-alt, #f4f6fb); }
+.export-list strong { display: block; font-size: 14px; }
+.export-list small { display: block; margin-top: 2px; color: var(--sui-color-text-muted, #666); font-size: 12px; }
+.export-status { margin-top: 14px; font-size: 13px; color: var(--sui-color-text-muted, #444); }
+.export-body menu { margin: 18px 0 0; padding: 0; display: flex; justify-content: flex-end; }

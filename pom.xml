@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ai.mindconnect</groupId>
+        <artifactId>mc-semantic-ui-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>parents/mc-semantic-ui-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mc-semantic-ui-aggregator</artifactId>
+    <packaging>pom</packaging>
+    <description>Build reactor for the Semantic UI area (per-area CI); not published</description>
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+    <modules>
+        <!-- The single parent POM — built/installed first; every module inherits it. -->
+        <module>parents/mc-semantic-ui-parent</module>
+
+        <module>core/mc-semantic-ui-core</module>
+        <!-- Third renderer: the same UiNode tree as a JavaFX rich client.
+             Its tests skip themselves on a machine without a display. -->
+        <module>core/mc-semantic-ui-javafx</module>
+        <module>ext/mc-semantic-ui-ext-json</module>
+        <module>ext/mc-semantic-ui-ext-markdown</module>
+        <module>ext/mc-semantic-ui-ext-diagram</module>
+        <module>ext/mc-semantic-ui-ext-chart</module>
+        <module>editor/mc-sui-editor</module>
+        <!-- standalone-app assembles the editor SPA under target/dist; the
+             Spring showcase (mc-sui-editor-app) reuses that dist, so it must
+             build first. -->
+        <module>editor/mc-sui-editor-standalone-app</module>
+        <module>editor/mc-sui-editor-app</module>
+        <module>demo/mc-sui-shop-demo</module>
+        <module>demo/mc-sui-widget-demo</module>
+        <module>demo/mc-sui-shop-client-demo</module>
+        <module>demo/mc-sui-file-explorer-demo</module>
+        <!-- No Java; in the reactor so a broken Node demo fails the build. -->
+        <module>demo/mc-sui-node-demo</module>
+    </modules>
+
+</project>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui — triggers, live</title>
+  <!--
+    A live, fully client-side trigger demo embedded in the docs.
+    No backend: the buttons carry INVOKE triggers, and the client handlers
+    return a UiPatch that the bus applies — exactly the round-trip the
+    cookbook describes, with the server replaced by a local function.
+  -->
+  <link rel="stylesheet" href="../sui/sui.css">
+  <link rel="stylesheet" href="../sui/sui-dark.css">
+  <style>
+    /* Always give the widget its own surface + text colour, so it stays
+       readable whether it's embedded in the docs or opened on its own. */
+    body {
+      padding: 16px;
+      background: var(--sui-color-surface);
+      color: var(--sui-color-text-body);
+    }
+  </style>
+  <script>
+    (function syncTheme() {
+      function apply() {
+        try {
+          // Embedded: follow the docs toggle. Standalone (parent === self):
+          // fall back to the OS preference.
+          const parentTheme = window.parent !== window
+              ? window.parent?.document?.documentElement?.dataset?.theme
+              : null;
+          const dark = parentTheme
+              ? parentTheme === "dark"
+              : window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+          document.documentElement.className = dark ? "sui-theme-dark" : "";
+        } catch { /* cross-origin — keep the light theme */ }
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] });
+      } catch { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createDefaultRenderer, setIconSpriteUrl } from "../sui/renderer.js";
+    import { SuiEventBus } from "../sui/eventbus.js";
+
+    setIconSpriteUrl("../sui/icons.svg");
+
+    const host = document.getElementById("app");
+    const renderer = createDefaultRenderer().attach(host);
+    const bus = new SuiEventBus(renderer, host).setHistoryEnabled(false);
+
+    // ── application state: just a variable. No store, no signals. ──────────
+    let total = 0;
+    const money = n => "€ " + n.toFixed(2);
+
+    // The patch the handlers return: replace the total, and toast.
+    const cartPatch = (message, level = "SUCCESS") => ({
+      patches: [
+        { op: "REPLACE", targetId: "cart-total",
+          node: { type: "text", id: "cart-total", text: money(total) } }
+      ],
+      toasts: [ { level, message } ]
+    });
+
+    // ── client handlers = your "endpoints", running in the browser ─────────
+    bus.registerClientHandler("addWidget", () => {
+      total += 19;
+      return cartPatch("Widget added");
+    });
+
+    bus.registerClientHandler("addGadget", () => {
+      total += 49;
+      return cartPatch("Gadget added");
+    });
+
+    bus.registerClientHandler("resetCart", (ctx) => {
+      // ctx gives you the trigger, the resolved url/method, the source element,
+      // the collected payload and the bus itself.
+      if (total === 0) return cartPatch("Cart is already empty", "INFO");
+      total = 0;
+      return cartPatch("Cart cleared", "WARN");
+    });
+
+    const button = (id, label, handler, style) => ({
+      type: "action", id, label, style,
+      onClick: { behavior: "INVOKE", handler }
+    });
+
+    renderer.mount({
+      type: "stack", id: "cart", gap: 12, children: [
+        { type: "text", id: "cart-label", text: "Cart total" },
+        { type: "text", id: "cart-total", text: money(total) },
+        { type: "stack", id: "cart-actions", direction: "HORIZONTAL", gap: 8, children: [
+            button("add-w", "Add Widget (€19)", "addWidget", "PRIMARY"),
+            button("add-g", "Add Gadget (€49)", "addGadget", "PRIMARY"),
+            button("reset", "Clear", "resetCart", "DANGER")
+        ]}
+      ]
+    });
+  </script>
+</body>
+</html>

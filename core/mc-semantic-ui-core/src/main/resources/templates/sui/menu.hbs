@@ -1,0 +1,16 @@
+{{!--
+  UiMenu → a collapsible navigation sidebar. Mirror of renderMenu() in
+  renderers/menu.ts, with one addition for the no-JS case: a checkbox-hack
+  hamburger. The hidden checkbox + its <label> toggle show/hide the list with
+  pure CSS; when the SPA event bus is present it intercepts the same
+  data-menu-toggle element and drives the full 3-state cycle instead
+  (preventing the checkbox from firing).
+--}}
+<nav class="sui-menu sui-menu--{{lower state "EXPANDED"}} sui-menu--{{lower mode "PUSH"}} sui-menu--{{lower side "LEFT"}}{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui="menu" data-menu-state="{{lower state "EXPANDED"}}">
+    <input type="checkbox" class="sui-menu-cb" id="{{id}}__cb" hidden>
+    <div class="sui-menu-head">
+        {{#unless (eq toggle false)}}<label class="sui-menu-toggle" for="{{id}}__cb" data-menu-toggle="{{id}}" role="button" tabindex="0" aria-label="Toggle menu">{{{icon "menu"}}}</label>{{/unless}}
+        {{#if title}}<span class="sui-menu-title">{{title}}</span>{{/if}}
+    </div>
+    <ul class="sui-menu-list" role="menu">{{#each items}}{{{render this}}}{{/each}}</ul>
+</nav>{{#if (or (eq mode "OVERLAY") (eq mode "RESPONSIVE"))}}<div class="sui-menu-backdrop" data-menu-close="{{id}}"></div>{{/if}}

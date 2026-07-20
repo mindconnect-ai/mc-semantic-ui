@@ -1,0 +1,18 @@
+{{!--
+  UiMenuItem → one entry. A group (has children) renders as a native <details>
+  disclosure so nesting expands/collapses with no JS; a leaf renders as an <a>
+  (onClick → data-trigger via the bus, else a plain navigation). Mirror of
+  renderMenuItem() in renderers/menu.ts.
+--}}
+{{#if children}}
+<li class="sui-menu-item sui-menu-item--group{{#if selected}} is-active{{/if}}"{{{events this "click"}}} id="{{id}}" data-id="{{id}}" role="none">
+    <details class="sui-menu-group" data-sui-client-collapse{{#if open}} open{{/if}}>
+        <summary class="sui-menu-link" role="menuitem"><span class="sui-menu-icon">{{#if icon}}{{{icon icon}}}{{/if}}</span><span class="sui-menu-label">{{label}}</span>{{#if badge}}<span class="sui-menu-badge">{{badge}}</span>{{/if}}<span class="sui-menu-caret">{{{icon "chevron-down"}}}</span></summary>
+        <ul class="sui-menu-sublist" role="menu">{{#each children}}{{{render this}}}{{/each}}</ul>
+    </details>
+</li>
+{{else}}
+<li class="sui-menu-item{{#if selected}} is-active{{/if}}" id="{{id}}" data-id="{{id}}" role="none">
+    <a class="sui-menu-link" href="{{#if href}}{{href}}{{else}}#{{/if}}"{{#if onClick}} data-trigger='{{{trigger onClick}}}'{{#if confirm}} data-confirm="{{confirm}}"{{/if}}{{else}}{{#if href}} data-href="{{href}}"{{/if}}{{/if}}{{#if selected}} aria-current="page"{{/if}} role="menuitem"><span class="sui-menu-icon">{{#if icon}}{{{icon icon}}}{{/if}}</span><span class="sui-menu-label">{{label}}</span>{{#if badge}}<span class="sui-menu-badge">{{badge}}</span>{{/if}}</a><span class="sui-menu-tip">{{label}}</span>
+</li>
+{{/if}}

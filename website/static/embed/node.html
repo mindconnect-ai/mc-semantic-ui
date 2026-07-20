@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui — node preview</title>
+  <link rel="stylesheet" href="../sui/sui.css">
+  <link rel="stylesheet" href="../sui/sui-dark.css">
+  <style>
+    body { padding: 16px; background: var(--sui-color-surface); color: var(--sui-color-text-body); }
+    /* A viewport-filling shell takes the whole frame — no padding around it. */
+    html:has(.sui-shell), body:has(.sui-shell) { height: 100%; padding: 0; margin: 0; }
+    .preview-error { font: 13px/1.5 ui-monospace, monospace; color: var(--sui-color-danger, #c00); }
+  </style>
+  <script>
+    (function syncTheme() {
+      function apply() {
+        try {
+          const parentTheme = window.parent !== window
+              ? window.parent?.document?.documentElement?.dataset?.theme : null;
+          const dark = parentTheme
+              ? parentTheme === "dark"
+              : window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+          document.documentElement.className = dark ? "sui-theme-dark" : "";
+        } catch { /* ignore */ }
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] });
+      } catch { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    /*
+     * One preview harness for every node type. The docs page picks a specimen
+     * with ?spec=<name>, which is loaded from ./specimens/<name>.js — so a new
+     * element page needs a specimen module and nothing else.
+     *
+     * A specimen module exports:
+     *   node     — the UiNode literal to render (required)
+     *   install  — optional (renderer, bus) => void, for client handlers or
+     *              custom node types the specimen needs
+     */
+    import { createDefaultRenderer, setIconSpriteUrl } from "../sui/renderer.js";
+    import { SuiEventBus } from "../sui/eventbus.js";
+
+    setIconSpriteUrl("../sui/icons.svg");
+    const host = document.getElementById("app");
+    const renderer = createDefaultRenderer().attach(host);
+    const bus = new SuiEventBus(renderer, host).setHistoryEnabled(false);
+
+    // Only [a-z-] so the parameter can never escape the specimens directory.
+    const spec = (new URLSearchParams(location.search).get("spec") || "").replace(/[^a-z0-9-]/g, "");
+
+    try {
+      const mod = await import(`./specimens/${spec}.js`);
+      mod.install?.(renderer, bus);
+      renderer.mount(mod.node);
+    } catch (err) {
+      host.innerHTML = `<p class="preview-error">Preview unavailable: no specimen "${spec}".</p>`;
+      console.error("node.html: failed to load specimen", spec, err);
+    }
+  </script>
+</body>
+</html>

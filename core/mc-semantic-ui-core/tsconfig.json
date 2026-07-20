@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "outDir": "./target/ts-dist",
+    "rootDir": "./src/main/ts",
+    "declaration": true,
+    "experimentalDecorators": true
+  },
+  "include": ["src/main/ts/**/*"]
+}

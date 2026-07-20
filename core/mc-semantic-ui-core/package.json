@@ -1,0 +1,15 @@
+{
+  "name": "mc-semantic-ui-core",
+  "version": "0.0.1",
+  "description": "Semantic UI core — model types and pluggable renderer (Web Components, no build tool required)",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "build:icons": "node scripts/build-icons.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "lucide-static": "^1.24.0",
+    "typescript": "^5.4.0"
+  }
+}

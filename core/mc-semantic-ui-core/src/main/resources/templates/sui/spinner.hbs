@@ -1,0 +1,7 @@
+{{!--
+  UiSpinner → a CSS-animated ring plus an optional label. Mirror of
+  renderSpinner() in renderers/spinner.ts. All logic is trivial enough to live
+  in the template: size is a modifier class, the accessible name is the title
+  (or the visible label), and the label span is conditional.
+--}}
+<span class="sui-spinner sui-spinner--{{lower size "MD"}}{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}}{{#if id}} id="{{id}}"{{/if}} role="status"{{#if (default title label)}} aria-label="{{default title label}}"{{else}} aria-hidden="true"{{/if}}><span class="sui-spinner-glyph"></span>{{#if label}}<span class="sui-spinner-label">{{label}}</span>{{/if}}</span>

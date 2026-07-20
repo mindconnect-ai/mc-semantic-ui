@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ai.mindconnect</groupId>
+        <artifactId>mc-semantic-ui-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mc-sui-shop-client-demo</artifactId>
+    <packaging>pom</packaging>
+    <description>
+        Backend-free shop demo. A product list with search and a per-product
+        detail dialog, running entirely in the browser: every interaction is
+        a client-side INVOKE trigger whose handler mutates an in-memory product
+        array (persisted to localStorage) and returns UiPage / UiPatch — no
+        Spring, no server, no fetch. The build assembles a self-contained site
+        under target/dist (compiled core renderer + stylesheets unpacked from
+        the mc-semantic-ui-core jar, plus index.html and app.js). Serve
+        target/dist from any static host.
+    </description>
+
+    <!-- Not a published artifact — it's a static site, produced under target/dist. -->
+    <properties>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+    <dependencies>
+        <!-- Reactor-orders this module after core and provides the jar we unpack. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-core</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+                Assemble the static site: the hand-written page + app JS at the
+                dist root, the unpacked core assets under dist/sui/. The result
+                is fully self-contained — open it from any static file server.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-demo-sources</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dist</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/static</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-sui-assets</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dist/sui</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${sui.core.assets}</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

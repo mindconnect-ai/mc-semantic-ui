@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui — the chart extension</title>
+
+  <link rel="stylesheet" href="../sui/sui.css">
+  <link rel="stylesheet" href="../sui/sui-dark.css">
+  <link rel="stylesheet" href="../sui-ext/chart/chart.css">
+
+  <style>
+    body { padding: 16px; background: var(--sui-color-surface); color: var(--sui-color-text-body); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+  </style>
+  <script>
+    (function syncTheme() {
+      function apply() {
+        try {
+          const parentTheme = window.parent !== window
+              ? window.parent?.document?.documentElement?.dataset?.theme : null;
+          const dark = parentTheme
+              ? parentTheme === "dark"
+              : window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+          document.documentElement.className = dark ? "sui-theme-dark" : "";
+        } catch { /* ignore */ }
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] });
+      } catch { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createDefaultRenderer } from "../sui/renderer.js";
+    import { install as installChart } from "../sui-ext/chart/extension.js";
+
+    const host = document.getElementById("app");
+    const renderer = createDefaultRenderer().attach(host);
+
+    // One call. It replaces the core's placeholder handler for "chart" on this
+    // renderer — the same node JSON now draws instead of rendering an empty box.
+    installChart(renderer);
+
+    const data = {
+      labels: ["Q1", "Q2", "Q3", "Q4"],
+      series: [{ name: "Revenue", values: [12, 30, 18, 26] }]
+    };
+    const chart = (id, chartType, title) => ({ type: "chart", id, title, chartType, data });
+
+    renderer.mount({
+      type: "stack", id: "wrap", gap: 12, cssClass: "grid", children: [
+        chart("c-bar",   "BAR",   "Bar"),
+        chart("c-line",  "LINE",  "Line"),
+        chart("c-area",  "AREA",  "Area"),
+        chart("c-donut", "DONUT", "Donut")
+      ]
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Semantic UI — Visual Editor</title>
+
+    <!-- Core widget styles + the editor chrome, both unpacked at build time. -->
+    <link rel="stylesheet" href="./sui/sui.css">
+    <link rel="stylesheet" href="./sui/sui-dark.css">
+    <link rel="stylesheet" href="./sui-editor/editor.css">
+    <link rel="stylesheet" href="./app.css">
+</head>
+<body>
+    <!--
+        The whole app is JS-driven. The shell swaps this container between the
+        projects home (a core UiTree), the editor, and the live preview.
+        No backend: projects and pages live in localStorage.
+    -->
+    <div id="app"></div>
+    <script type="module" src="./shell.js"></script>
+</body>
+</html>

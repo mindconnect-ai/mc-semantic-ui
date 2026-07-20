@@ -1,0 +1,13 @@
+{
+  "name": "mc-semantic-ui-ext-diagram",
+  "version": "0.0.1",
+  "description": "Diagram extension for the Semantic UI renderer — UiDiagram SVG Web Component",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

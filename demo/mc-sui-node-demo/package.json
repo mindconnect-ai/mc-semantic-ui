@@ -1,0 +1,15 @@
+{
+  "name": "mc-sui-node-demo",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Pure Node.js / Express demo serving a semantic-ui product list as plain JSON — no Java backend.",
+  "scripts": {
+    "copy-client": "node scripts/copy-client.js",
+    "start": "npm run copy-client && node server.js",
+    "dev": "npm run copy-client && node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

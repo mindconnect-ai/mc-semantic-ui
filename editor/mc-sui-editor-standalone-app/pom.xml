@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ai.mindconnect</groupId>
+        <artifactId>mc-semantic-ui-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+        <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mc-sui-editor-standalone-app</artifactId>
+    <packaging>pom</packaging>
+    <description>
+        Backend-free, self-contained Semantic UI visual editor. The build
+        assembles a static single-page app under target/dist: the compiled core
+        renderer + event bus (unpacked from mc-semantic-ui-core), the compiled
+        editor (unpacked from mc-sui-editor), a bundled node schema + defaults
+        (dumped from NodeRegistry), plus a plain-JS project/page shell. Projects
+        and pages live entirely in the browser's localStorage — no server, no
+        fetch. Serve target/dist from any static host, or use the in-app
+        exporters to download the whole thing as a static site, a Spring Boot
+        app, or a Node.js/Express app.
+    </description>
+
+    <!-- Not a published artifact — it's a static site, produced under target/dist. -->
+    <properties>
+        <maven.install.skip>true</maven.install.skip>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
+    <dependencies>
+        <!-- Reactor-orders after core + editor; both jars are unpacked below. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-core</artifactId>
+        </dependency>
+        <!-- Provides the compiled editor assets AND the SchemaDump generator. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-sui-editor</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!--
+                Dump schema.json + defaults.json from NodeRegistry so the
+                backend-free editor has the node catalogue and default-instance
+                factory output the REST endpoints used to serve. Java stays the
+                single source of truth.
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>dump-schema</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>java</goal></goals>
+                        <configuration>
+                            <mainClass>ai.mindconnect.ui.editor.SchemaDump</mainClass>
+                            <arguments>
+                                <argument>${project.build.directory}/editor-data</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <!--
+                        After the site is assembled under target/dist
+                        (process-resources), enumerate every file into
+                        dist/data/manifest.json so the in-app exporters know
+                        which files to repackage.
+                    -->
+                    <execution>
+                        <id>write-manifest</id>
+                        <phase>prepare-package</phase>
+                        <goals><goal>java</goal></goals>
+                        <configuration>
+                            <mainClass>ai.mindconnect.ui.editor.AssetManifest</mainClass>
+                            <arguments>
+                                <argument>${project.build.directory}/dist</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Assemble the self-contained site under target/dist:
+                  dist/                 → the shell (index.html, *.js, css)
+                  dist/sui/             → core renderer + event bus + themes
+                  dist/sui-editor/      → compiled editor + editor.css
+                  dist/data/            → schema.json + defaults.json
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-shell</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dist</outputDirectory>
+                            <resources>
+                                <resource><directory>src/main/static</directory></resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-core-assets</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dist/sui</outputDirectory>
+                            <resources>
+                                <resource><directory>${sui.core.assets}</directory></resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-editor-assets</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dist/sui-editor</outputDirectory>
+                            <resources>
+                                <resource><directory>${sui.editor.assets}</directory></resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-schema-data</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>copy-resources</goal></goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dist/data</outputDirectory>
+                            <resources>
+                                <resource><directory>${project.build.directory}/editor-data</directory></resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

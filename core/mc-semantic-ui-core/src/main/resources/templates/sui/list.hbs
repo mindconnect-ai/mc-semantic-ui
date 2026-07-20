@@ -1,0 +1,14 @@
+{{!--
+  UiList → header (title + action bar) + <ul> of items + optional pagination.
+  Parity with renderList() in renderer.ts. Items delegate to list-item.hbs;
+  the renderer's renderItem() seam is replaced here by the {{> list-item}}
+  partial (the model is the same, only the dispatch differs).
+--}}
+<div class="sui-list{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}">
+  <div class="sui-list-header">
+    {{#if title}}<h2>{{title}}</h2>{{/if}}
+    <div class="sui-actions">{{#each actions}}{{> action this}}{{/each}}</div>
+  </div>
+  <ul>{{#each items}}{{> list-item this}}{{/each}}</ul>
+  {{#if pagination}}{{> pagination pagination}}{{/if}}
+</div>

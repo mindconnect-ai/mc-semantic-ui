@@ -1,0 +1,51 @@
+{{!--
+  UiTable → thead with column headers + optional row-actions column,
+  tbody with rows or an "empty" placeholder, optional pagination.
+  Parity with renderTable() in renderer.ts.
+
+  Row-action {id} substitution: rendered via the {{{rowAction action row}}}
+  helper which calls SsrTriggerMapper.render(action, {id: row.id}). That's
+  why this template uses {{{rowAction}}} instead of {{> action}}; the
+  partial form has no path to the surrounding row.
+--}}
+{{!-- data-node: the table's own serialised model (same convention as the
+     TS renderer). Hybrid pages (SSR + bootstrapped EventBus) need it so
+     row/column patches can edit the model and re-render the table. --}}
+<div class="sui-table{{#if stackOnMobile}} sui-table--stack{{/if}}{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui="table" data-node='{{{nodeJson this}}}'>
+  {{!-- The header bar renders when there is a title OR at least one action:
+       gating it on the title alone silently swallowed a title-less table's
+       header actions. Parity with renderTable() in table.ts. --}}
+  {{#if (or title actions)}}<div class="sui-table-header">{{#if title}}<h2>{{title}}</h2>{{/if}}{{#each actions}}{{> action this}}{{/each}}</div>{{/if}}
+  {{!-- maxHeight caps this scroll container; CSS pins <thead> inside it. --}}
+  <div class="sui-table-scroll{{#if maxHeight}} sui-table-scroll--capped{{/if}}"{{#if maxHeight}} style="max-height:{{maxHeight}}"{{/if}}>
+  <table>
+    <thead><tr>
+      {{!-- Leading selection column (radio/checkbox), only rendered when
+           selectMode is SINGLE or MULTI. --}}
+      {{#if (selectionActive selectMode)}}<th class="sui-table-selection"></th>{{/if}}
+      {{!-- each column gets id="..." so the editor's id-based highlight
+           lookup can find it; production renderers ignore the attribute.
+           Sortable columns render a clickable control instead of a label —
+           the sortTh helper needs the owning table, hence ../this. --}}
+      {{#each columns}}{{{sortTh ../this this}}}{{/each}}
+      {{#if rowActions}}<th></th>{{/if}}
+    </tr></thead>
+    <tbody>
+      {{#each rows}}
+      <tr{{#if this.id}} id="{{this.id}}"{{/if}}{{#if (eq this.id ../selectedRowId)}} class="sui-row--selected" data-selected="true"{{/if}}>
+        {{#if (selectionActive ../selectMode)}}<td class="sui-table-selection">{{{selectionInput ../this this}}}</td>{{/if}}
+        {{#each ../columns}}<td{{#if label}} data-label="{{label}}"{{/if}}>{{cell ../this this}}</td>{{/each}}
+        {{#if ../rowActions}}<td class="sui-table-row-actions">{{#each ../rowActions}}{{{rowAction this ../this}}}{{/each}}</td>{{/if}}
+      </tr>
+      {{else}}
+      {{!-- colspan covers data columns; the row-actions column (if any)
+           contributes one more, but we conservatively use just (size columns)
+           for the empty-state row — a one-column gap on an empty table with
+           row actions is harmless and avoids tri-arg arithmetic in the template. --}}
+      <tr><td colspan="{{len columns}}" class="sui-table-empty">No rows.</td></tr>
+      {{/each}}
+    </tbody>
+  </table>
+  </div>
+  {{#if pagination}}{{> pagination pagination}}{{/if}}
+</div>

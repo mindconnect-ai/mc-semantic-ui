@@ -1,0 +1,42 @@
+{{!--
+  UiForm → <form> with fields, action footer, link footer.
+  Parity with renderForm() in renderer.ts.
+
+  Hybrid SSR design: the outer <form> carries the primary action's URL and
+  HTTP method (and a hidden _method override for DELETE/PUT/PATCH). The
+  action footer emits button-only markup via {{formAction}} — wrapping each
+  button in its own <form> would nest forms (invalid HTML). Native submit
+  goes to the primary action; the EventBus, when present, intercepts and
+  dispatches whichever button was clicked via its data-trigger.
+
+  data-sui="form" identifies the form for the EventBus's submit handler.
+  We do NOT emit data-node — server-rendered forms don't need it (the
+  browser reads <input name=…> values directly, and the EventBus's later
+  DOM walk can do the same).
+--}}
+{{#if (hasPrimaryAction this)}}
+<form class="sui-form{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui="form"
+      {{#if reloadOnSubmit}}data-sui-reload="true" {{/if}}method="{{formMethod this}}" action="{{formActionUrl this}}">
+  {{#if (formNeedsMethodOverride this)}}<input type="hidden" name="_method" value="{{formMethodOverride this}}">{{/if}}
+  {{#if title}}<h2>{{title}}</h2>{{/if}}
+  {{#if formError}}<div class="sui-form-error" role="alert">{{formError}}</div>{{/if}}
+  {{#each fields}}{{> field this}}{{/each}}
+  {{#each content}}{{{render this}}}{{/each}}
+  <div class="sui-form-footer">
+    {{#each actions}}{{{formAction this}}}{{/each}}
+    {{#each links}}{{> link this}}{{/each}}
+  </div>
+</form>
+{{else}}
+{{!-- Form without actions: render as an inert <form> wrapper. Rare, but
+     avoids dropping the whole node when the model has no primary action. --}}
+<form class="sui-form{{#if cssClass}} {{cssClass}}{{/if}}" id="{{id}}" data-sui="form"{{#if reloadOnSubmit}} data-sui-reload="true"{{/if}}>
+  {{#if title}}<h2>{{title}}</h2>{{/if}}
+  {{#if formError}}<div class="sui-form-error" role="alert">{{formError}}</div>{{/if}}
+  {{#each fields}}{{> field this}}{{/each}}
+  {{#each content}}{{{render this}}}{{/each}}
+  <div class="sui-form-footer">
+    {{#each links}}{{> link this}}{{/each}}
+  </div>
+</form>
+{{/if}}

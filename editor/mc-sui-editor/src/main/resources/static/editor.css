@@ -1,0 +1,394 @@
+/*
+ * Semantic UI editor — layout overrides on top of /sui/sui.css.
+ *
+ * The editor uses sui-* primitives wherever possible (buttons, forms,
+ * detail rows) so it inherits theme tokens automatically. Only the
+ * editor-specific layout (header / tree / panel / preview split) and the
+ * tree node rendering are defined here.
+ */
+
+/* ── Root layout ─────────────────────────────────────────────────────────── */
+
+html, body { height: 100%; margin: 0; }
+body {
+    font-family: var(--sui-font-family, system-ui, sans-serif);
+    color: var(--sui-color-text, #1a1a1a);
+    background: var(--sui-color-bg, #f5f5f5);
+}
+
+#sui-editor-root {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: 1fr;
+    height: 100vh;
+}
+
+.sui-editor-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+    padding: 8px 16px;
+    background: var(--sui-color-surface);
+    border-bottom: 1px solid var(--sui-color-border);
+    box-shadow: var(--sui-shadow-card);
+}
+.sui-editor-toolbar h1 {
+    font-size: 14px; font-weight: 600; letter-spacing: .02em;
+    margin: 0;
+}
+.sui-editor-toolbar .sui-editor-status {
+    font-size: 12px;
+    color: var(--sui-color-text-muted);
+}
+.sui-editor-toolbar .sui-editor-actions {
+    display: flex; gap: 8px;
+}
+
+/* Three-pane main area: tree (left), panel + preview stacked (right). */
+/* The <sui-editor> web component: a block that fills its host box, with the
+   three-pane grid stretched inside it. (bootEditor uses the same grid under a
+   toolbar via #sui-editor-root; the element uses it standalone.) */
+sui-editor {
+    display: block;
+    height: 100%;
+    min-height: 0;
+}
+sui-editor > .sui-editor-main {
+    height: 100%;
+}
+
+.sui-editor-main {
+    display: grid;
+    /* tree | gutter | right — --tree-w is driven by the column splitter. */
+    grid-template-columns: var(--tree-w, 280px) 6px minmax(0, 1fr);
+    grid-template-rows: 1fr;
+    overflow: hidden;
+}
+
+/* Drag handles between panes. Sit in their own 6px grid track. */
+.sui-editor-gutter {
+    background: var(--sui-color-border);
+    position: relative;
+    z-index: 1;
+}
+.sui-editor-gutter:hover,
+.sui-editor-resizing .sui-editor-gutter {
+    background: var(--sui-color-primary);
+}
+.sui-editor-gutter--col { cursor: col-resize; }
+.sui-editor-gutter--row { cursor: row-resize; }
+/* Widen the hit area beyond the visible 6px line without shifting layout. */
+.sui-editor-gutter::after {
+    content: ""; position: absolute; inset: -3px;
+}
+.sui-editor-gutter--col::after { inset: 0 -4px; }
+.sui-editor-gutter--row::after { inset: -4px 0; }
+/* While dragging, kill selection/iframe pointer capture across the whole app. */
+body.sui-editor-resizing { cursor: inherit; user-select: none; }
+body.sui-editor-resizing .sui-editor-preview-host { pointer-events: none; }
+
+.sui-editor-tree-pane {
+    background: var(--sui-color-surface);
+    border-right: 1px solid var(--sui-color-border);
+    overflow: auto;
+    padding: 12px;
+}
+.sui-editor-tree-pane > h2 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--sui-color-text-muted); font-weight: 600;
+    margin: 0 0 8px;
+}
+
+.sui-editor-right {
+    display: grid;
+    /* properties | gutter | preview — --panel-h is driven by the row splitter. */
+    grid-template-rows: var(--panel-h, minmax(0, 1fr)) 6px minmax(0, 1fr);
+    overflow: hidden;
+}
+
+.sui-editor-panel-pane {
+    background: var(--sui-color-surface);
+    border-bottom: 1px solid var(--sui-color-border);
+    /* Flex column so the JSON editor fills the pane; the pane owns no scroll —
+       Monaco scrolls internally, and it grows/shrinks with the row splitter. */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 16px;
+}
+.sui-editor-panel-pane > h2 {
+    flex: 0 0 auto;
+    font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--sui-color-text-muted); font-weight: 600;
+    margin: 0 0 10px;
+}
+/* The PropertyPanel mount host: a flex column of header · editor · status. */
+.sui-editor-panel {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.sui-editor-panel > .sui-editor-panel-header,
+.sui-editor-panel > .sui-editor-json-status,
+.sui-editor-panel > .sui-editor-panel-empty { flex: 0 0 auto; }
+.sui-editor-panel-empty {
+    font-style: italic; color: var(--sui-color-empty);
+    font-size: 13px;
+}
+
+.sui-editor-preview-pane {
+    background: var(--sui-color-bg);
+    overflow: auto;
+    padding: 16px;
+}
+.sui-editor-preview-pane > h2 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--sui-color-text-muted); font-weight: 600;
+    margin: 0 0 10px;
+}
+.sui-editor-preview-host {
+    background: var(--sui-color-surface);
+    border-radius: var(--sui-radius-md);
+    box-shadow: var(--sui-shadow-card);
+    padding: 16px;
+    min-height: 80px;
+}
+/* Editor mode: every click is captured to select a tree node, never to
+   navigate or submit. The pointer hint makes the contract obvious. */
+.sui-editor-preview-host,
+.sui-editor-preview-host * {
+    cursor: pointer;
+}
+.sui-editor-preview-empty {
+    font-style: italic; color: var(--sui-color-empty);
+    font-size: 13px;
+    text-align: center; padding: 24px;
+}
+
+/* Highlight ring around the DOM element matching the selected tree node.
+   Outline (not border) so the page layout doesn't shift; offset gives it
+   visual separation from the element's own border. */
+.sui-editor-preview-host .sui-editor-selected {
+    outline: 2px solid var(--sui-color-primary, #2563eb);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+/* Outline on <tr> is unreliable across browsers — give cells inside the
+   selected row a top/bottom border instead so the selection is still
+   visible. Same trick for <th>: outline works but a background tint makes
+   it pop on dense table heads. */
+.sui-editor-preview-host tr.sui-editor-selected > * {
+    outline: 2px solid var(--sui-color-primary, #2563eb);
+    outline-offset: -2px;
+}
+.sui-editor-preview-host th.sui-editor-selected {
+    background: color-mix(in srgb, var(--sui-color-primary, #2563eb) 18%, transparent);
+}
+
+/* ── Tree rendering ──────────────────────────────────────────────────────── */
+
+.sui-tree, .sui-tree ul {
+    list-style: none; padding: 0; margin: 0;
+}
+.sui-tree ul {
+    /* nested levels get a left rule + indent so containment is visible */
+    margin-left: 10px;
+    padding-left: 10px;
+    border-left: 1px dashed var(--sui-color-border);
+}
+.sui-tree-node {
+    display: flex; align-items: center; gap: 4px;
+    padding: 3px 6px;
+    border-radius: var(--sui-radius-sm);
+    cursor: default;
+    font-size: 13px;
+    line-height: 1.4;
+}
+.sui-tree-node:hover {
+    background: var(--sui-color-border-soft);
+}
+.sui-tree-node.is-selected {
+    background: var(--sui-color-primary-soft);
+    color: var(--sui-color-primary);
+    font-weight: 500;
+}
+.sui-tree-type {
+    display: inline-block;
+    font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+    background: var(--sui-color-border-soft);
+    color: var(--sui-color-text-muted);
+    padding: 1px 5px; border-radius: 3px;
+    font-weight: 600;
+}
+/* Entry-wrapper rows (e.g. UiSection.Entry: id/title/content) get a lighter
+   tag so they read as structural glue rather than as a UiNode of their own. */
+.sui-tree-type--entry {
+    background: transparent;
+    color: var(--sui-color-text-subtle);
+    border: 1px dashed var(--sui-color-border);
+    padding: 0 4px;
+}
+.sui-tree-node.is-selected .sui-tree-type {
+    background: var(--sui-color-primary);
+    color: var(--sui-color-on-primary);
+}
+.sui-tree-id {
+    font-family: var(--sui-font-mono, monospace);
+    font-size: 12px;
+}
+.sui-tree-label {
+    color: var(--sui-color-text-muted);
+    font-size: 12px;
+}
+
+/* The tree's container groups have a label + plus-button + dedicated child <ul>. */
+.sui-tree-group-label {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 10px; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--sui-color-text-subtle);
+    margin: 4px 0 2px 16px;
+    font-weight: 600;
+}
+.sui-tree-row-actions {
+    margin-left: auto;
+    display: flex; gap: 2px;
+    opacity: 0;
+    transition: opacity .1s;
+}
+.sui-tree-node:hover .sui-tree-row-actions,
+.sui-tree-node.is-selected .sui-tree-row-actions {
+    opacity: 1;
+}
+.sui-tree-action {
+    background: none; border: none; cursor: pointer;
+    font-family: inherit;
+    font-size: 13px; line-height: 1;
+    color: var(--sui-color-text-muted);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+.sui-tree-action:hover {
+    background: var(--sui-color-border);
+    color: var(--sui-color-text-strong, var(--sui-color-text));
+}
+
+/* ── Property panel ──────────────────────────────────────────────────────── */
+
+.sui-editor-panel-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+}
+/* Monaco JSON editor host. Monaco needs an explicit height to lay itself out;
+   automaticLayout keeps it in sync with width changes. */
+.sui-editor-json-monaco {
+    /* Fill the remaining pane height; Monaco (automaticLayout) tracks it as the
+       row splitter moves. min-height keeps it usable when the pane is short. */
+    flex: 1 1 auto;
+    min-height: 80px;
+    border: 1px solid var(--sui-color-border-strong, #d1d5db);
+    border-radius: var(--sui-radius-md, 6px);
+    overflow: hidden;
+}
+/* Textarea fallback (used only when Monaco can't load, e.g. offline). */
+.sui-editor-json-input {
+    width: 100%;
+    height: 100%;
+    min-height: 220px;
+    box-sizing: border-box;
+    font-family: var(--sui-font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+    font-size: 12px;
+    padding: 8px 10px;
+    border: none;
+    background: var(--sui-color-surface);
+    color: var(--sui-color-text);
+    resize: none;
+}
+.sui-editor-json-input:focus {
+    outline: none;
+}
+.sui-editor-json-status {
+    margin-top: 6px;
+    min-height: 16px;
+    font-size: 11px;
+    color: var(--sui-color-text-muted);
+}
+.sui-editor-json-status[data-empty="true"] { visibility: hidden; }
+.sui-editor-json-status[data-kind="error"] { color: var(--sui-color-danger); }
+.sui-editor-json-status[data-kind="ok"]    { color: #16a34a; }
+.sui-editor-json-status[data-kind="hint"]  { color: var(--sui-color-text-muted); }
+/* Non-blocking warnings (e.g. duplicate ids after a JSON edit). Distinct
+   from "error" — the mutation went through, just flagging a quality issue. */
+.sui-editor-json-status[data-kind="warn"]  { color: #d97706; }
+
+/* Save status pill in the toolbar */
+.sui-editor-status[data-status="saving"] { color: var(--sui-color-primary); }
+.sui-editor-status[data-status="dirty"]  { color: var(--sui-color-text-muted); font-style: italic; }
+.sui-editor-status[data-status="error"]  { color: var(--sui-color-danger); }
+.sui-editor-status[data-status="idle"]   { color: #16a34a; }
+
+/* ── Add-type picker dialog ─────────────────────────────────────────────── */
+
+.sui-editor-picker {
+    border: 1px solid var(--sui-color-border);
+    border-radius: var(--sui-radius-lg, 8px);
+    background: var(--sui-color-surface);
+    color: var(--sui-color-text);
+    padding: 0;
+    max-width: min(420px, 90vw);
+    box-shadow: 0 10px 40px rgba(0,0,0,.25);
+}
+.sui-editor-picker::backdrop {
+    background: rgba(15, 23, 42, .45);
+}
+.sui-editor-picker-body {
+    padding: 16px 20px;
+    margin: 0;
+}
+.sui-editor-picker-body h3 {
+    margin: 0 0 10px;
+    font-size: 14px;
+}
+.sui-editor-picker-list {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 4px;
+    max-height: 60vh; overflow: auto;
+}
+.sui-editor-picker-list button {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: var(--sui-color-surface-alt, #f8fafc);
+    border: 1px solid var(--sui-color-border-soft);
+    border-radius: var(--sui-radius-md, 6px);
+    padding: 8px 12px;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit; font-size: 13px;
+    color: var(--sui-color-text);
+}
+.sui-editor-picker-list button:hover {
+    border-color: var(--sui-color-primary);
+    background: var(--sui-color-primary-soft, #eff6ff);
+}
+.sui-editor-picker-list button small {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--sui-color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.sui-editor-picker-body menu {
+    display: flex; justify-content: flex-end;
+    padding: 0; margin: 12px 0 0;
+    list-style: none;
+}
+.sui-editor-picker-body menu button {
+    background: none; border: 1px solid var(--sui-color-border);
+    border-radius: var(--sui-radius-md, 6px);
+    padding: 6px 12px;
+    font: inherit; font-size: 12px;
+    cursor: pointer;
+    color: var(--sui-color-text);
+}
+.sui-editor-picker-body menu button:hover {
+    border-color: var(--sui-color-text-strong, var(--sui-color-text));
+}

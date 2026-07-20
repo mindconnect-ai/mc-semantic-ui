@@ -1,0 +1,13 @@
+{{!--
+  UiSectionEntry → standalone rendering of one tab/panel entry. Mirrors
+  renderSectionEntry() in renderers/section-entry.ts.
+
+  Normally entries render inline inside their UiSection (as a <button>
+  tab + <div class="sui-panel"{{{events this}}}> body), but the editor preview can address
+  an entry directly. We show its title + content so the author sees what
+  they selected without surrounding tabs.
+--}}
+<div class="sui-section-entry{{#if cssClass}} {{cssClass}}{{/if}}"{{#if id}} id="{{id}}"{{/if}}>
+  {{#if title}}<h3 class="sui-section-entry-title">{{title}}</h3>{{/if}}
+  {{#if content}}{{{render content}}}{{/if}}
+</div>

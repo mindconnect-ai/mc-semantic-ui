@@ -1,0 +1,66 @@
+name: ci
+
+# Continuous integration for the standalone semantic-ui repo: build + test the
+# Maven reactor, and verify the Docusaurus docs still build. Nothing is
+# published or deployed here — releases go through release.yml, and the docs
+# are intentionally NOT deployed (they simply live in this public repo).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Java build + tests. The frontend-maven-plugin installs Node once into the
+  # shared .node/ at the repo root and every module reuses it.
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # The JavaFX module's tests need a windowing system: OpenJFX ships no
+      # headless backend, so without this they would silently skip themselves
+      # (assumeTrue in startToolkit) and the green check would mean "compiles"
+      # rather than "passes".
+      - name: Install a virtual display for the JavaFX tests
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgtk-3-0
+
+      - name: Build & test
+        run: xvfb-run -a mvn -B -ntp clean install
+
+  # Verify the Docusaurus site builds (no deploy — the docs just live in the
+  # repo). onBrokenLinks is 'warn', so this fails only on real build errors.
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      - name: Build docs
+        working-directory: website
+        run: |
+          npm ci
+          npm run build

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Semantic UI — Client-Only Shop</title>
+
+    <!--
+        Both theme stylesheets are loaded up front. Only one is active at a
+        time, selected by the class on <html>:
+          (none)          → default light theme (sui.css)
+          sui-theme-dark  → dark overrides (sui-dark.css)
+        The theme <select> in the top bar toggles that class — no reload.
+    -->
+    <link rel="stylesheet" href="./sui/sui.css">
+    <link rel="stylesheet" href="./sui/sui-dark.css">
+
+    <style>
+        /* Demo chrome only — the widgets themselves are styled by sui.css. */
+        body { margin: 0; }
+        .demo-topbar {
+            display: flex; align-items: center; gap: 16px;
+            padding: 12px 20px; border-bottom: 1px solid var(--sui-color-border);
+            background: var(--sui-color-surface); position: sticky; top: 0; z-index: 10;
+        }
+        .demo-topbar h1 { font-size: 15px; font-weight: 600; margin: 0; }
+        .demo-topbar .demo-spacer { margin-left: auto; }
+        .demo-topbar label { font-size: 13px; color: var(--sui-color-text-muted); }
+        .demo-topbar select { padding: 5px 8px; font-size: 13px; }
+        .demo-main { max-width: 960px; margin: 0 auto; padding: 24px 20px 80px; }
+        .demo-intro { display: block; font-size: 13px; color: var(--sui-color-text-muted);
+                      background: var(--sui-color-surface-alt); border: 1px solid var(--sui-color-border);
+                      border-radius: var(--sui-radius-md); padding: 10px 14px; line-height: 1.5;
+                      margin-bottom: 18px; }
+        .demo-intro code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+        .demo-section-title { display: block; font-size: 15px; font-weight: 700; color: var(--sui-color-text); }
+        .demo-section-note { display: block; font-size: 12.5px; color: var(--sui-color-text-muted); line-height: 1.45; }
+        /* Give the catalog list / detail-pane columns sensible widths. */
+        #catalog-cols > .sui-list { flex: 0 0 320px; }
+        #catalog-cols > .sui-detail { flex: 1 1 auto; }
+        /* Upload section: drop zone left, preview right. */
+        #upload-cols > .sui-upload { flex: 0 0 320px; }
+        #upload-cols > #upload-preview { flex: 1 1 auto; align-items: flex-start; }
+        .demo-thumb { max-width: 200px; max-height: 200px; border-radius: var(--sui-radius-md);
+                      border: 1px solid var(--sui-color-border); display: block; }
+    </style>
+</head>
+<body>
+    <div class="demo-topbar">
+        <h1>Semantic UI · Client-Only Shop</h1>
+        <span class="demo-note">No backend — the whole page runs in the browser via INVOKE triggers.</span>
+        <span class="demo-spacer"></span>
+        <label for="demo-theme">Theme</label>
+        <select id="demo-theme">
+            <option value="">Light</option>
+            <option value="sui-theme-dark">Dark</option>
+        </select>
+    </div>
+
+    <main class="demo-main">
+        <p class="demo-intro">
+            The product list, search and detail dialog run <strong>entirely in the client</strong>.
+            Every click fires a trigger with <code>behavior:&nbsp;"INVOKE"</code>, whose handler
+            reads/mutates an in-memory product array (persisted to <code>localStorage</code>)
+            and returns a <code>UiPage</code> / <code>UiPatch</code> — exactly what a server
+            would otherwise send. No <code>fetch</code>, no Spring.
+        </p>
+        <!-- The renderer paints everything into this root. -->
+        <div id="sui-root"></div>
+    </main>
+
+    <!-- Theme toggle: swap the class on <html>; both stylesheets are preloaded. -->
+    <script>
+        document.getElementById("demo-theme").addEventListener("change", (e) => {
+            document.documentElement.className = e.target.value;
+        });
+    </script>
+    <script type="module" src="./app.js"></script>
+</body>
+</html>

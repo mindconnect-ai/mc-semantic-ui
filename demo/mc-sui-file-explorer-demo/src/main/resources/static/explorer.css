@@ -1,0 +1,8 @@
+/* Demo chrome only — the widgets themselves are styled by the core sui.css. */
+body { margin: 0; background: var(--sui-color-surface-alt); }
+#sui-root { max-width: 860px; margin: 0 auto; padding: 28px 20px 80px; }
+.explorer-title { display: block; font-size: 22px; font-weight: 700; color: var(--sui-color-text); }
+/* Breadcrumb: inline links with muted separators. */
+#breadcrumb { align-items: center; flex-wrap: wrap; }
+#breadcrumb .sui-link { font-size: 14px; }
+.crumb-sep { color: var(--sui-color-text-subtle); }

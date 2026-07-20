@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui — live island</title>
+  <!--
+    A real UI island, embedded in the docs via <iframe>. The iframe is the
+    isolation boundary: sui.css ships a global reset (`*` + `body`), which would
+    wreck the surrounding Docusaurus layout if loaded into the page directly.
+
+    The bundle is served by this site from /sui/** — staged out of
+    mc-semantic-ui-core by website/scripts/copy-sui-assets.mjs.
+  -->
+  <link rel="stylesheet" href="../sui/sui.css">
+  <link rel="stylesheet" href="../sui/sui-dark.css">
+  <style>
+    body { padding: 16px; background: transparent; }
+    /* No page chrome — this is a widget, not a page. */
+  </style>
+  <script>
+    // Follow the docs site's light/dark toggle. Same-origin, so we can read the
+    // parent's data-theme and mirror it onto <html> as the sui dark class.
+    (function syncTheme() {
+      function apply() {
+        try {
+          const dark = window.parent?.document?.documentElement?.dataset?.theme === "dark";
+          document.documentElement.className = dark ? "sui-theme-dark" : "";
+        } catch { /* different origin — keep the light theme */ }
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] });
+      } catch { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createDefaultRenderer, setIconSpriteUrl } from "../sui/renderer.js";
+
+    setIconSpriteUrl("../sui/icons.svg");
+
+    const renderer = createDefaultRenderer().attach(document.getElementById("app"));
+
+    // The exact node from the "UiPage" example on the overview page — rendered
+    // by the real renderer with the real stylesheet.
+    renderer.mount({
+      type: "table", id: "products", title: "Products",
+      columns: [
+        { type: "column", id: "c-sku",   label: "SKU",   dataKey: "sku"   },
+        { type: "column", id: "c-name",  label: "Name",  dataKey: "name"  },
+        { type: "column", id: "c-price", label: "Price", dataKey: "price" }
+      ],
+      rows: [
+        { type: "row", id: "p1", data: { sku: "A-1", name: "Widget", price: "€ 19.00" } },
+        { type: "row", id: "p2", data: { sku: "B-2", name: "Gadget", price: "€ 49.00" } },
+        { type: "row", id: "p3", data: { sku: "C-3", name: "Doohickey", price: "€  7.50" } }
+      ],
+      rowActions: [
+        { type: "action", id: "edit",   label: "Edit",   style: "SECONDARY" },
+        { type: "action", id: "delete", label: "Delete", style: "DANGER" }
+      ]
+    });
+  </script>
+</body>
+</html>

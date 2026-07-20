@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SUI Editor</title>
+  <link rel="stylesheet" href="/sui/sui.css">
+  <link rel="stylesheet" href="/sui-editor/editor.css">
+</head>
+<body>
+  <!--
+    The boot script paints the toolbar, the three panes, and wires the
+    state/schema fetches. We deliberately ship empty markup here so the
+    JS is the single source of truth — no flash of half-baked HTML.
+  -->
+  <div id="sui-editor-root"></div>
+  <script type="module" src="/sui-editor/editor.js"></script>
+</body>
+</html>

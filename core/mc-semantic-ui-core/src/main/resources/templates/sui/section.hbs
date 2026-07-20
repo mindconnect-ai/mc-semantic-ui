@@ -1,0 +1,17 @@
+{{!--
+  UiSection → tabbed container of entries. Each entry becomes a tab; one is
+  active (the {{initialSection}} or the first one). Optionally wrapped in
+  a <details> disclosure when collapseSummary is set. Parity with
+  renderSection() / renderSectionBody() in renderer.ts.
+
+  Sections that don't need tabs (e.g. stacking a header above a body) use
+  UiStack instead — see stack.hbs / renderStack().
+--}}
+{{~#if collapseSummary~}}
+  <details class="sui-section--collapsible"{{{events this}}}{{#if collapseOpen}} open{{/if}} id="{{id}}">
+    <summary class="sui-section-summary">{{collapseSummary}}</summary>
+    {{> section/tabs}}
+  </details>
+{{~else~}}
+  {{> section/tabs}}
+{{~/if~}}

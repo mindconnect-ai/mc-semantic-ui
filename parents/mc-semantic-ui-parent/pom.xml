@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ai.mindconnect</groupId>
+    <artifactId>mc-semantic-ui-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <description>
+        Single parent for the semantic-ui repo: Java 21 + Lombok + the Spring Boot
+        BOM (version management only — libraries stay Spring-free unless they
+        declare a starter), plus the semantic-ui specifics (Jackson, Handlebars,
+        the Node/npm frontend build).
+    </description>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <lombok.version>1.18.40</lombok.version>
+        <junit.version>5.10.3</junit.version>
+        <assertj.version>3.26.3</assertj.version>
+        <!-- Spring Boot is consumed as a BOM (version management only), not as a parent.
+             Modules stay Spring-free unless they declare a Spring starter themselves. -->
+        <spring-boot.version>3.5.13</spring-boot.version>
+        <jackson.version>2.16.1</jackson.version>
+        <node.version>v20.14.0</node.version>
+        <npm.version>10.7.0</npm.version>
+        <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
+        <handlebars.version>4.3.1</handlebars.version>
+        <javafx.version>21.0.4</javafx.version>
+        <javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
+
+        <!--
+            Build outputs of the asset-producing modules, for the apps and demos
+            that assemble a static site out of them.
+
+            These used to be read by unpacking the sibling JARs
+            (maven-dependency-plugin:unpack). That works for `install`, but it
+            breaks `mvn test` from the reactor root: a `test` run never reaches
+            `package`, so the sibling artifact does not exist yet and the build
+            aborts with MDEP-98. Reading the sibling's build directory instead
+            works in every phase — the reactor guarantees the producer is built
+            first — and the content is identical: target/classes/META-INF/... is
+            exactly what gets zipped into the JAR.
+
+            Assumes consumers sit two levels below the repo root (demo/x,
+            editor/x, ext/x). A module at another depth must override these.
+        -->
+        <sui.core.assets>${project.basedir}/../../core/mc-semantic-ui-core/target/classes/META-INF/resources/sui</sui.core.assets>
+        <sui.core.tsdist>${project.basedir}/../../core/mc-semantic-ui-core/target/ts-dist</sui.core.tsdist>
+        <sui.editor.assets>${project.basedir}/../../editor/mc-sui-editor/target/classes/META-INF/resources/sui-editor</sui.editor.assets>
+        <sui.ext.diagram.assets>${project.basedir}/../../ext/mc-semantic-ui-ext-diagram/target/classes/META-INF/resources/sui-ext</sui.ext.diagram.assets>
+        <sui.ext.chart.assets>${project.basedir}/../../ext/mc-semantic-ui-ext-chart/target/classes/META-INF/resources/sui-ext</sui.ext.chart.assets>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Boot BOM: coordinated versions for anything a module chooses to use.
+                 Imported (not inherited via parent) so this stays a plain Java parent —
+                 the libraries stay Spring-free unless they declare a starter themselves. -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- semantic-ui modules -->
+            <dependency>
+                <groupId>ai.mindconnect</groupId>
+                <artifactId>mc-semantic-ui-core</artifactId>
+                <version>0.1.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.mindconnect</groupId>
+                <artifactId>mc-semantic-ui-javafx</artifactId>
+                <version>0.1.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.mindconnect</groupId>
+                <artifactId>mc-semantic-ui-ext-json</artifactId>
+                <version>0.1.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.mindconnect</groupId>
+                <artifactId>mc-semantic-ui-ext-markdown</artifactId>
+                <version>0.1.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.mindconnect</groupId>
+                <artifactId>mc-semantic-ui-ext-diagram</artifactId>
+                <version>0.1.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.mindconnect</groupId>
+                <artifactId>mc-semantic-ui-ext-chart</artifactId>
+                <version>0.1.0-SNAPSHOT</version>
+            </dependency>
+            <!-- Jackson (pinned; overrides the Spring BOM) -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+
+            <!-- JavaFX, for the rich-client renderer (mc-semantic-ui-javafx). -->
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-base</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-graphics</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-controls</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <release>${java.version}</release>
+                        <!-- Emit method/constructor parameter names into the bytecode.
+                             Spring needs these to resolve constructor injection by name
+                             (spring-boot-starter-parent used to provide this). -->
+                        <parameters>true</parameters>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>3.2.3</version>
+                </plugin>
+                <!-- Managed here (version + repackage goal) so Spring Boot app modules can
+                     declare the plugin without a version, exactly as under spring-boot-starter-parent. -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
+                </plugin>
+                <!-- Frontend (TS renderers + editor SPA) build.
+                     installDirectory points at ONE shared location at the repo root, so
+                     Node is unpacked once and every module reuses it. Per-module
+                     target/node unpacks raced on macOS (Spotlight/FS locking the temp
+                     dir during cleanup), which failed the reactor intermittently. -->
+                <plugin>
+                    <groupId>com.github.eirslett</groupId>
+                    <artifactId>frontend-maven-plugin</artifactId>
+                    <version>${frontend-maven-plugin.version}</version>
+                    <configuration>
+                        <nodeVersion>${node.version}</nodeVersion>
+                        <npmVersion>${npm.version}</npmVersion>
+                        <installDirectory>${maven.multiModuleProjectDirectory}/.node</installDirectory>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <!--
+        Publish target for `mvn deploy`. GitHub Packages: one URL for the whole
+        repo, same for releases and snapshots. The <id> must match a <server> in
+        the deployer's settings.xml. Deploying is optional — the repo builds and
+        runs entirely locally without it.
+    -->
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/mindconnect-ai/mc-semantic-ui</url>
+        </repository>
+        <snapshotRepository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/mindconnect-ai/mc-semantic-ui</url>
+        </snapshotRepository>
+    </distributionManagement>
+
+</project>

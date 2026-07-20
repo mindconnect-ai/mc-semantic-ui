@@ -1,0 +1,28 @@
+{{!--
+  UiAppShell → header on top, menu beside the content, optional footer.
+  Parity with renderAppShell() in renderers/app-shell.ts.
+
+  The couplings the node exists for are made by the shellHeader / shellMenu
+  helpers: the header's burger is pointed at the menu's id, and the menu's own
+  toggle is switched off (otherwise the page shows two burgers). Both work on
+  copies, so a caller reusing the same menu across pages is safe.
+
+  The content div is a slot (data-sui-slot): a REPLACE patch aimed at it fills
+  it rather than deleting the container and its layout classes.
+
+  Layout lives in sui.css under .sui-shell*, including the default of filling
+  the viewport; fillViewport:false swaps in .sui-shell--fit.
+--}}
+<div class="sui-shell{{#unless fillViewport}} sui-shell--fit{{/unless}}{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui="app-shell">
+  {{#if header}}{{{shellHeader this}}}{{/if}}
+  <div class="sui-shell-body">
+    {{#if (eq menu.side "RIGHT")}}
+      <div class="sui-shell-content" id="{{id}}-content" data-sui-slot="content">{{#if content}}{{{render content}}}{{/if}}</div>
+      {{#if menu}}{{{shellMenu this}}}{{/if}}
+    {{else}}
+      {{#if menu}}{{{shellMenu this}}}{{/if}}
+      <div class="sui-shell-content" id="{{id}}-content" data-sui-slot="content">{{#if content}}{{{render content}}}{{/if}}</div>
+    {{/if}}
+  </div>
+  {{#if footer}}<div class="sui-shell-footer">{{{render footer}}}</div>{{/if}}
+</div>

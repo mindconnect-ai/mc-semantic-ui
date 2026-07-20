@@ -1,0 +1,10 @@
+{{!--
+  UiColumn → standalone rendering of a single table column. Mirrors
+  renderColumn() in renderers/column.ts. Inside a real table the column
+  is just a <th>; outside one it's a stub for the editor preview.
+--}}
+<div class="sui-column{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}}{{#if id}} id="{{id}}"{{/if}}>
+  <strong class="sui-column-label">{{label}}</strong>
+  {{#if dataKey}}<small class="sui-column-key">{{dataKey}}</small>{{/if}}
+  {{#if cellTemplate}}<div class="sui-column-template"><small>cellTemplate:</small>{{{render cellTemplate}}}</div>{{/if}}
+</div>

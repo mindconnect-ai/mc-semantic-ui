@@ -1,0 +1,9 @@
+{{!--
+  UiPage → root wrapper. The page is just a container for one root node and
+  a navigate hint; the body is whatever the root node renders to. We expose
+  `navigate` as a data-attribute so a page that later upgrades to the SPA
+  can read its declared URL without needing to re-fetch.
+--}}
+<div class="sui-page"{{{events this}}}{{#if navigate}} data-page="{{navigate}}"{{/if}}>
+  {{{render node}}}
+</div>

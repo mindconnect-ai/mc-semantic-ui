@@ -1,0 +1,8 @@
+{{!--
+  UiRow → standalone rendering of a single table row as a key/value list.
+  Mirrors renderRow() in renderers/row.ts. Inside a real table the row is
+  a <tr>; outside one it's a <dl> dump of the data map.
+--}}
+<dl class="sui-row{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}}{{#if id}} id="{{id}}"{{/if}}>
+  {{#each data}}<dt>{{@key}}</dt><dd>{{this}}</dd>{{else}}<dd class="sui-row-empty">(no data)</dd>{{/each}}
+</dl>

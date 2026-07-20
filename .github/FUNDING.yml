@@ -1,0 +1,4 @@
+# Shows a "Sponsor" button on the repo and enables the funding link below.
+# ko_fi already renders as a Ko-fi link, so repeating it under custom: would
+# just show the same destination twice.
+ko_fi: beisdog

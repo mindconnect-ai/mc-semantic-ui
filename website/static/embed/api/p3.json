@@ -1,0 +1,24 @@
+{
+  "type": "page",
+  "navigate": "api/p3.json",
+  "node": {
+    "type": "stack", "id": "detail-page", "gap": 12,
+    "children": [
+      { "type": "text", "id": "hint",
+        "text": "GET api/p3.json — a second HTTP response. The whole screen was replaced." },
+      {
+        "type": "detail", "id": "product-detail", "title": "Doohickey",
+        "fields": [
+          { "type": "field", "id": "sku",   "label": "SKU",   "fieldType": "TEXT", "value": "C-3" },
+          { "type": "field", "id": "name",  "label": "Name",  "fieldType": "TEXT", "value": "Doohickey" },
+          { "type": "field", "id": "price", "label": "Price", "fieldType": "TEXT", "value": "€ 7.50" },
+          { "type": "field", "id": "stock", "label": "In stock", "fieldType": "TEXT", "value": "0" }
+        ],
+        "actions": [
+          { "type": "action", "id": "back", "label": "Back to products", "style": "SECONDARY",
+            "onClick": { "behavior": "APPLY_RESPONSE", "method": "GET", "url": "api/products.json" } }
+        ]
+      }
+    ]
+  }
+}

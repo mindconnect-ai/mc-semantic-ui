@@ -1,0 +1,18 @@
+{{!--
+  UiLink → anchor. Hybrid: native href works without JS (the browser
+  navigates classically); data-href stays around so the EventBus, when
+  present, can intercept the click and dispatch it as an SPA navigation
+  instead. Both attributes carry the same URL — no drift possible.
+
+  The TS renderer emits href="#" + data-href because in the pure-SPA model
+  the EventBus is always loaded and "#" was a safe no-op. In SSR mode that
+  would self-link to the current page, so we put the real URL into href
+  and keep data-href as a redundancy for symmetry with data-trigger.
+
+  External links open in a new browser tab: target="_blank" and NO data-href
+  (so the EventBus lets the native click through instead of SPA-routing it).
+
+  A link with an onClick trigger emits data-trigger so the EventBus dispatches
+  it (fetch/patch + inline loading); href stays as the no-JS fallback.
+--}}
+{{#if external}}<a{{#if id}} id="{{id}}"{{/if}}{{{events this "click"}}} class="sui-link{{#if cssClass}} {{cssClass}}{{/if}}" href="{{href}}" target="_blank" rel="noopener noreferrer">{{#if icon}}{{{icon icon}}} {{/if}}{{label}}</a>{{else}}{{#if onClick}}<a{{#if id}} id="{{id}}"{{/if}}{{{events this "click"}}} class="sui-link{{#if cssClass}} {{cssClass}}{{/if}}" href="{{href}}" data-trigger='{{{trigger onClick}}}'>{{#if icon}}{{{icon icon}}} {{/if}}{{label}}</a>{{else}}<a{{#if id}} id="{{id}}"{{/if}}{{{events this "click"}}} class="sui-link{{#if cssClass}} {{cssClass}}{{/if}}" href="{{href}}" data-href="{{href}}">{{#if icon}}{{{icon icon}}} {{/if}}{{label}}</a>{{/if}}{{/if}}

@@ -1,0 +1,61 @@
+/*
+ * Semantic UI — Dark theme.
+ *
+ * Companion stylesheet to sui.css. Loaded ADDITIONALLY (after) sui.css and
+ * activated by html.sui-theme-dark (the host app sets that class via its
+ * theme filter). Touches only the CSS custom properties declared by sui.css
+ * — no layout overrides — so a future tweak to sui.css cascades through
+ * here automatically.
+ *
+ * Strategy: invert surfaces and text, keep the blue primary (works on dark
+ * too) but soften its hover, swap code-block colours to a lighter slate so
+ * Markdown <pre> stays legible against the now-dark page background.
+ */
+html.sui-theme-dark {
+    --sui-color-bg:              #0f172a;
+    --sui-color-surface:         #1e293b;
+    --sui-color-surface-alt:     #273549;
+    --sui-color-text:            #f1f5f9;
+    --sui-color-text-strong:     #f8fafc;
+    --sui-color-text-body:       #e2e8f0;
+    --sui-color-text-muted:      #94a3b8;
+    --sui-color-text-subtle:     #64748b;
+    --sui-color-border:          #334155;
+    --sui-color-border-soft:     #1e2a3f;
+    --sui-color-border-strong:   #475569;
+
+    --sui-color-on-primary:      #ffffff;
+    --sui-color-primary:         #6366f1;
+    --sui-color-primary-hover:   #818cf8;
+    --sui-color-primary-soft:    #312e81;
+
+    --sui-color-danger:          #f87171;
+    --sui-color-danger-bg:       #450a0a;
+    --sui-color-danger-bg-hover: #7f1d1d;
+
+    --sui-color-required:        #fca5a5;
+    --sui-color-empty:           #64748b;
+
+    --sui-color-code-bg:         #0b1220;
+    --sui-color-code-fg:         #e2e8f0;
+    --sui-color-blockquote-border: #475569;
+
+    --sui-shadow-card:           0 1px 3px rgba(0, 0, 0, .4);
+    --sui-focus-ring:            0 0 0 2px rgba(99, 102, 241, .35);
+}
+
+/* Native form controls (date pickers, select arrows, etc.) follow the
+   browser's dark-mode hint when this scheme is declared. */
+html.sui-theme-dark { color-scheme: dark; }
+
+/* Lighter custom dropdown chevron on the dark surface. */
+html.sui-theme-dark .sui-field select:not([multiple]) {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+
+/* Toast tints for dark: deep status-tinted fills (950-ish), a muted ring, and a
+   bright-enough foreground so icon + text stay legible on the dark surface. */
+html.sui-theme-dark .sui-toast--info    { --sui-toast-bg: #172554; --sui-toast-ring: #1e3a8a; --sui-toast-fg: #93c5fd; }
+html.sui-theme-dark .sui-toast--success { --sui-toast-bg: #052e16; --sui-toast-ring: #166534; --sui-toast-fg: #86efac; }
+html.sui-theme-dark .sui-toast--warn    { --sui-toast-bg: #3a1e04; --sui-toast-ring: #854d0e; --sui-toast-fg: #fcd34d; }
+html.sui-theme-dark .sui-toast--error   { --sui-toast-bg: #450a0a; --sui-toast-ring: #7f1d1d; --sui-toast-fg: #fca5a5; }

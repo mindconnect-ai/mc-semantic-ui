@@ -1,0 +1,20 @@
+{{!--
+  UiUpload → drag-and-drop file-upload area. Parity with renderUpload() in
+  renderers/upload.ts.
+
+  The upload trigger is emitted as data-upload-trigger (NOT data-trigger, which
+  the click handler owns — clicking the zone must not fire it). The SuiEventBus
+  reads it on `drop` and on the hidden input's `change`. The multipart field
+  name rides along in data-sui-upload-name. The browse control is a
+  <label for> so it opens the native file picker without JavaScript.
+--}}
+<div class="sui-upload{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui-upload data-sui-upload-name="{{#if name}}{{name}}{{else}}{{id}}{{/if}}"{{#if onUpload}} data-upload-trigger='{{{trigger onUpload}}}'{{/if}}>
+  <input type="file" id="{{id}}__input" name="{{#if name}}{{name}}{{else}}{{id}}{{/if}}" class="sui-upload-input"{{#if accept}} accept="{{accept}}"{{/if}}{{#if multiple}} multiple{{/if}} hidden>
+  {{#if label}}<div class="sui-upload-label">{{label}}</div>{{/if}}
+  <div class="sui-upload-zone">
+    <span class="sui-upload-icon" aria-hidden="true">⬆</span>
+    <span class="sui-upload-prompt">{{#if dropText}}{{dropText}}{{else}}Drag files here or{{/if}}</span>
+    <label for="{{id}}__input" class="sui-btn sui-btn--secondary sui-upload-browse">{{#if buttonLabel}}{{buttonLabel}}{{else}}Browse…{{/if}}</label>
+  </div>
+  {{#if hint}}<small class="sui-hint sui-upload-hint">{{hint}}</small>{{/if}}
+</div>

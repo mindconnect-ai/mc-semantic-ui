@@ -1,0 +1,32 @@
+server:
+  port: 9091
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/sui_shop
+    username: sui
+    password: sui
+  jpa:
+    hibernate:
+      # `update` is a demo convenience — it creates / extends the schema as
+      # entity classes change. For a real app: switch to `validate` and
+      # manage schema with Flyway / Liquibase.
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        # Slim the SQL log so the demo output stays readable; flip to true
+        # while debugging.
+        format_sql: false
+
+# Activates the server-side Handlebars renderer in mc-semantic-ui-core:
+# UiPage return values become HTML for `Accept: text/html`, JSON otherwise.
+mindconnect:
+  sui:
+    ssr:
+      enabled: true
+
+logging:
+  level:
+    ai.mindconnect: INFO
+    org.hibernate.SQL: WARN

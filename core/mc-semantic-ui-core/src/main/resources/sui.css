@@ -1,0 +1,1492 @@
+/*
+ * Semantic UI — default stylesheet.
+ *
+ * Ships with the mc-semantic-ui-core JAR under META-INF/resources/sui/sui.css
+ * so Spring-Boot consumers can pull it in with a single <link> tag:
+ *
+ *   <link rel="stylesheet" href="/sui/sui.css">
+ *
+ * Everything is themable through the CSS custom properties declared on
+ * :root. Override them in your app stylesheet (or in a <style> block on the
+ * host page) to change colours, spacing, or radii without forking this file.
+ */
+
+:root {
+    /* Palette — surfaces & text (a cool slate neutral scale). */
+    --sui-color-bg:            #f8fafc;
+    --sui-color-surface:       #ffffff;
+    --sui-color-surface-alt:   #f1f5f9;
+    --sui-color-text:          #0f172a;
+    --sui-color-text-strong:   #0f172a;
+    --sui-color-text-body:     #334155;
+    --sui-color-text-muted:    #64748b;
+    --sui-color-text-subtle:   #94a3b8;
+    --sui-color-border:        #e2e8f0;
+    --sui-color-border-soft:   #f1f5f9;
+    --sui-color-border-strong: #cbd5e1;
+
+    /* On-primary text (white text on coloured buttons / avatar). Themes can
+       flip this if the primary color is light enough to need dark text. */
+    --sui-color-on-primary:    #ffffff;
+
+    /* Accent — a calm blue used for links, selection, focus and active states
+       (the soft-tint language the sidebar uses). Kept quiet on purpose. */
+    --sui-color-primary:       #2563eb;
+    --sui-color-primary-hover: #1d4ed8;
+    --sui-color-primary-soft:  #eff6ff;
+
+    /* Solid action colour — graphite, for filled primary buttons. Separating
+       it from the accent keeps buttons premium/neutral while links stay blue. */
+    --sui-color-action:        #111827;
+    --sui-color-action-hover:  #1f2937;
+    --sui-color-on-action:     #ffffff;
+
+    --sui-color-danger:        #dc2626;
+    --sui-color-danger-bg:     #fee2e2;
+    --sui-color-danger-bg-hover: #fecaca;
+
+    --sui-color-required:      #ef4444;
+    --sui-color-empty:         #9ca3af;
+
+    /* Header band — a dark, rounded, floating bar by default. Every value is a
+       variable so apps/themes can restyle the header without overriding rules.
+       Set --sui-header-bg to a light color (and the text vars to dark) for a
+       light header. */
+    --sui-header-bg:            #1e293b;
+    --sui-header-fg:            #e2e8f0;
+    --sui-header-brand-fg:      #ffffff;
+    --sui-header-nav-fg:        #94a3b8;
+    --sui-header-nav-fg-hover:  #ffffff;
+    --sui-header-nav-bg-hover:  #334155;
+    --sui-header-radius:        var(--sui-radius-lg);
+    --sui-header-shadow:        0 4px 14px rgba(15, 23, 42, .25);
+    /* Logo recolor: source SVGs stroke dark, so invert to white on the dark
+       band. Apps with a light header or a pre-colored logo set this to "none". */
+    --sui-header-logo-filter:   brightness(0) invert(1);
+
+    /* Code / pre — dark slab by default, themes may invert. */
+    --sui-color-code-bg:       #1e293b;
+    --sui-color-code-fg:       #e2e8f0;
+    --sui-color-blockquote-border: #cbd5e1;
+
+    /* Shape — a touch rounder reads more modern. */
+    --sui-radius-sm:    6px;
+    --sui-radius-md:    8px;
+    --sui-radius-lg:    12px;
+    --sui-radius-pill:  50%;
+
+    /* Type */
+    --sui-font-family:  system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --sui-font-mono:    ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --sui-font-size:    15px;
+
+    /* Effects — softer, layered shadows (cool-tinted) + a slightly larger focus ring. */
+    --sui-shadow-sm:    0 1px 2px rgba(16, 24, 40, .06);
+    --sui-shadow-card:  0 1px 2px rgba(16, 24, 40, .04), 0 4px 12px rgba(16, 24, 40, .06);
+    --sui-shadow-pop:   0 4px 12px rgba(16, 24, 40, .08), 0 12px 32px rgba(16, 24, 40, .10);
+    --sui-focus-ring:   0 0 0 3px rgba(37, 99, 235, .18);
+}
+
+/* ── Base reset ─────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: var(--sui-font-family);
+    font-size: var(--sui-font-size);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: var(--sui-color-text);
+    background: var(--sui-color-bg);
+    /* Native browser scroll anchoring keeps the user's read position stable
+       when content above the viewport changes (most relevant during a patch
+       that prepends rows). Disable per element with overflow-anchor:none. */
+    overflow-anchor: auto;
+}
+
+/* Subtle hover elevation on content cards (a bit of life without distracting
+   from editing surfaces like forms/detail, which deliberately don't lift). */
+.sui-list, .sui-table, .sui-tree { transition: box-shadow .2s ease; }
+.sui-list:hover, .sui-table:hover, .sui-tree:hover { box-shadow: var(--sui-shadow-pop); }
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+
+/* Page-level header: brand on the left, user widget on the right. A dark,
+   rounded, floating band by default — restyle via the --sui-header-* vars. */
+.sui-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 32px;
+    padding: 0 24px; height: 56px;
+    background: var(--sui-header-bg);
+    color: var(--sui-header-fg);
+    border-radius: var(--sui-header-radius);
+    box-shadow: var(--sui-header-shadow);
+    margin-bottom: 24px;
+}
+.sui-header-brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 16px; font-weight: 600;
+    color: var(--sui-header-brand-fg); text-decoration: none;
+}
+.sui-header-brand:hover { text-decoration: none; }
+/* Logo image sits left of the brand text; constrained to the header height so
+   any source SVG/PNG scales down cleanly. --sui-header-logo-filter recolors it
+   to suit the band (white on dark by default; set to "none" for a light header
+   or a pre-colored logo). */
+.sui-header-logo {
+    height: 36px; width: auto; display: block; flex: 0 0 auto;
+    filter: var(--sui-header-logo-filter);
+}
+/* User widget: avatar circle + name, clickable as a whole. */
+.sui-header-user {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--sui-header-fg); text-decoration: none;
+    padding: 4px 10px 4px 4px; border-radius: 999px;
+    transition: background .15s;
+}
+.sui-header-user:hover { background: var(--sui-header-nav-bg-hover); text-decoration: none; }
+.sui-header-avatar {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--sui-color-primary); color: var(--sui-color-on-primary);
+    font-size: 12px; font-weight: 600; letter-spacing: .5px;
+}
+.sui-header-username { font-size: 13px; font-weight: 500; color: var(--sui-header-fg); }
+/* Right side container: extras (nav links, theme picker, …) sit to the LEFT of
+   the user widget so the avatar stays anchored to the page edge. */
+.sui-header-right { display: flex; align-items: center; gap: 12px; }
+.sui-header-extras { display: flex; align-items: center; gap: 4px; }
+/* Nav links / plain links in the extras area, styled for the dark band. */
+.sui-header-extras a {
+    color: var(--sui-header-nav-fg); text-decoration: none;
+    padding: 6px 12px; border-radius: var(--sui-radius-sm); font-size: 13px;
+}
+.sui-header-extras a:hover {
+    color: var(--sui-header-nav-fg-hover); background: var(--sui-header-nav-bg-hover);
+}
+.sui-header-extras a.active {
+    color: var(--sui-header-nav-fg-hover); background: var(--sui-header-nav-bg-hover);
+    font-weight: 600;
+}
+/* Inline forms inside extras shouldn't carry their default card chrome —
+   the header is the chrome. */
+.sui-header-extras .sui-form { box-shadow: none; background: transparent; padding: 0; }
+.sui-header-extras .sui-form .sui-form-footer { display: none; }
+
+/* ── Header: narrow screens ────────────────────────────────────────────────
+   The bar has three greedy parts (brand, extras, user). Rather than squeezing
+   all three, we drop the least informative pixels first: the user's name (the
+   avatar still identifies them and stays tappable), then the gaps and padding,
+   then the brand text truncates. Below the breakpoint the bar is allowed to
+   grow taller so extras can wrap — unless extrasOverflow: MENU keeps it on one
+   row and moves the rest into the "⋯" dropdown. */
+
+/* The brand must be allowed to shrink, or a long name pushes the user widget
+   off the edge. min-width:0 is what lets the ellipsis kick in inside flex. */
+.sui-header-brand { min-width: 0; }
+.sui-header-brand > span, .sui-header-brand { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Extras wrap by default (the no-JS-safe behaviour). */
+.sui-header-extras { flex-wrap: wrap; }
+
+@media (max-width: 768px) {
+    .sui-header { gap: 12px; padding: 0 12px; height: auto; min-height: 56px; flex-wrap: wrap; }
+    .sui-header-right { gap: 8px; }
+    .sui-header-username { display: none; }        /* avatar carries the identity */
+    .sui-header-user { padding: 4px; }
+    .sui-header-logo { height: 28px; }
+}
+
+/* One-row mode: never wrap, overflow goes to the "⋯" menu. Set by the shared
+   overflow behaviour on any container marked data-sui-overflow="menu". */
+.sui-header:has(.sui-header-extras.sui-overflow-ready) { flex-wrap: nowrap; }
+/* The right-hand wrapper holds the extras AND the user widget. A flex item's
+   default min-width:auto means it refuses to shrink below its content, so the
+   squeeze never reaches the extras bar inside it — the brand collapses to zero
+   instead. min-width:0 hands the constraint through. */
+.sui-header:has(.sui-header-extras.sui-overflow-ready) .sui-header-right { flex: 1 1 auto; min-width: 0; }
+.sui-header-extras.sui-overflow-ready {
+    /* flex-basis 0 (not auto) is the load-bearing bit: the bar takes exactly
+       the space left over instead of its content width, so its content
+       overflows it and the "⋯" logic has something to do. With basis:auto the
+       brand's ellipsis absorbs the squeeze instead and the menu never fills —
+       wrong order of sacrifice: nav links should collapse before the brand
+       becomes unreadable. */
+    flex: 1 1 0; min-width: 0;
+}
+/* The header sits on a dark band, so its overflow button inherits the band's
+   colours; the dropdown itself uses normal surface colours (it leaves the band). */
+.sui-header-extras .sui-overflow-btn { color: var(--sui-header-nav-fg); }
+.sui-header-extras .sui-overflow-btn:hover {
+    color: var(--sui-header-nav-fg-hover); background: var(--sui-header-nav-bg-hover);
+}
+
+.sui-header-extras .sui-field { margin: 0; gap: 0; }
+.sui-header-extras .sui-field label { display: none; }
+.sui-header-extras select { padding: 6px 10px; font-size: 13px; }
+
+/* ── Lists ──────────────────────────────────────────────────────────────── */
+
+.sui-list { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); }
+.sui-list-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--sui-color-border);
+}
+.sui-list-header h2 { font-size: 17px; font-weight: 600; }
+.sui-list ul { list-style: none; }
+.sui-list-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid var(--sui-color-border-soft);
+    transition: background .12s;
+}
+.sui-list-item:hover { background: var(--sui-color-surface-alt); }
+.sui-list-item:last-child { border-bottom: none; }
+.sui-list-item-main { display: flex; flex-direction: column; gap: 3px; }
+.sui-list-item-label { font-weight: 500; color: var(--sui-color-primary); text-decoration: none; cursor: pointer; }
+.sui-list-item-label:hover { text-decoration: underline; }
+.sui-list-item-desc { font-size: 14px; color: var(--sui-color-text-muted); }
+.sui-list-item-actions { display: flex; gap: 8px; }
+
+/* ── Tree ───────────────────────────────────────────────────────────────── */
+
+.sui-tree { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); padding: 8px 12px; }
+.sui-tree-title { font-size: 17px; font-weight: 600; padding: 8px 4px; }
+.sui-tree-list, .sui-tree-children { list-style: none; margin: 0; padding: 0; }
+/* Indent + guide line for nested levels. */
+.sui-tree-children { margin-left: 10px; padding-left: 10px; border-left: 1px solid var(--sui-color-border-soft); }
+
+/* One row (leaf div or expandable <summary>). Sized as a comfortable touch
+   target (min-height) with a larger label. */
+.sui-tree-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 8px; border-radius: var(--sui-radius-sm);
+    font-size: 15px; line-height: 1.4; min-height: 38px;
+    touch-action: manipulation;
+}
+.sui-tree-row:hover { background: var(--sui-color-border-soft); }
+/* Leaf rows have no twisty — align them with the summary's text. */
+.sui-tree-node--leaf > .sui-tree-row { padding-left: 28px; }
+
+/* Expandable node: native <details> with a rotating twisty on the summary. */
+details.sui-tree-item { border: none; }
+summary.sui-tree-summary { cursor: pointer; user-select: none; list-style: none; }
+summary.sui-tree-summary::-webkit-details-marker { display: none; }
+summary.sui-tree-summary::before {
+    content: "▶"; flex: 0 0 auto;
+    color: var(--sui-color-text-muted); font-size: 11px;
+    width: 12px; text-align: center; transition: transform .15s;
+}
+details.sui-tree-item[open] > summary.sui-tree-summary::before { transform: rotate(90deg); }
+
+.sui-tree-icon { flex: 0 0 auto; }
+.sui-tree-label { color: var(--sui-color-text-body); text-decoration: none; }
+a.sui-tree-label { color: var(--sui-color-primary); cursor: pointer; }
+a.sui-tree-label:hover { text-decoration: underline; }
+.sui-tree-label.is-selected { font-weight: 600; color: var(--sui-color-primary); }
+
+/* Body wraps rich content + child list, indented under the twisty. */
+.sui-tree-content { padding: 4px 0 4px 28px; }
+
+/* ── Forms & details ────────────────────────────────────────────────────── */
+
+.sui-form, .sui-detail {
+    background: var(--sui-color-surface); border-radius: var(--sui-radius-lg);
+    box-shadow: var(--sui-shadow-card); padding: 24px;
+}
+.sui-form h2, .sui-detail h2 { margin-bottom: 20px; font-size: 17px; font-weight: 600; }
+.sui-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+.sui-field label { font-size: 14px; font-weight: 500; color: var(--sui-color-text-body); }
+.sui-field input, .sui-field textarea, .sui-field select {
+    padding: 9px 12px;
+    border: 1px solid var(--sui-color-border);
+    border-radius: var(--sui-radius-md);
+    background: var(--sui-color-surface);
+    color: var(--sui-color-text);
+    font-size: var(--sui-font-size); font-family: inherit; width: 100%;
+    transition: border-color .15s, box-shadow .15s;
+}
+.sui-field input:focus, .sui-field textarea:focus, .sui-field select:focus {
+    outline: none; border-color: var(--sui-color-primary); box-shadow: var(--sui-focus-ring);
+}
+.sui-field textarea { resize: vertical; min-height: 100px; }
+/* Custom dropdown chevron: drop the (browser-dependent, tiny, edge-hugging)
+   native arrow and draw our own, comfortably inset and sized. Multi-selects
+   are list boxes, so they keep no arrow. */
+.sui-field select:not([multiple]) {
+    appearance: none; -webkit-appearance: none;
+    padding-right: 38px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px 16px;
+}
+/* Custom checkboxes & radios (Ant/Material-style): a rounded control we draw
+   ourselves via appearance:none, so it's touch-sized, on-brand and consistent
+   across browsers. Also overrides the width:100% the generic input rule above
+   would otherwise stretch them to. */
+.sui-field input[type="checkbox"],
+.sui-field input[type="radio"],
+.sui-table-selection input[type="checkbox"],
+.sui-table-selection input[type="radio"] {
+    appearance: none; -webkit-appearance: none;
+    width: 18px; height: 18px; min-width: 18px; padding: 0; margin: 0;
+    flex: 0 0 auto; cursor: pointer; position: relative;
+    border: 1.5px solid var(--sui-color-border-strong);
+    background: var(--sui-color-surface);
+    transition: background .12s, border-color .12s;
+}
+.sui-field input[type="checkbox"], .sui-table-selection input[type="checkbox"] { border-radius: 5px; }
+.sui-field input[type="radio"], .sui-table-selection input[type="radio"] { border-radius: 50%; }
+
+.sui-field input[type="checkbox"]:hover, .sui-field input[type="radio"]:hover,
+.sui-table-selection input:hover { border-color: var(--sui-color-primary); }
+
+/* Checked = filled with the calm solid graphite (matches the buttons) instead
+   of a loud blue. */
+.sui-field input[type="checkbox"]:checked, .sui-field input[type="radio"]:checked,
+.sui-table-selection input:checked {
+    background-color: var(--sui-color-action); border-color: var(--sui-color-action);
+}
+/* Checkbox tick — a centred SVG check (reliably centred, crisper than a
+   rotated border). */
+.sui-field input[type="checkbox"]:checked, .sui-table-selection input[type="checkbox"]:checked {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: center; background-size: 12px 12px;
+}
+/* Radio dot. */
+.sui-field input[type="radio"]:checked::after,
+.sui-table-selection input[type="radio"]:checked::after {
+    content: ""; position: absolute; inset: 0; margin: auto;
+    width: 7px; height: 7px; border-radius: 50%; background: #fff;
+}
+.sui-field input[type="checkbox"]:focus-visible, .sui-field input[type="radio"]:focus-visible,
+.sui-table-selection input:focus-visible { outline: none; box-shadow: var(--sui-focus-ring); }
+
+/* A boolean field is a single checkbox — keep it left-aligned, not stretched. */
+.sui-field:has(> input[type="checkbox"]) { align-items: flex-start; }
+.sui-hint { font-size: 13px; color: var(--sui-color-text-muted); }
+.sui-required { color: var(--sui-color-required); }
+/* Validation errors — per-field (sui-field--error + sui-error message) and
+   form-level (sui-form-error banner). */
+.sui-field--error input,
+.sui-field--error textarea,
+.sui-field--error select { border-color: var(--sui-color-danger); }
+.sui-field--error input:focus,
+.sui-field--error textarea:focus,
+.sui-field--error select:focus {
+    border-color: var(--sui-color-danger);
+    box-shadow: 0 0 0 3px var(--sui-color-danger-bg);
+}
+.sui-field--error label { color: var(--sui-color-danger); }
+.sui-error { font-size: 13px; color: var(--sui-color-danger); }
+.sui-form-error {
+    padding: 10px 14px; margin-bottom: 16px;
+    border: 1px solid var(--sui-color-danger); border-left-width: 3px;
+    border-radius: var(--sui-radius-md);
+    background: var(--sui-color-danger-bg); color: var(--sui-color-danger);
+    font-size: 13px;
+}
+.sui-value { color: var(--sui-color-text-body); }
+.sui-empty { color: var(--sui-color-empty); font-style: italic; }
+.sui-form-footer { display: flex; align-items: center; gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--sui-color-border-soft); }
+
+/* ── Upload (UiUpload drop zone) ────────────────────────────────────────── */
+.sui-upload { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.sui-upload-label { font-size: 12px; font-weight: 500; color: var(--sui-color-text-body); }
+.sui-upload-zone {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px; padding: 28px 20px; text-align: center;
+    border: 2px dashed var(--sui-color-border-strong);
+    border-radius: var(--sui-radius-lg);
+    background: var(--sui-color-surface-alt);
+    color: var(--sui-color-text-muted);
+    transition: border-color .15s, background .15s;
+}
+/* Highlighted while a file is being dragged over the zone. */
+.sui-upload--dragover .sui-upload-zone {
+    border-color: var(--sui-color-primary);
+    background: var(--sui-color-primary-soft);
+    color: var(--sui-color-primary);
+}
+.sui-upload-icon { font-size: 24px; line-height: 1; opacity: .7; }
+.sui-upload-prompt { font-size: 13px; }
+/* The browse control is a <label> styled as a button. */
+.sui-upload-browse { cursor: pointer; }
+.sui-upload-hint { text-align: center; }
+
+.sui-detail-grid { display: grid; grid-template-columns: 180px 1fr; gap: 0; }
+.sui-detail-row { display: contents; }
+.sui-detail-row dt { padding: 12px 0; font-size: 14px; font-weight: 600; color: var(--sui-color-text-body); border-bottom: 1px solid var(--sui-color-border-soft); }
+.sui-detail-row dd { padding: 10px 0; border-bottom: 1px solid var(--sui-color-border-soft); }
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+
+.sui-btn {
+    padding: 8px 16px; border: none; border-radius: var(--sui-radius-md);
+    font-size: 14px; font-weight: 500; cursor: pointer; touch-action: manipulation;
+    font-family: inherit; transition: background .15s, box-shadow .15s, opacity .15s, transform .05s;
+    /* SSR renders some actions as <a> (anchor-style triggers) and others
+       as <button> (form-wrapped). They must look identical, so neutralise
+       the anchor defaults: no underline, no inherited text color, sit
+       inline-block so padding behaves the same as on a <button>. */
+    display: inline-block; line-height: 1; text-decoration: none;
+}
+.sui-btn:hover { text-decoration: none; }
+.sui-btn:not(:disabled):active { transform: translateY(1px); }
+/* Remove the tap-delay on the other interactive controls (touch devices). */
+.sui-tab, .sui-tab-more-btn, .sui-link, .sui-list-item,
+.sui-menu-link, .sui-menu-toggle, .sui-header-user, summary { touch-action: manipulation; }
+.sui-btn:disabled, .sui-btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+
+/* SSR wraps mutating actions (POST/DELETE/PUT) in their own <form> so a
+   browser submits them natively. Without this rule each form would take
+   its own line — making a row of [View] [Edit] [Delete] stack vertically.
+   Inline-block keeps the form group on the same baseline as anchor-style
+   action buttons. */
+.sui-ssr-form { display: inline-block; margin: 0; }
+.sui-btn--primary   { background: var(--sui-color-action); color: var(--sui-color-on-action); box-shadow: var(--sui-shadow-sm); }
+.sui-btn--primary:hover:not(:disabled)   { background: var(--sui-color-action-hover); }
+/* Secondary = a clean outline button (inset ring avoids a layout shift since
+   the base .sui-btn has border:none). */
+.sui-btn--secondary { background: var(--sui-color-surface); color: var(--sui-color-text-body); box-shadow: inset 0 0 0 1px var(--sui-color-border-strong); }
+.sui-btn--secondary:hover:not(:disabled) { background: var(--sui-color-surface-alt); }
+.sui-btn--danger    { background: var(--sui-color-danger-bg); color: var(--sui-color-danger); }
+.sui-btn--danger:hover:not(:disabled)    { background: var(--sui-color-danger-bg-hover); }
+
+/* Icon buttons: compact glyph-only variant, reuses the colour suffixes. */
+.sui-icon-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 36px; height: 36px; padding: 0 8px;
+    border: none; border-radius: var(--sui-radius-md);
+    font-size: 14px; line-height: 1; cursor: pointer;
+    font-family: inherit; transition: opacity .15s, background .15s;
+    touch-action: manipulation;
+}
+.sui-icon-btn:disabled { opacity: .45; cursor: not-allowed; }
+.sui-icon-btn--primary   { background: var(--sui-color-primary); color: var(--sui-color-on-primary); }
+.sui-icon-btn--primary:hover:not(:disabled)   { background: var(--sui-color-primary-hover); }
+.sui-icon-btn--secondary { background: transparent; color: var(--sui-color-text-muted); }
+.sui-icon-btn--secondary:hover:not(:disabled) { background: var(--sui-color-border-soft); color: var(--sui-color-text-strong); }
+.sui-icon-btn--danger    { background: transparent; color: var(--sui-color-danger); }
+.sui-icon-btn--danger:hover:not(:disabled)    { background: var(--sui-color-danger-bg); }
+
+/* ── Icons ──────────────────────────────────────────────────────────────
+   Rendered by the swappable icon resolver (renderers/icon.ts) as an
+   <svg class="sui-icon"><use href="/sui/icons.svg#token"></svg>. Size is
+   1em and colour is currentColor, so an icon inherits the surrounding
+   text's size and colour. */
+.sui-icon {
+    width: 1em; height: 1em; flex: 0 0 auto;
+    display: inline-block; vertical-align: -0.125em; /* sit on the text baseline */
+    fill: none; stroke: currentColor;
+}
+/* Controls with a leading icon become flex rows with a small gap so glyph
+   and label centre-align. :has keeps text-only controls untouched. */
+.sui-btn:has(.sui-icon),
+.sui-link:has(.sui-icon),
+.sui-tab:has(.sui-icon) { display: inline-flex; align-items: center; gap: 6px; }
+.sui-icon-btn .sui-icon { width: 1.15em; height: 1.15em; vertical-align: 0; }
+
+/* In-field leading icon: overlay it on the input's left padding. */
+.sui-input-icon { position: relative; display: block; }
+.sui-input-icon > .sui-icon {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    color: var(--sui-color-text-muted); pointer-events: none;
+}
+.sui-input-icon > input,
+.sui-input-icon > select { padding-left: 32px; }
+
+/* Status-colour helpers for a UiIcon's cssClass. */
+.sui-icon--success { color: var(--sui-color-success, #16a34a); }
+.sui-icon--warning { color: var(--sui-color-warning, #d97706); }
+.sui-icon--danger,
+.sui-icon--error   { color: var(--sui-color-danger); }
+.sui-icon--muted   { color: var(--sui-color-text-muted); }
+
+/* ── Misc ───────────────────────────────────────────────────────────────── */
+
+.sui-pagination { display: flex; align-items: center; gap: 12px; padding: 12px 20px; color: var(--sui-color-text-muted); font-size: 13px; }
+.sui-link { color: var(--sui-color-primary); text-decoration: none; font-size: 15px; cursor: pointer; }
+.sui-link:hover { text-decoration: underline; }
+.sui-actions { display: flex; gap: 8px; }
+
+/* ── App shell (UiAppShell) ─────────────────────────────────────────────────
+   header on top, menu beside the content, optional footer. These rules are the
+   reason the node exists: composing the same layout by hand means rediscovering
+   each of them.
+
+   Filling the viewport is the default, as in every other admin layout (Ant
+   Design's Layout, Vuetify's v-app, the usual Bootstrap admin template): the
+   sidebar reaches the bottom of the window and the content area scrolls inside
+   the shell rather than scrolling the page. .sui-shell--fit opts out for a
+   shell embedded in a larger page.
+
+   .sui-shell-body is `position: relative` because an OVERLAY / RESPONSIVE menu
+   and its backdrop position themselves against it — without a positioned
+   ancestor the drawer escapes to the viewport.
+
+   .sui-shell-content is `min-width: 0` because a flex item defaults to
+   min-width:auto, so one wide table inside the content would refuse to shrink
+   and push the sidebar off-screen. */
+
+.sui-shell {
+    display: flex; flex-direction: column;
+    min-height: 100dvh;              /* fill the window by default */
+}
+/* Embedded variant: take the height the container gives us. */
+.sui-shell--fit { min-height: 0; height: 100%; }
+
+.sui-shell > .sui-header { flex: none; margin-bottom: 0; border-radius: 0; box-shadow: none; }
+
+.sui-shell-body {
+    position: relative;
+    display: flex; align-items: stretch;
+    flex: 1 1 auto;                  /* all the space between header and footer */
+    min-height: 0;                   /* let the content scroll, not the shell */
+    overflow: hidden;
+}
+.sui-shell-body > .sui-menu {
+    flex: none;
+    border-radius: 0; box-shadow: none; border: none;
+    border-right: 1px solid var(--sui-color-border);
+    overflow-y: auto;
+}
+.sui-shell-body > .sui-menu--right { border-right: none; border-left: 1px solid var(--sui-color-border); }
+
+.sui-shell-content {
+    flex: 1 1 auto; min-width: 0;
+    overflow: auto;                  /* the page scrolls here, not the window */
+    padding: 20px; background: var(--sui-color-surface-alt);
+}
+
+.sui-shell-footer {
+    flex: none;
+    padding: 12px 20px;
+    border-top: 1px solid var(--sui-color-border);
+    background: var(--sui-color-surface);
+    color: var(--sui-color-text-muted); font-size: 13px;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────────────── */
+
+.sui-table { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); overflow: hidden; }
+.sui-table-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--sui-color-border);
+}
+.sui-table-header h2 { font-size: 17px; font-weight: 600; }
+/* A title-less table still renders the bar for its actions — push them right. */
+.sui-table-header:not(:has(h2)) { justify-content: flex-end; }
+.sui-table table { width: 100%; border-collapse: collapse; }
+.sui-table thead th {
+    padding: 11px 18px; text-align: left; font-size: 13px;
+    font-weight: 600; color: var(--sui-color-text-muted);
+    background: var(--sui-color-surface-alt);
+    border-bottom: 1px solid var(--sui-color-border);
+}
+
+/* Scroll container (UiTable.maxHeight). Always present so SSR and SPA emit
+   the same structure; only the capped variant actually scrolls, and only
+   then does the header need pinning. `border-collapse: collapse` drops the
+   sticky header's own border, so the separator is redrawn with box-shadow. */
+.sui-table-scroll--capped { overflow-y: auto; }
+.sui-table-scroll--capped thead th {
+    position: sticky; top: 0; z-index: 1;
+    box-shadow: inset 0 -1px 0 var(--sui-color-border);
+}
+
+/* Sortable column headers. The <th> keeps its padding; the button inside is
+   a bare, full-width click target so the whole header cell responds. */
+.sui-th-sortable { padding: 0; }
+.sui-sort-btn {
+    display: flex; align-items: center; gap: 6px; width: 100%;
+    padding: 11px 18px; background: none; border: 0; cursor: pointer;
+    font: inherit; color: inherit; text-align: left;
+}
+.sui-sort-btn:hover { color: var(--sui-color-text-body); }
+.sui-sort-btn:focus-visible { outline: 2px solid var(--sui-color-primary); outline-offset: -2px; }
+/* The indicator holds its width so the label doesn't shift when it changes. */
+.sui-sort-indicator { display: inline-block; min-width: 1em; opacity: .45; font-size: 11px; }
+.sui-th-sortable.is-sorted { color: var(--sui-color-text-body); }
+.sui-th-sortable.is-sorted .sui-sort-indicator { opacity: 1; color: var(--sui-color-primary); }
+.sui-table tbody td {
+    padding: 13px 18px; font-size: 15px; border-bottom: 1px solid var(--sui-color-border-soft);
+    color: var(--sui-color-text-body);
+}
+.sui-table tbody tr:last-child td { border-bottom: none; }
+.sui-table tbody tr:hover { background: var(--sui-color-surface-alt); }
+.sui-table tbody tr.sui-row--selected { background: var(--sui-color-primary-soft); }
+.sui-table tbody tr.sui-row--selected td { font-weight: 500; }
+.sui-table-row-actions { text-align: right; white-space: nowrap; }
+/* Leading selection column (radio / checkbox) — a comfortable touch target. */
+.sui-table-selection { width: 48px; text-align: center; padding: 0 4px; }
+.sui-table-empty { color: var(--sui-color-empty); font-style: italic; text-align: center; padding: 24px !important; }
+
+/* Responsive table (UiTable.stackOnMobile): on a narrow screen every row
+   becomes a card of "Column: value" lines. The <th> header row is hidden and
+   each <td> prints its column name from data-label. Cells without a label
+   (selection / row-actions) print no prefix. */
+@media (max-width: 640px) {
+    .sui-table--stack table,
+    .sui-table--stack thead,
+    .sui-table--stack tbody,
+    .sui-table--stack tr,
+    .sui-table--stack td { display: block; }
+    .sui-table--stack thead { display: none; }
+    .sui-table--stack tbody tr {
+        border-bottom: 8px solid var(--sui-color-surface-alt);
+        padding: 6px 4px;
+    }
+    .sui-table--stack tbody tr:last-child { border-bottom: none; }
+    .sui-table--stack tbody td {
+        display: flex; align-items: baseline; justify-content: space-between;
+        gap: 16px; text-align: right;
+        padding: 6px 12px; border: none;
+    }
+    .sui-table--stack tbody td[data-label]::before {
+        content: attr(data-label);
+        font-weight: 600; color: var(--sui-color-text-muted);
+        text-align: left; white-space: nowrap;
+    }
+    .sui-table--stack .sui-table-row-actions { justify-content: flex-end; }
+}
+
+/* ── Standalone renderings of structural sub-nodes ──────────────────────────
+   Used by the editor preview when the user selects a column / row /
+   section-entry in the tree. The actual table / section keeps rendering
+   them inline as <th> / <tr> / tab buttons. */
+.sui-column { display: flex; flex-direction: column; gap: 4px;
+              padding: 12px; border: 1px dashed var(--sui-color-border);
+              border-radius: var(--sui-radius-sm); }
+.sui-column-label    { font-weight: 600; }
+.sui-column-key      { color: var(--sui-color-text-muted); font-family: monospace; }
+.sui-column-template { margin-top: 8px; padding-top: 8px;
+                       border-top: 1px solid var(--sui-color-border); }
+.sui-row { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px;
+           padding: 12px; border: 1px dashed var(--sui-color-border);
+           border-radius: var(--sui-radius-sm); margin: 0; }
+.sui-row dt { font-weight: 600; color: var(--sui-color-text-muted); }
+.sui-row dd { margin: 0; }
+.sui-row-empty { font-style: italic; color: var(--sui-color-empty); grid-column: 1 / -1; }
+.sui-section-entry { padding: 12px;
+                     border: 1px dashed var(--sui-color-border);
+                     border-radius: var(--sui-radius-sm); }
+.sui-section-entry-title { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+
+/* ── Stack (plain composition box) ─────────────────────────────────────── */
+
+.sui-stack            { display: flex; gap: 16px; }
+.sui-stack--vertical  { flex-direction: column; }
+.sui-stack--horizontal{ flex-direction: row; align-items: center; }
+/* Form-layout helpers (apply via cssClass on a stack). `sui-cols` turns a
+   horizontal stack into equal-width, top-aligned columns; `sui-fieldgroup`
+   boxes a set of related fields with a title. */
+.sui-cols { align-items: flex-start; }
+.sui-cols > * { flex: 1 1 0; min-width: 0; }
+/* Works both as the UiFieldGroup <fieldset> and as an opt-in class on a stack.
+   The fieldset resets (margin/min-width) keep it flush and flex-shrinkable. */
+.sui-fieldgroup {
+    border: 1px solid var(--sui-color-border); border-radius: var(--sui-radius-md);
+    padding: 14px 16px; margin: 0; min-width: 0;
+}
+.sui-fieldgroup-title {
+    display: block; padding: 0; width: auto; font-size: 12px; font-weight: 700;
+    letter-spacing: .04em; text-transform: uppercase;
+    color: var(--sui-color-text-subtle); margin-bottom: 8px;
+}
+/* A <legend> renders inside the border by default; keep it as a plain block. */
+legend.sui-fieldgroup-title { float: none; }
+/* Tabbed forms: tighten the panel padding so fields align with the rest. */
+.sui-form .sui-section-entry { padding: 12px 0 0; }
+
+/* ── Sections (tabs + collapsible) ──────────────────────────────────────── */
+
+details.sui-section--collapsible {
+    border: 1px solid var(--sui-color-border);
+    border-radius: var(--sui-radius-md);
+    background: var(--sui-color-surface-alt);
+    margin: 6px 0;
+}
+details.sui-section--collapsible > summary.sui-section-summary {
+    cursor: pointer; user-select: none; list-style: none;
+    padding: 8px 12px; font-size: 13px; font-weight: 500; color: var(--sui-color-text);
+}
+details.sui-section--collapsible > summary.sui-section-summary::-webkit-details-marker { display: none; }
+details.sui-section--collapsible > summary.sui-section-summary::before {
+    content: "▶ ";
+    display: inline-block; color: var(--sui-color-text-muted); font-size: 10px;
+    margin-right: 4px; transition: transform .15s;
+}
+details.sui-section--collapsible[open] > summary.sui-section-summary::before {
+    transform: rotate(90deg);
+}
+details.sui-section--collapsible > summary.sui-section-summary:hover { background: var(--sui-color-border-soft); }
+
+/* Tabs wrap onto more rows by default when they don't fit ("umfliessen"). */
+.sui-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--sui-color-border); margin-bottom: 20px; }
+/* Bordered "register" tabs (Ant card style): each tab is a box with rounded
+   top corners; the active one gets a border and a bottom edge painted in the
+   surface colour so it opens seamlessly into the panel below. */
+.sui-tab {
+    padding: 9px 18px; cursor: pointer;
+    font-size: 15px; font-weight: 500; color: var(--sui-color-text-muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--sui-radius-md) var(--sui-radius-md) 0 0;
+    margin-bottom: -1px;
+    transition: color .15s, background .15s, border-color .15s;
+}
+.sui-tab:hover:not(.active) { color: var(--sui-color-text-body); background: var(--sui-color-surface-alt); }
+.sui-tab.active {
+    color: var(--sui-color-primary); font-weight: 600;
+    background: var(--sui-color-surface);
+    border-color: var(--sui-color-border);
+    border-bottom-color: var(--sui-color-surface);
+}
+
+/* Overflow-MENU tab bars: once wireTabOverflow() runs it keeps a single row
+   (nowrap) and moves the tabs that don't fit into the "⋯ More" dropdown. */
+/* ── Overflow behaviour (data-sui-overflow="menu") ──────────────────────────
+   Shared by tab bars, header extras and anything else that must stay one row.
+   Start-aligned on purpose: overflow past the START edge is not scrollable, so
+   scrollWidth would equal clientWidth and the "does it fit?" measurement would
+   always say yes. Keep the overflow on the end side where it can be measured. */
+.sui-overflow-ready {
+    flex-wrap: nowrap; position: relative;
+    justify-content: flex-start;
+    /* NO overflow:hidden here. The dropdown is absolutely positioned INSIDE
+       this container, so clipping the container hides the very menu the
+       behaviour just opened. Measurement doesn't need it either — scrollWidth
+       reports overflowing content whether it is clipped or not. */
+}
+.sui-overflow-ready > * { flex: 0 0 auto; }
+.sui-overflow-more { position: relative; flex: 0 0 auto; }
+.sui-overflow-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; padding: 0;
+    background: none; border: 0; border-radius: var(--sui-radius-sm);
+    color: var(--sui-color-text-muted); cursor: pointer;
+}
+.sui-overflow-btn:hover { color: var(--sui-color-text-body); background: var(--sui-color-surface-alt); }
+.sui-overflow-btn.active { color: var(--sui-color-primary); }
+.sui-overflow-btn .sui-icon { width: 18px; height: 18px; }
+.sui-overflow-menu {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+    min-width: 180px; padding: 6px;
+    display: flex; flex-direction: column; gap: 2px;
+    background: var(--sui-color-surface); color: var(--sui-color-text-body);
+    border: 1px solid var(--sui-color-border);
+    border-radius: var(--sui-radius-md);
+    box-shadow: var(--sui-shadow-popover, 0 8px 24px rgba(0,0,0,.18));
+}
+.sui-overflow-menu[hidden] { display: none; }
+.sui-overflow-menu > * { width: 100%; }
+.sui-overflow-menu a { color: var(--sui-color-text-body); padding: 8px 10px; border-radius: var(--sui-radius-sm); }
+.sui-overflow-menu a:hover { background: var(--sui-color-surface-alt); color: var(--sui-color-text-body); }
+
+.sui-tabs--menu-ready { flex-wrap: nowrap; position: relative; }
+.sui-tabs--menu-ready .sui-tab { flex: 0 0 auto; white-space: nowrap; }
+.sui-tab-more { position: relative; flex: 0 0 auto; }
+.sui-tab-more-btn {
+    padding: 9px 12px; border: none; background: none; cursor: pointer;
+    color: var(--sui-color-text-muted); border-radius: var(--sui-radius-md) var(--sui-radius-md) 0 0;
+    margin-bottom: -1px; display: inline-flex; align-items: center;
+    transition: color .15s, background .15s;
+}
+.sui-tab-more-btn:hover { color: var(--sui-color-text-body); background: var(--sui-color-surface-alt); }
+.sui-tab-more-btn.active { color: var(--sui-color-primary); }
+.sui-tab-more-btn .sui-icon { width: 18px; height: 18px; }
+.sui-tab-more-menu {
+    position: absolute; top: 100%; right: 0; z-index: 60;
+    min-width: 160px; margin-top: 2px; padding: 4px;
+    display: flex; flex-direction: column; gap: 2px;
+    background: var(--sui-color-surface); border: 1px solid var(--sui-color-border);
+    border-radius: var(--sui-radius-md); box-shadow: var(--sui-shadow-card);
+}
+/* The `display:flex` above would otherwise beat the UA `[hidden]` rule and keep
+   the dropdown permanently open — re-assert the closed state. */
+.sui-tab-more-menu[hidden] { display: none; }
+.sui-tab-more-menu .sui-tab {
+    border-bottom: none; margin-bottom: 0; text-align: left;
+    width: 100%; border-radius: var(--sui-radius-sm); padding: 8px 10px;
+}
+.sui-tab-more-menu .sui-tab:hover { background: var(--sui-color-border-soft); }
+.sui-tab-more-menu .sui-tab.active { background: var(--sui-color-primary-soft); }
+
+/* ── Menu button (dropdown / context / "kebab" menu) ────────────────────── */
+
+/* Wrapper is a native <details> so it opens with no JS; the SPA repositions the
+   popover with position:fixed at open time. Reset the summary marker + focus. */
+.sui-menu-button { position: relative; display: inline-block; }
+.sui-menu-button-trigger {
+    list-style: none; cursor: pointer; user-select: none;
+    display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box;
+    font: inherit; color: var(--sui-color-text-muted);
+    border: 1px solid transparent; border-radius: var(--sui-radius-md);
+    transition: background .15s, color .15s, box-shadow .15s; touch-action: manipulation;
+}
+.sui-menu-button-trigger::-webkit-details-marker { display: none; }
+.sui-menu-button-trigger::marker { content: ""; }
+.sui-menu-button-trigger:hover,
+.sui-menu-button[open] > .sui-menu-button-trigger {
+    background: var(--sui-color-surface-alt); color: var(--sui-color-text-strong);
+}
+.sui-menu-button-glyph { display: inline-flex; }
+.sui-menu-button-glyph .sui-icon { width: 18px; height: 18px; }
+.sui-menu-button-caret { display: inline-flex; color: var(--sui-color-text-subtle); margin-left: 2px; }
+.sui-menu-button-caret .sui-icon { width: 14px; height: 14px; }
+
+/* Icon-only trigger → a square, touch-friendly kebab button. */
+.sui-menu-button--icon .sui-menu-button-trigger { width: 36px; height: 36px; justify-content: center; }
+/* Labelled trigger → a normal outline button. */
+.sui-menu-button--button .sui-menu-button-trigger {
+    padding: 8px 12px; font-size: 14px; font-weight: 500;
+    color: var(--sui-color-text-body); box-shadow: inset 0 0 0 1px var(--sui-color-border-strong);
+}
+
+/* Popover: a floating card of items. Default (no-JS / keyboard) positioning is
+   absolute under the trigger; the SPA overrides it to position:fixed on open. */
+.sui-menu-button-popover {
+    position: absolute; top: calc(100% + 6px); z-index: 70;
+    min-width: 184px; max-width: 300px; padding: 6px;
+    display: flex; flex-direction: column; gap: 1px;
+    background: var(--sui-color-surface); border: 1px solid var(--sui-color-border);
+    border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-pop);
+    animation: sui-menu-pop-in .12s ease-out;
+}
+.sui-menu-button--align-end   .sui-menu-button-popover { right: 0; }
+.sui-menu-button--align-start .sui-menu-button-popover { left: 0; }
+@keyframes sui-menu-pop-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.sui-menu-button-item {
+    display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box;
+    text-align: left; cursor: pointer; text-decoration: none;
+    font: inherit; font-size: 14px; color: var(--sui-color-text-body);
+    background: none; border: none; border-radius: var(--sui-radius-sm); padding: 8px 10px;
+    transition: background .1s, color .1s; touch-action: manipulation;
+}
+.sui-menu-button-item:hover { background: var(--sui-color-surface-alt); color: var(--sui-color-text-strong); }
+.sui-menu-button-item.is-danger { color: var(--sui-color-danger); }
+.sui-menu-button-item.is-danger:hover { background: var(--sui-color-danger-bg); }
+.sui-menu-button-item-icon { display: inline-flex; flex: none; color: var(--sui-color-text-subtle); }
+.sui-menu-button-item-icon .sui-icon { width: 16px; height: 16px; }
+.sui-menu-button-item.is-danger .sui-menu-button-item-icon { color: var(--sui-color-danger); }
+.sui-menu-button-item-label { flex: 1; white-space: nowrap; }
+.sui-menu-button-item-badge {
+    flex: none; font-size: 11px; color: var(--sui-color-text-muted);
+    background: var(--sui-color-surface-alt); border-radius: 999px; padding: 1px 7px;
+}
+.sui-menu-button-sep { height: 1px; margin: 5px 6px; background: var(--sui-color-border); }
+
+/* Nested submenu: a group header (with a trailing ›) + a side-flyout that opens
+   on hover / focus (desktop) or an `.is-open` class the SPA toggles on click
+   (touch). Same UiMenuItem.children the sidebar uses. */
+.sui-menu-button-group { position: relative; }
+.sui-menu-button-item--group { width: 100%; }
+.sui-menu-button-submenu-caret { display: inline-flex; margin-left: auto; color: var(--sui-color-text-subtle); }
+.sui-menu-button-submenu-caret .sui-icon { width: 15px; height: 15px; }
+.sui-menu-button-group:hover    > .sui-menu-button-item--group,
+.sui-menu-button-group.is-open  > .sui-menu-button-item--group { background: var(--sui-color-surface-alt); color: var(--sui-color-text-strong); }
+
+.sui-menu-button-submenu {
+    display: none;
+    position: absolute; top: -7px; left: 100%; z-index: 71;
+    min-width: 180px; max-width: 300px; padding: 6px;
+    flex-direction: column; gap: 1px;
+    background: var(--sui-color-surface); border: 1px solid var(--sui-color-border);
+    border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-pop);
+}
+.sui-menu-button-group:hover        > .sui-menu-button-submenu,
+.sui-menu-button-group:focus-within > .sui-menu-button-submenu,
+.sui-menu-button-group.is-open      > .sui-menu-button-submenu { display: flex; }
+/* Submenus fly out to the right by default; the SPA flips them left (via this
+   class) when the popover is too close to the viewport's right edge. */
+.sui-menu-button--submenu-left .sui-menu-button-submenu { left: auto; right: 100%; }
+
+/* ── Activity (collapsible detail) ──────────────────────────────────────── */
+
+.sui-activity { border: none; }
+.sui-activity-summary {
+    font-size: 12px; color: var(--sui-color-text-subtle); cursor: pointer;
+    user-select: none; list-style: none; padding: 2px 0;
+}
+.sui-activity-summary::-webkit-details-marker { display: none; }
+.sui-activity-summary::before { content: "▶ "; font-size: 10px; }
+details[open] .sui-activity-summary::before { content: "▼ "; }
+.sui-activity-body { padding: 4px 0 0 12px; }
+
+/* ── Loading overlay (drawn by SuiRenderer.showLoading) ─────────────────── */
+
+/* The overlay covers the root element while a request is in flight. It is
+   pointer-event-disabled by default so the user can still scroll the
+   content underneath (matching the previous in-place loading bar). The
+   visual is intentionally subtle — a top-edge progress bar — because most
+   admin pages should not feel modal during a routine fetch. */
+.sui-loading-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity .15s ease;
+}
+.sui-loading > .sui-loading-overlay { opacity: 1; }
+
+/* The loading overlay is purely informational (top-edge progress bar) —
+   it no longer disables triggerable controls. A blanket "every button
+   off while loading" rule was too restrictive: it broke the chat Stop
+   button during a streaming turn (the whole turn is "loading" from the
+   bus's POV), and locked the user out of pagination / nav while small
+   patches were in flight. Double-fire prevention belongs on a per-action
+   basis instead (e.g. the form-submit handler clearing its own button)
+   rather than blanket-disabling everything. */
+
+.sui-loading-bar {
+    position: absolute;
+    top: 0; left: 0;
+    height: 3px; width: 0;
+    background: var(--sui-color-primary);
+    border-radius: 0 var(--sui-radius-md) var(--sui-radius-md) 0;
+    animation: sui-loading-grow 8s ease-out forwards;
+}
+.sui-loading > .sui-loading-overlay > .sui-loading-bar { width: 90%; }
+@keyframes sui-loading-grow {
+    0%   { width: 0; }
+    30%  { width: 60%; }
+    70%  { width: 80%; }
+    100% { width: 90%; }
+}
+
+/* ── Spinner + inline loading ───────────────────────────────────────────────
+   One keyframe drives every busy glyph: the standalone UiSpinner, the inline
+   spinner painted on a clicked control, and the indeterminate circular
+   progress ring. */
+@keyframes sui-spin { to { transform: rotate(360deg); } }
+
+/* Standalone UiSpinner node: a ring + optional label. */
+.sui-spinner {
+    display: inline-flex;
+    align-items: center;
+    gap: .5em;
+    vertical-align: -0.15em;
+    color: var(--sui-color-primary);
+}
+.sui-spinner-glyph {
+    display: inline-block;
+    width: 1.25em; height: 1.25em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: sui-spin .9s linear infinite;
+}
+.sui-spinner--sm .sui-spinner-glyph { width: .9em;  height: .9em;  border-width: 2px; }
+.sui-spinner--lg .sui-spinner-glyph { width: 2em;   height: 2em;   border-width: 3px; }
+.sui-spinner-label { color: var(--sui-color-text-muted); font-size: .9em; }
+
+@media (prefers-reduced-motion: reduce) {
+    .sui-spinner-glyph { animation-duration: 1.4s; }
+}
+
+/* Inline loading: a control that fired a trigger and awaits the response.
+   The event bus adds `.is-loading` for the duration of the dispatch. A ::before
+   ring inherits the control's text colour, so it looks right on any button
+   style or link without per-variant rules. pointer-events:none blocks a second
+   click while the first is in flight. */
+.sui-btn.is-loading,
+.sui-icon-btn.is-loading,
+.sui-link.is-loading,
+a[data-trigger].is-loading,
+[data-action].is-loading {
+    pointer-events: none;
+    cursor: progress;
+    position: relative;
+}
+.sui-btn.is-loading::before,
+.sui-link.is-loading::before,
+a[data-trigger].is-loading::before,
+[data-action].is-loading:not(.sui-icon-btn)::before {
+    content: "";
+    display: inline-block;
+    width: .85em; height: .85em;
+    margin-right: .4em;
+    vertical-align: -0.1em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: sui-spin .9s linear infinite;
+}
+/* Icon-only button: hide the glyph and centre the spinner in its place so the
+   button doesn't grow while loading. */
+.sui-icon-btn.is-loading > * { visibility: hidden; }
+.sui-icon-btn.is-loading::before {
+    content: "";
+    position: absolute;
+    inset: 0; margin: auto;
+    width: 1em; height: 1em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: sui-spin .9s linear infinite;
+}
+
+/* ── Progress ───────────────────────────────────────────────────────────────
+   Determinate bar/ring reflect value/max; indeterminate variants loop via CSS.
+   Status modifiers tint the fill (fallbacks match the icon status colours). */
+.sui-progress { display: flex; align-items: center; gap: .6em; }
+.sui-progress--bar { width: 100%; }
+
+.sui-progress-track {
+    flex: 1;
+    height: 8px;
+    background: var(--sui-color-border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+.sui-progress-fill {
+    height: 100%;
+    width: 0;
+    background: var(--sui-color-primary);
+    border-radius: inherit;
+    transition: width .3s ease;
+}
+.sui-progress-text {
+    font-size: .85em;
+    color: var(--sui-color-text-muted);
+    min-width: 3ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.sui-progress--success .sui-progress-fill { background: var(--sui-color-success, #16a34a); }
+.sui-progress--warning .sui-progress-fill { background: var(--sui-color-warning, #d97706); }
+.sui-progress--error   .sui-progress-fill { background: var(--sui-color-danger); }
+
+/* Indeterminate bar: a chunk sliding left→right. */
+.sui-progress--bar.sui-progress--indeterminate .sui-progress-track { position: relative; }
+.sui-progress--bar.sui-progress--indeterminate .sui-progress-fill {
+    width: 35%;
+    position: absolute;
+    left: 0;
+    animation: sui-progress-slide 1.2s ease-in-out infinite;
+}
+@keyframes sui-progress-slide {
+    0%   { left: -35%; }
+    100% { left: 100%; }
+}
+
+/* Circle variant: SVG ring; r is chosen so the circumference is exactly 100,
+   which makes stroke-dashoffset = 100 − percent. The fill circle carries a
+   transform="rotate(-90 18 18)" attribute so progress starts at 12 o'clock;
+   the text stays upright because the SVG itself isn't rotated. */
+.sui-progress--circle { display: inline-flex; }
+.sui-progress-ring-track { stroke: var(--sui-color-border); }
+.sui-progress-ring-fill {
+    stroke: var(--sui-color-primary);
+    stroke-linecap: round;
+    transition: stroke-dashoffset .3s ease;
+}
+.sui-progress--success .sui-progress-ring-fill { stroke: var(--sui-color-success, #16a34a); }
+.sui-progress--warning .sui-progress-ring-fill { stroke: var(--sui-color-warning, #d97706); }
+.sui-progress--error   .sui-progress-ring-fill { stroke: var(--sui-color-danger); }
+.sui-progress-ring-text {
+    font-size: 9px;
+    fill: var(--sui-color-text-body);
+    font-variant-numeric: tabular-nums;
+}
+/* Indeterminate ring: spin the whole SVG (no percentage text is shown then). */
+.sui-progress--circle.sui-progress--indeterminate .sui-progress-ring {
+    animation: sui-spin 1.4s linear infinite;
+    transform-origin: center;
+}
+
+/* ── Navigation menu (collapsible sidebar) ──────────────────────────────────
+   Three states via a modifier class: --expanded (icon + label), --rail (icons
+   only, submenus as hover fly-outs) and --hidden (only the hamburger). The SPA
+   event bus cycles the class; a no-JS checkbox-hack toggles show/hide. */
+.sui-menu {
+    --sui-menu-w: 240px;
+    --sui-menu-rail-w: 60px;
+    display: flex;
+    flex-direction: column;
+    width: var(--sui-menu-w);
+    box-sizing: border-box;
+    padding: 8px;
+    gap: 4px;
+    background: var(--sui-color-surface);
+    border: 1px solid var(--sui-color-border);
+    border-radius: var(--sui-radius-lg);
+    box-shadow: var(--sui-shadow-card);
+    transition: width .2s ease;
+}
+.sui-menu-cb { display: none; }
+
+.sui-menu-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px; min-height: 40px;
+}
+.sui-menu-title {
+    font-weight: 600; font-size: 15px; color: var(--sui-color-text-strong);
+    white-space: nowrap; overflow: hidden;
+}
+.sui-menu-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; flex: 0 0 auto;
+    border: none; background: transparent; cursor: pointer;
+    border-radius: var(--sui-radius-md); color: var(--sui-color-text-body);
+}
+.sui-menu-toggle:hover { background: var(--sui-color-border-soft); }
+.sui-menu-toggle .sui-icon { width: 20px; height: 20px; }
+
+.sui-menu-list, .sui-menu-sublist {
+    list-style: none; display: flex; flex-direction: column; gap: 2px;
+}
+.sui-menu-item { position: relative; }
+
+.sui-menu-link {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: var(--sui-radius-md);
+    color: var(--sui-color-text-body); text-decoration: none;
+    cursor: pointer; white-space: nowrap; font-size: 15px;
+}
+.sui-menu-link:hover { background: var(--sui-color-border-soft); text-decoration: none; }
+.sui-menu-item.is-active > .sui-menu-link,
+.sui-menu-item.is-active > .sui-menu-group > .sui-menu-link {
+    background: var(--sui-color-primary-soft); color: var(--sui-color-primary); font-weight: 500;
+}
+.sui-menu-icon { display: inline-flex; width: 20px; flex: 0 0 20px; justify-content: center; }
+.sui-menu-icon .sui-icon { width: 18px; height: 18px; }
+.sui-menu-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+
+/* Group = a <details>; drop the native marker, use our own caret. */
+.sui-menu-group > summary { list-style: none; }
+.sui-menu-group > summary::-webkit-details-marker { display: none; }
+.sui-menu-caret { display: inline-flex; transition: transform .15s ease; color: var(--sui-color-text-muted); }
+.sui-menu-caret .sui-icon { width: 16px; height: 16px; }
+.sui-menu-group[open] > summary .sui-menu-caret { transform: rotate(180deg); }
+.sui-menu-sublist { padding-left: 22px; }   /* indent under the icon column */
+
+/* Rail-only tooltip beside a leaf icon. */
+.sui-menu-tip {
+    display: none;
+    position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%);
+    background: var(--sui-color-text-strong); color: var(--sui-color-surface);
+    padding: 4px 8px; border-radius: var(--sui-radius-sm); font-size: 12px;
+    white-space: nowrap; z-index: 60; pointer-events: none; box-shadow: var(--sui-shadow-card);
+}
+
+/* State: RAIL — icons only; submenus fly out on hover. */
+.sui-menu--rail { width: var(--sui-menu-rail-w); }
+.sui-menu--rail .sui-menu-title,
+.sui-menu--rail .sui-menu-label,
+.sui-menu--rail .sui-menu-caret { display: none; }
+.sui-menu--rail .sui-menu-link { justify-content: center; padding: 8px; }
+.sui-menu--rail .sui-menu-head { justify-content: center; padding: 6px; }
+.sui-menu--rail .sui-menu-item:not(.sui-menu-item--group):hover > .sui-menu-tip { display: block; }
+.sui-menu--rail .sui-menu-sublist {
+    display: none;
+    position: absolute; left: calc(100% + 8px); top: 0;
+    min-width: 180px; padding: 6px;
+    background: var(--sui-color-surface); border: 1px solid var(--sui-color-border);
+    border-radius: var(--sui-radius-md); box-shadow: var(--sui-shadow-card); z-index: 60;
+}
+.sui-menu--rail .sui-menu-item--group:hover > .sui-menu-group > .sui-menu-sublist { display: flex; }
+.sui-menu--rail .sui-menu-sublist .sui-menu-label { display: inline; }
+.sui-menu--rail .sui-menu-sublist .sui-menu-link { justify-content: flex-start; padding: 8px 10px; }
+
+/* State: HIDDEN — collapse to just the hamburger. */
+.sui-menu--hidden { width: var(--sui-menu-rail-w); }
+.sui-menu--hidden .sui-menu-list,
+.sui-menu--hidden .sui-menu-title { display: none; }
+.sui-menu--hidden .sui-menu-head { justify-content: center; padding: 6px; }
+/* When the menu has no built-in toggle (the hamburger lives elsewhere, e.g. in
+   the header), a push menu collapses away entirely instead of leaving an empty
+   strip. With its own toggle a slim strip remains so it can be reopened. */
+.sui-menu--push.sui-menu--hidden:not(:has(.sui-menu-toggle)) {
+    width: 0; padding: 0; border: 0; overflow: hidden;
+}
+
+/* Trailing badge — a count / short status. `label { flex:1 }` pushes it right. */
+.sui-menu-badge {
+    background: var(--sui-color-primary-soft); color: var(--sui-color-primary);
+    font-size: 11px; font-weight: 600; line-height: 1;
+    padding: 3px 7px; border-radius: 999px; white-space: nowrap;
+}
+.sui-menu-item.is-active > .sui-menu-link > .sui-menu-badge {
+    background: var(--sui-color-primary); color: var(--sui-color-on-primary);
+}
+/* Rail: the badge shrinks to a dot pinned to the icon's top-right corner. */
+.sui-menu--rail > .sui-menu-list > .sui-menu-item > .sui-menu-link > .sui-menu-badge {
+    position: absolute; top: 4px; right: 8px;
+    min-width: 8px; height: 8px; padding: 0; font-size: 0; border-radius: 999px;
+    background: var(--sui-color-primary);
+}
+
+/* Hamburger sitting in the header (UiHeader.menuToggle). */
+.sui-header-burger { color: var(--sui-header-fg); margin-right: 4px; flex: 0 0 auto; }
+.sui-header-burger:hover { background: var(--sui-header-nav-bg-hover); }
+
+/* State/mode: OVERLAY — a drawer floating over the content. Needs the parent
+   (the container holding menu + content) to be a positioning context. A
+   sibling backdrop dims the rest and closes on click; HIDDEN slides it away. */
+.sui-menu--overlay {
+    position: absolute; top: 0; left: 0; height: 100%; z-index: 41;
+    transition: transform .2s ease, width .2s ease;
+}
+.sui-menu--overlay.sui-menu--hidden { width: var(--sui-menu-w); transform: translateX(-100%); }
+.sui-menu--overlay.sui-menu--hidden .sui-menu-list,
+.sui-menu--overlay.sui-menu--hidden .sui-menu-title { display: flex; }  /* slide out, keep content */
+.sui-menu-backdrop {
+    position: absolute; inset: 0; z-index: 40;
+    background: rgba(15, 23, 42, .35);
+    opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+.sui-menu--overlay:not(.sui-menu--hidden) + .sui-menu-backdrop { opacity: 1; pointer-events: auto; }
+
+/* Mode: RESPONSIVE — push on a wide screen (the hamburger flips expanded ⇄
+   rail, so the sidebar never fully vanishes), an overlay drawer on a narrow one
+   (the hamburger flips it open ⇄ closed). On desktop it behaves like PUSH, so
+   only the backdrop needs suppressing here; the mobile drawer rules live in the
+   media query below. */
+.sui-menu--responsive + .sui-menu-backdrop { display: none; }
+
+@media (max-width: 768px) {
+    .sui-menu--responsive {
+        position: absolute; top: 0; left: 0; height: 100%; z-index: 41;
+        width: var(--sui-menu-w);
+        box-shadow: 4px 0 16px rgba(15, 23, 42, .18);
+        transition: transform .2s ease;
+    }
+    /* On mobile the drawer is either fully open or slid off-canvas — content
+       stays populated so it animates cleanly. */
+    .sui-menu--responsive .sui-menu-list { display: flex; }
+    .sui-menu--responsive .sui-menu-title { display: block; }
+    .sui-menu--responsive.sui-menu--hidden { transform: translateX(-100%); }
+    /* If a stored rail preference carried over, show it as a full drawer. */
+    .sui-menu--responsive.sui-menu--rail { width: var(--sui-menu-w); }
+    .sui-menu--responsive.sui-menu--rail .sui-menu-label { display: block; }
+    .sui-menu--responsive.sui-menu--rail .sui-menu-caret { display: inline-flex; }
+    .sui-menu--responsive.sui-menu--rail .sui-menu-link { justify-content: flex-start; padding: 8px 10px; }
+    .sui-menu--responsive.sui-menu--rail .sui-menu-head { justify-content: flex-start; padding: 6px 8px; }
+    .sui-menu--responsive.sui-menu--rail .sui-menu-sublist {
+        position: static; display: flex; min-width: 0; padding-left: 22px;
+        background: none; border: none; box-shadow: none;
+    }
+    /* Backdrop appears while the drawer is open. */
+    .sui-menu--responsive + .sui-menu-backdrop {
+        display: block; position: absolute; inset: 0; z-index: 40;
+        background: rgba(15, 23, 42, .35);
+        opacity: 0; pointer-events: none; transition: opacity .2s ease;
+    }
+    .sui-menu--responsive:not(.sui-menu--hidden) + .sui-menu-backdrop { opacity: 1; pointer-events: auto; }
+}
+
+/* Side: RIGHT — the menu sits on the right edge. Mirror everything that has a
+   left/right direction: rail fly-outs and tooltips open leftward, and an
+   overlay/responsive drawer anchors right and slides out to the right. (Push
+   placement is just the app ordering the menu after the content in the stack.) */
+.sui-menu--right.sui-menu--rail .sui-menu-sublist,
+.sui-menu--right .sui-menu-tip { left: auto; right: calc(100% + 8px); }
+.sui-menu--overlay.sui-menu--right { left: auto; right: 0; }
+.sui-menu--overlay.sui-menu--right.sui-menu--hidden { transform: translateX(100%); }
+
+@media (max-width: 768px) {
+    .sui-menu--responsive.sui-menu--right {
+        left: auto; right: 0; box-shadow: -4px 0 16px rgba(15, 23, 42, .18);
+    }
+    .sui-menu--responsive.sui-menu--right.sui-menu--hidden { transform: translateX(100%); }
+}
+
+/* No-JS fallback: the label toggles the hidden checkbox; :checked hides the
+   list. With JS the bus preventDefaults the label, so the class states win. */
+.sui-menu-cb:checked ~ .sui-menu-list { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+    .sui-menu, .sui-menu--overlay, .sui-menu-backdrop { transition: none; }
+}
+
+/* ── Dialogs ────────────────────────────────────────────────────────────── */
+
+/* Host: full-viewport flex container so the dialog centres itself. Sits
+   above page content via z-index. Pointer events pass through to the
+   children — the backdrop catches clicks to close (handled by JS or by the
+   SSR fallback link). */
+.sui-dialog-host {
+    position: fixed;
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 500;
+}
+.sui-dialog-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(15, 23, 42, .45);
+    /* Click-through is the SSR default; the SPA wiring catches the click
+       on this element if it wants close-on-backdrop. */
+}
+.sui-dialog {
+    position: relative;
+    background: var(--sui-color-surface);
+    border-radius: var(--sui-radius-lg);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, .25);
+    max-width: min(640px, calc(100vw - 32px));
+    max-height: calc(100vh - 64px);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    animation: sui-dialog-in .15s ease-out;
+}
+.sui-dialog-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--sui-color-border-soft);
+}
+.sui-dialog-title { font-size: 15px; font-weight: 600; color: var(--sui-color-text); }
+.sui-dialog-close {
+    background: none; border: none; cursor: pointer;
+    color: var(--sui-color-text-muted);
+    font-size: 22px; line-height: 1; padding: 0 4px;
+    font-family: inherit; text-decoration: none;
+}
+.sui-dialog-close:hover { color: var(--sui-color-text); }
+.sui-dialog-body { padding: 20px; overflow: auto; }
+/* The form's own <h2> is redundant when the dialog header already shows the
+   title. Hide it inside dialogs so we don't get two stacked titles. */
+.sui-dialog-body .sui-form > h2 { display: none; }
+/* Form inside a dialog: drop the card chrome — the dialog *is* the card. */
+.sui-dialog-body .sui-form { box-shadow: none; padding: 0; background: transparent; }
+@keyframes sui-dialog-in {
+    from { transform: translateY(-10px); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+
+/* ── Toasts ─────────────────────────────────────────────────────────────── */
+
+/* Fixed top-right stack. Container is always present so the SPA EventBus
+   can append into it without a DOM-shape change between SSR and SPA. */
+.sui-toast-container {
+    position: fixed;
+    top: 16px; right: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+    z-index: 1000;
+    pointer-events: none;
+    max-width: min(420px, calc(100vw - 32px));
+}
+/* Softly tinted per level: a light status-coloured fill, a hairline ring in the
+   same hue, and a matching icon + text — enough to read the status at a glance
+   without shouting. The three colours per level are driven by custom properties
+   so a new level (or the dark theme) only has to re-set the trio. Generous
+   radius + soft drop shadow keep it in the same family as the cards. */
+.sui-toast {
+    --sui-toast-bg:     var(--sui-color-surface);
+    --sui-toast-ring:   var(--sui-color-border);
+    --sui-toast-fg:     var(--sui-color-text);
+    pointer-events: auto;
+    display: flex; align-items: flex-start; gap: 11px;
+    padding: 14px 14px 14px 15px;
+    background: var(--sui-toast-bg);
+    border-radius: var(--sui-radius-lg);
+    box-shadow: inset 0 0 0 1px var(--sui-toast-ring), var(--sui-shadow-pop);
+    font-size: 14px;
+    color: var(--sui-toast-fg);
+    animation: sui-toast-in .22s cubic-bezier(.22, 1, .36, 1);
+}
+.sui-toast--leaving { animation: sui-toast-out .2s ease-in forwards; }
+.sui-toast-icon {
+    flex: none; display: inline-flex; margin-top: 1px;
+    color: var(--sui-toast-fg);
+}
+.sui-toast-icon .sui-icon { width: 18px; height: 18px; }
+.sui-toast-body     { flex: 1; min-width: 0; }
+.sui-toast-title    { font-weight: 600; margin-bottom: 2px; }
+.sui-toast-message  { line-height: 1.45; color: var(--sui-toast-fg); }
+.sui-toast-close {
+    flex: none; background: none; border: none; cursor: pointer;
+    color: var(--sui-toast-fg); opacity: .6;
+    font-size: 18px; line-height: 1; padding: 0 2px; margin: -2px -2px 0 0;
+    font-family: inherit; border-radius: var(--sui-radius-sm);
+    transition: opacity .12s;
+}
+.sui-toast-close:hover { opacity: 1; }
+
+/* Per-level tint trio: fill · ring · foreground (icon + text). */
+.sui-toast--info    { --sui-toast-bg: #eff6ff; --sui-toast-ring: #bfdbfe; --sui-toast-fg: #1d4ed8; }
+.sui-toast--success { --sui-toast-bg: #f0fdf4; --sui-toast-ring: #bbf7d0; --sui-toast-fg: #15803d; }
+.sui-toast--warn    { --sui-toast-bg: #fffbeb; --sui-toast-ring: #fde68a; --sui-toast-fg: #b45309; }
+.sui-toast--error   { --sui-toast-bg: #fef2f2; --sui-toast-ring: #fecaca; --sui-toast-fg: #b91c1c; }
+
+@keyframes sui-toast-in {
+    from { transform: translateY(-8px) scale(.98); opacity: 0; }
+    to   { transform: translateY(0)    scale(1);   opacity: 1; }
+}
+@keyframes sui-toast-out {
+    from { transform: translateX(0);    opacity: 1; }
+    to   { transform: translateX(20px); opacity: 0; }
+}
+
+/* Floating "agent still running" indicator. Mounted on body, not in the
+   toast container, so it persists across navigations independently of
+   the regular toast queue. */
+.sui-stream-status {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 1500;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--sui-color-surface, #fff);
+    border: 1px solid var(--sui-color-border, #d4d4d8);
+    border-left-width: 4px;
+    border-left-color: var(--sui-color-primary, #3b82f6);
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    font-size: 14px;
+}
+.sui-stream-status .sui-toast-link {
+    background: none;
+    border: none;
+    color: var(--sui-color-primary, #3b82f6);
+    cursor: pointer;
+    font-weight: 600;
+    padding: 0;
+}
+.sui-stream-status .sui-toast-link:hover { text-decoration: underline; }
+
+/* ── Markdown (rendered by the markdown extension) ──────────────────────── */
+
+.sui-markdown { line-height: 1.6; color: var(--sui-color-text); }
+.sui-markdown h1, .sui-markdown h2, .sui-markdown h3,
+.sui-markdown h4, .sui-markdown h5, .sui-markdown h6 {
+    margin: 1em 0 .4em; font-weight: 600; line-height: 1.3;
+}
+.sui-markdown h1 { font-size: 1.4em; }
+.sui-markdown h2 { font-size: 1.2em; }
+.sui-markdown h3 { font-size: 1.05em; }
+.sui-markdown p  { margin: 0 0 .75em; }
+.sui-markdown p:last-child { margin-bottom: 0; }
+.sui-markdown ul, .sui-markdown ol { margin: 0 0 .75em 1.4em; }
+.sui-markdown li { margin-bottom: .2em; }
+.sui-markdown code {
+    font-family: var(--sui-font-mono);
+    font-size: .85em; background: var(--sui-color-border-soft);
+    padding: 1px 5px; border-radius: 3px;
+}
+.sui-markdown pre {
+    background: var(--sui-color-code-bg); color: var(--sui-color-code-fg);
+    padding: 12px 16px; border-radius: var(--sui-radius-md);
+    overflow-x: auto; margin: 0 0 .75em;
+}
+.sui-markdown pre code { background: none; padding: 0; color: inherit; font-size: .82em; }
+.sui-markdown blockquote {
+    border-left: 3px solid var(--sui-color-blockquote-border); margin: 0 0 .75em;
+    padding: 4px 12px; color: var(--sui-color-text-muted);
+}
+.sui-markdown table { border-collapse: collapse; width: 100%; margin-bottom: .75em; }
+.sui-markdown th, .sui-markdown td {
+    border: 1px solid var(--sui-color-border); padding: 6px 10px; text-align: left;
+}
+.sui-markdown th { background: var(--sui-color-surface-alt); font-weight: 600; }
+.sui-markdown a { color: var(--sui-color-primary); }
+.sui-markdown hr { border: none; border-top: 1px solid var(--sui-color-border); margin: 1em 0; }

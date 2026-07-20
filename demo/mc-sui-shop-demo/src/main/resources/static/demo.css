@@ -1,0 +1,37 @@
+/*
+ * Demo-app overrides on top of the framework's stylesheets.
+ *
+ * Two concerns:
+ *   1. Position the SSR/SPA + theme toggles in a single row under the page
+ *      header. Right-aligned so they don't compete with content but stay
+ *      visible.
+ *   2. Make sure the per-form padding doesn't double up — the toggles are
+ *      tiny one-button forms, not full data forms.
+ *
+ * Works against all three themes (light/dark/sbb) because we only reach for
+ * the framework's CSS variables, never raw colours.
+ */
+
+/* Container for the two toggle forms. Light flex row, right-aligned. */
+.sui-toggle-row > .sui-panel {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 4px 20px 0;
+}
+
+/* Each toggle form: stripped of its card chrome so the buttons sit on the
+   page background, not on a floating panel. */
+.sui-mode-toggle {
+    box-shadow: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+.sui-mode-toggle .sui-form-footer {
+    margin: 0;
+    padding: 0;
+    border: none;
+    justify-content: flex-end;
+}

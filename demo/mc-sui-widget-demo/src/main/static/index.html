@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Semantic UI — Widget Showcase</title>
+
+    <!--
+        Both theme stylesheets are loaded up front. Only one is active at a
+        time, selected by the class on <html>:
+          (none)          → default light theme (sui.css)
+          sui-theme-dark  → dark overrides (sui-dark.css)
+        The theme <select> in the top bar toggles that class — no reload.
+    -->
+    <link rel="stylesheet" href="./sui/sui.css">
+    <link rel="stylesheet" href="./sui/sui-dark.css">
+    <!-- Diagram extension styles (the client-side diagram specimen). -->
+    <link rel="stylesheet" href="./sui-ext/diagram/diagram.css">
+    <link rel="stylesheet" href="./sui-ext/chart/chart.css">
+
+    <style>
+        /* Demo chrome only — the widgets themselves are styled entirely by sui.css. */
+        body { margin: 0; }
+        .demo-topbar {
+            display: flex; align-items: center; gap: 16px;
+            padding: 12px 20px; border-bottom: 1px solid var(--sui-color-border);
+            background: var(--sui-color-surface); position: sticky; top: 0; z-index: 10;
+        }
+        .demo-topbar h1 { font-size: 15px; font-weight: 600; margin: 0; }
+        .demo-topbar .demo-spacer { margin-left: auto; }
+        .demo-topbar label { font-size: 13px; color: var(--sui-color-text-muted); }
+        .demo-topbar select { padding: 5px 8px; font-size: 13px; }
+        .demo-main { max-width: 960px; margin: 0 auto; padding: 24px 20px 80px; }
+
+        /* Viewport toggle: previews the whole demo inside a phone-width iframe so
+           the real @media breakpoints fire (table → cards, sidebar → drawer, …). */
+        .demo-vp-btn {
+            font: inherit; font-size: 13px; padding: 5px 12px; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px;
+            border: 1px solid var(--sui-color-border-strong); border-radius: var(--sui-radius-md);
+            background: var(--sui-color-surface); color: var(--sui-color-text-body);
+        }
+        .demo-vp-btn .sui-icon { width: 15px; height: 15px; }
+        .demo-vp-btn:hover { background: var(--sui-color-surface-alt); }
+        /* "Open in CodePen" button under each specimen. */
+        .demo-codepen {
+            align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
+            font: inherit; font-size: 13px; padding: 6px 12px; cursor: pointer;
+            border: 1px solid var(--sui-color-border-strong); border-radius: var(--sui-radius-md);
+            background: var(--sui-color-surface); color: var(--sui-color-text-muted);
+            transition: background .15s, border-color .15s, color .15s;
+        }
+        .demo-codepen:hover { background: var(--sui-color-surface-alt); border-color: var(--sui-color-primary); color: var(--sui-color-primary); }
+        .demo-codepen .sui-icon { width: 14px; height: 14px; }
+        .demo-vp-btn.active { border-color: var(--sui-color-primary); color: var(--sui-color-primary); }
+        .demo-device {
+            width: 390px; max-width: 100%; margin: 0 auto;
+            border: 10px solid #111827; border-radius: 40px; overflow: hidden;
+            background: #111827; box-shadow: 0 16px 48px rgba(0,0,0,.28);
+        }
+        .demo-device-notch { height: 22px; background: #111827; }
+        .demo-device iframe { display: block; width: 100%; height: 760px; border: 0; background: var(--sui-color-bg); }
+        /* Embedded instance (inside the iframe): drop the outer chrome. */
+        body.embedded .demo-topbar { display: none; }
+        body.embedded .demo-main { max-width: none; padding: 12px 12px 40px; }
+        /* Section sub-heading + spacing between showcased widgets. */
+        .demo-h { display: block; font-size: 12px; font-weight: 700; letter-spacing: .06em;
+                  text-transform: uppercase; color: var(--sui-color-text-subtle); margin: 8px 0 2px; }
+        .demo-note { display: block; font-size: 13px; color: var(--sui-color-text-muted); }
+        .demo-intro { display: block; font-size: 13px; color: var(--sui-color-text-muted);
+                      background: var(--sui-color-surface-alt); border: 1px solid var(--sui-color-border);
+                      border-radius: var(--sui-radius-md); padding: 10px 14px; line-height: 1.5; }
+        /* Give a simple SVG chart a sensible box. */
+        .sui-chart svg { width: 100%; height: auto; max-width: 420px; }
+        /* Code panels (JSON / Java) shown under each widget. */
+        .demo-code { margin: 0; background: var(--sui-color-code-bg); color: var(--sui-color-code-fg);
+                     padding: 14px 16px; border-radius: var(--sui-radius-md); font-size: 12px;
+                     line-height: 1.5; overflow: auto; max-height: 380px; }
+        .demo-code code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; }
+        /* Tighten the collapsible "Show code" disclosure inside a widget stack. */
+        details.sui-section--collapsible { margin: 2px 0 0; }
+
+        /* ── Icon library (searchable gallery) ─────────────────────────────── */
+        .icon-gallery-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .icon-gallery-search {
+            flex: 1; padding: 8px 12px; font-size: 14px; font-family: inherit;
+            border: 1px solid var(--sui-color-border); border-radius: var(--sui-radius-md);
+            background: var(--sui-color-surface); color: var(--sui-color-text-strong);
+        }
+        .icon-gallery-count { font-size: 12px; color: var(--sui-color-text-muted); white-space: nowrap; }
+        .icon-gallery-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px;
+        }
+        .icon-cell {
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            padding: 14px 8px; border: 1px solid var(--sui-color-border);
+            border-radius: var(--sui-radius-md); background: var(--sui-color-surface);
+            cursor: pointer; font-family: inherit; transition: border-color .12s, background .12s;
+        }
+        /* The search filter toggles the `hidden` attribute; `.icon-cell` sets an
+           explicit display, which would otherwise win over the UA `[hidden]`
+           rule and keep filtered-out cells visible. Re-assert it here. */
+        .icon-cell[hidden] { display: none; }
+        .icon-cell:hover { border-color: var(--sui-color-primary); background: var(--sui-color-surface-alt); }
+        .icon-cell .sui-icon { width: 24px; height: 24px; color: var(--sui-color-text-strong); }
+        .icon-cell-name { font-size: 11px; color: var(--sui-color-text-muted); word-break: break-all; text-align: center; line-height: 1.3; }
+        .icon-gallery-empty { padding: 24px; text-align: center; color: var(--sui-color-text-muted); font-size: 13px; }
+
+        /* The shell examples are UiAppShell nodes, so their layout (positioning
+           context for the drawer, content min-width, header flush on top) comes
+           from sui.css. All the demo adds is a framed box to show them in. */
+        .demo-shell { border: 1px solid var(--sui-color-border); border-radius: 8px;
+                      overflow: hidden; min-height: 300px; }
+    </style>
+</head>
+<body>
+    <div class="demo-topbar">
+        <h1>Semantic UI · Widget Showcase</h1>
+        <span class="demo-note">Static demo — no backend, no build step. Every widget below is a plain JS object.</span>
+        <span class="demo-spacer"></span>
+        <button id="demo-viewport" class="demo-vp-btn" type="button" title="Preview the widgets at a phone width">Mobile view</button>
+        <label for="demo-theme">Theme</label>
+        <select id="demo-theme">
+            <option value="">Light</option>
+            <option value="sui-theme-dark">Dark</option>
+        </select>
+    </div>
+
+    <main class="demo-main">
+        <!-- The renderer paints everything into this root. -->
+        <div id="sui-root"></div>
+    </main>
+
+    <script type="module" src="./demo.js"></script>
+</body>
+</html>

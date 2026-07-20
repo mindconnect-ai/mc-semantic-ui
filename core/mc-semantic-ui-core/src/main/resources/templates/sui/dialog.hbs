@@ -1,0 +1,25 @@
+{{!--
+  UiDialog → fixed-position modal overlay (backdrop + centred box). Mirrors
+  renderDialog() in renderers/dialog.ts. Because the box is fixed-positioned it
+  overlays the viewport wherever the node sits in the DOM, so a dialog is
+  "opened" by APPENDing it into #sui-dialogs and "closed" by REMOVE-ing it by
+  id. The outer host carries the dialog's own id so a REMOVE can target it.
+
+  The data-sui-dialog-close marker on the × and the backdrop is what the event
+  bus intercepts to REMOVE this dialog; in pure SSR the anchor's closeHref
+  navigates back to the opener page instead.
+--}}
+<div class="sui-dialog-host"{{{events this}}}{{#if id}} id="{{id}}"{{/if}} data-close-href="{{closeHref}}">
+  <div class="sui-dialog-backdrop" data-sui-dialog-close></div>
+  <div class="sui-dialog" role="dialog" aria-modal="true"{{#if title}} aria-label="{{title}}"{{/if}}>
+    <div class="sui-dialog-header">
+      {{#if title}}<h2 class="sui-dialog-title">{{title}}</h2>{{else}}<span></span>{{/if}}
+      {{#if closeHref}}
+        <a class="sui-dialog-close" data-sui-dialog-close href="{{closeHref}}" aria-label="Close">&times;</a>
+      {{else}}
+        <button type="button" class="sui-dialog-close" data-sui-dialog-close aria-label="Close">&times;</button>
+      {{/if}}
+    </div>
+    <div class="sui-dialog-body">{{#if node}}{{{render node}}}{{/if}}</div>
+  </div>
+</div>

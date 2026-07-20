@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui — layout elements, live</title>
+  <link rel="stylesheet" href="../sui/sui.css">
+  <link rel="stylesheet" href="../sui/sui-dark.css">
+  <style>
+    body { padding: 16px; background: var(--sui-color-surface); color: var(--sui-color-text-body); }
+  </style>
+  <script>
+    (function syncTheme() {
+      function apply() {
+        try {
+          const parentTheme = window.parent !== window
+              ? window.parent?.document?.documentElement?.dataset?.theme : null;
+          const dark = parentTheme
+              ? parentTheme === "dark"
+              : window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+          document.documentElement.className = dark ? "sui-theme-dark" : "";
+        } catch { /* ignore */ }
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] });
+      } catch { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createDefaultRenderer, setIconSpriteUrl } from "../sui/renderer.js";
+    import { SuiEventBus } from "../sui/eventbus.js";
+
+    setIconSpriteUrl("../sui/icons.svg");
+    const host = document.getElementById("app");
+    const renderer = createDefaultRenderer().attach(host);
+    // The bus makes the tabs clickable (tab switching is client-side).
+    new SuiEventBus(renderer, host).setHistoryEnabled(false);
+
+    const text = (id, t) => ({ type: "text", id, text: t });
+
+    renderer.mount({
+      type: "section", id: "demo-tabs", title: "UiSection — tabs",
+      sections: [
+        { type: "section-entry", id: "t-over", title: "Overview", icon: "info",
+          content: { type: "stack", id: "s-over", gap: 8, children: [
+            text("o1", "A UiSection is a tabbed container. Each section-entry is one tab plus its panel."),
+            text("o2", "Switching tabs happens in the browser — no round-trip.")
+          ]}},
+        { type: "section-entry", id: "t-stack", title: "Stack", icon: "grid",
+          content: { type: "stack", id: "s-stack", gap: 12, children: [
+            text("v1", "A vertical stack (the default) — children flow top to bottom:"),
+            { type: "stack", id: "s-v", gap: 6, children: [
+              text("v2", "first"), text("v3", "second"), text("v4", "third")
+            ]},
+            text("h1", "A horizontal stack with gap: 8 — the row layout for buttons:"),
+            { type: "stack", id: "s-h", direction: "HORIZONTAL", gap: 8, children: [
+              { type: "action", id: "b1", label: "Save",   style: "PRIMARY" },
+              { type: "action", id: "b2", label: "Cancel", style: "SECONDARY" },
+              { type: "action", id: "b3", label: "Delete", style: "DANGER" }
+            ]}
+          ]}},
+        { type: "section-entry", id: "t-detail", title: "Detail", icon: "document",
+          content: { type: "detail", id: "d1", title: "Product",
+            fields: [
+              { type: "field", id: "d-sku",   label: "SKU",   fieldType: "TEXT", value: "A-1" },
+              { type: "field", id: "d-name",  label: "Name",  fieldType: "TEXT", value: "Widget" },
+              { type: "field", id: "d-price", label: "Price", fieldType: "TEXT", value: "€ 19.00" }
+            ]}}
+      ]
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "strict": true,
+    "outDir": "./target/ts-dist",
+    "rootDir": "./src/main/ts",
+    "declaration": true,
+
+    // Extension sources import the core renderer using its runtime URL —
+    // /sui/renderer.js — so the emitted .js works in the browser without
+    // any bundler or import-map. We map that URL to core's compiled .d.ts
+    // here so the TypeScript checker can still find the types.
+    "paths": {
+      "/sui/renderer.js": ["../../core/mc-semantic-ui-core/target/ts-dist/renderer.d.ts"]
+    }
+  },
+  "include": ["src/main/ts/**/*"]
+}

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui — a client-side patch, live</title>
+  <link rel="stylesheet" href="../sui/sui.css">
+  <link rel="stylesheet" href="../sui/sui-dark.css">
+  <style>
+    body { padding: 16px; background: var(--sui-color-surface); color: var(--sui-color-text-body); }
+  </style>
+  <script>
+    (function syncTheme() {
+      function apply() {
+        try {
+          const parentTheme = window.parent !== window
+              ? window.parent?.document?.documentElement?.dataset?.theme : null;
+          const dark = parentTheme
+              ? parentTheme === "dark"
+              : window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+          document.documentElement.className = dark ? "sui-theme-dark" : "";
+        } catch { /* ignore */ }
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] });
+      } catch { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createDefaultRenderer, setIconSpriteUrl } from "../sui/renderer.js";
+    import { SuiEventBus } from "../sui/eventbus.js";
+
+    setIconSpriteUrl("../sui/icons.svg");
+    const host = document.getElementById("app");
+    const renderer = createDefaultRenderer().attach(host);
+    const bus = new SuiEventBus(renderer, host).setHistoryEnabled(false);
+
+    // This is the step-3 code from the docs page, verbatim — no backend.
+    let cartCents = 0;
+
+    bus.registerClientHandler("addToCart", () => {
+      cartCents += 1900;
+      return {
+        patches: [
+          { op: "REPLACE", targetId: "cart-total",
+            node: { type: "text", id: "cart-total", text: `€ ${(cartCents / 100).toFixed(2)}` } }
+        ],
+        toasts: [ { level: "SUCCESS", message: "Added to cart" } ]
+      };
+    });
+
+    bus.registerClientHandler("emptyCart", () => {
+      cartCents = 0;
+      return {
+        patches: [
+          { op: "REPLACE", targetId: "cart-total",
+            node: { type: "text", id: "cart-total", text: "€ 0.00" } }
+        ],
+        toasts: [ { level: "INFO", message: "Cart emptied" } ]
+      };
+    });
+
+    renderer.mount({
+      type: "stack", id: "shop", gap: 12, children: [
+        { type: "text", id: "cart-total", text: "€ 0.00" },
+        { type: "stack", id: "shop-actions", direction: "HORIZONTAL", gap: 8, children: [
+          { type: "action", id: "add", label: "Add Widget", style: "PRIMARY",
+            onClick: { behavior: "INVOKE", handler: "addToCart" } },
+          { type: "action", id: "empty", label: "Empty cart", style: "SECONDARY",
+            onClick: { behavior: "INVOKE", handler: "emptyCart" } }
+        ]}
+      ]
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>semantic-ui — the diagram extension, client-side only</title>
+
+  <!-- Two stylesheets: the core design system, and the extension's own. -->
+  <link rel="stylesheet" href="../sui/sui.css">
+  <link rel="stylesheet" href="../sui/sui-dark.css">
+  <link rel="stylesheet" href="../sui-ext/diagram/diagram.css">
+
+  <style>
+    body { padding: 16px; background: var(--sui-color-surface); color: var(--sui-color-text-body); }
+  </style>
+  <script>
+    (function syncTheme() {
+      function apply() {
+        try {
+          const parentTheme = window.parent !== window
+              ? window.parent?.document?.documentElement?.dataset?.theme : null;
+          const dark = parentTheme
+              ? parentTheme === "dark"
+              : window.matchMedia?.("(prefers-color-scheme: dark)").matches;
+          document.documentElement.className = dark ? "sui-theme-dark" : "";
+        } catch { /* ignore */ }
+      }
+      apply();
+      try {
+        new MutationObserver(apply).observe(window.parent.document.documentElement,
+            { attributes: true, attributeFilter: ["data-theme"] });
+      } catch { /* ignore */ }
+    })();
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    // No backend, no Maven, no Spring. Two imports and one install() call.
+    import { createDefaultRenderer, setIconSpriteUrl } from "../sui/renderer.js";
+    import { SuiEventBus } from "../sui/eventbus.js";
+    import { install as installDiagram } from "../sui-ext/diagram/extension.js";
+
+    setIconSpriteUrl("../sui/icons.svg");
+    const host = document.getElementById("app");
+    const renderer = createDefaultRenderer().attach(host);
+    const bus = new SuiEventBus(renderer, host).setHistoryEnabled(false);
+
+    // This is the whole integration: it registers a handler for the "diagram"
+    // node type on THIS renderer. Nothing global is touched.
+    installDiagram(renderer);
+
+    renderer.mount({
+      type: "stack", id: "wrap", gap: 12, children: [
+        { type: "text", id: "t", text: "A diagram node, rendered by the extension — no server involved." },
+        {
+          type: "diagram", id: "flow", width: 520, height: 200,
+          nodes: [
+            // Shape names come from the extension's registry: rect,
+            // rounded-rect, circle, diamond, bar, container-with-header.
+            // An unknown name silently falls back to a plain rectangle.
+            { id: "start", label: "Order placed", shape: "rounded-rect", position: { x: 10,  y: 70 } },
+            { id: "check", label: "In stock?",    shape: "diamond",      position: { x: 210, y: 58 } },
+            { id: "ship",  label: "Ship",         shape: "rect",         position: { x: 340, y: 20 } },
+            { id: "back",  label: "Backorder",    shape: "rect",         position: { x: 340, y: 120 } }
+          ],
+          edges: [
+            { id: "e1", source: "start", target: "check" },
+            { id: "e2", source: "check", target: "ship", label: "yes" },
+            { id: "e3", source: "check", target: "back", label: "no"  }
+          ]
+        }
+      ]
+    });
+  </script>
+</body>
+</html>
