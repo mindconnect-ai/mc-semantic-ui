@@ -43,6 +43,12 @@ up to you — a JavaScript object in the page, or any backend that emits the JSO
 
 ![Semantic UI — how it works](/img/semantic-ui/how-it-works.svg)
 
+The rightmost box is not hypothetical. Here is a `UiNode` tree — the same kind
+this page describes for the browser — painted by the
+[JavaFX renderer](./javafx.md) as a native desktop window:
+
+![The same UiNode tree as a native JavaFX desktop app](/img/semantic-ui/javafx/orders-table.png)
+
 ## The two shapes you'll write
 
 Everything is one of two payloads. Build them with the Java API, or emit the

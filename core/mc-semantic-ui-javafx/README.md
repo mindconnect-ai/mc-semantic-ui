@@ -4,6 +4,13 @@ The **third renderer**. The same `UiNode` tree that the core renders as no-JS
 server HTML and as a live browser SPA is drawn here as a native **JavaFX desktop
 client** — same model, same triggers, same vocabulary, no shared markup.
 
+<!-- One copy of these lives under website/static so the docs site can serve
+     them; linking rather than duplicating keeps the two from drifting apart. -->
+![The demo's Orders tab](../../website/static/img/semantic-ui/javafx/orders-table.png)
+
+*A `UiTable` with row actions, a menu button and a progress bar — from the demo
+in this module.*
+
 ```java
 var bus = new SuiFxEventBus();
 

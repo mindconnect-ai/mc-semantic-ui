@@ -13,6 +13,11 @@ This is not a web view in a window. `UiTable` becomes a real JavaFX `TableView`,
 `UiField` a real `TextField`, `ComboBox` or `DatePicker`. Nothing about the model
 was web-shaped to begin with; the browser was simply the first renderer.
 
+![The demo's Orders tab: a UiTable with row actions, a menu button and a progress bar](/img/semantic-ui/javafx/orders-table.png)
+
+*A `UiTable` with sortable columns, per-row actions, a `UiMenuButton` and a
+`UiProgress` — all painted from the same tree the browser would get.*
+
 ```xml
 <dependency>
   <groupId>ai.mindconnect</groupId>
@@ -135,6 +140,33 @@ the client replaces exactly that panel. The demo does this over a real socket.
 Anything else paints a visible placeholder instead of throwing, so an unknown
 node degrades rather than taking the window down. Not painted yet: `UiAppShell`,
 `UiHeader`, `UiIcon`, `UiPage`.
+
+{/* Markdown image syntax inside the columns on purpose: a raw <img src="/img/…">
+    would keep that literal path and miss the site's baseUrl. */}
+
+<div class="row margin-bottom--md">
+<div class="col col--6">
+
+![A UiForm with text, select, date, boolean and textarea fields](/img/semantic-ui/javafx/customer-form.png)
+
+*A `UiForm`: every named control inside it lands in one payload, however deeply
+nested.*
+
+</div>
+<div class="col col--6">
+
+![Actions, links, spinners, progress bars and a dialog button](/img/semantic-ui/javafx/widgets.png)
+
+*Actions, links, spinners and progress — the declarative kind, driven by the
+model rather than by code.*
+
+</div>
+</div>
+
+![Every field type, in a scroll pane](/img/semantic-ui/javafx/field-types.png)
+
+*Every `UiField` type. Tab content sits in its own scroll pane, so a long form
+behaves like a web page rather than being clipped.*
 
 Six of the seven trigger behaviours work: `APPLY_RESPONSE`, `INVOKE`, `PATCH`,
 `DOWNLOAD`, `OPEN_IN_TAB`, `UPLOAD`. `STREAM` is not implemented — it is
