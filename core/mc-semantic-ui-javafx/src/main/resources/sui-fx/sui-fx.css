@@ -32,17 +32,32 @@
     -sui-danger:         #dc2626;
     -sui-danger-bg:      #fee2e2;
 
-    /* No -fx-font-family override: JavaFX's default "System" font renders bold
-       cleanly. Forcing an absent family (e.g. Inter) falls back to a face whose
-       bold advance widths make letters overlap, and JavaFX CSS has no
-       letter-spacing to compensate. */
     -fx-font-size: 13px;
     -fx-background-color: -sui-bg;
     -fx-text-base-color: -sui-text-body;
 
+    /* Gray, not LCD, subpixel smoothing. On macOS the default LCD smoothing
+       smears bold text so the letters look like they overlap; gray renders
+       each glyph cleanly. (JavaFX CSS has no letter-spacing to fix it another
+       way, and no -fx-font-family override helps — the smoothing is the cause.) */
+    -fx-font-smoothing-type: gray;
+
     /* A clean blue focus ring instead of the default fuzzy glow. */
     -fx-focus-color: -sui-primary;
     -fx-faint-focus-color: transparent;
+}
+
+/* Belt and braces: apply gray smoothing to the actual text-bearing nodes too,
+   since -fx-font-smoothing-type does not reliably inherit from .root. */
+.label,
+.text,
+.text-field,
+.text-area,
+.button,
+.combo-box,
+.date-picker,
+.hyperlink {
+    -fx-font-smoothing-type: gray;
 }
 
 /* Breathing room from the window edge — the mounted tree never hugs the frame. */
