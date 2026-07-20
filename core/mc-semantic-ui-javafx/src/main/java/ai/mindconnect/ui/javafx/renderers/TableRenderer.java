@@ -111,6 +111,11 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
                 buttons.setAlignment(Pos.CENTER_LEFT);
                 for (UiAction action : node.getRowActions()) {
                     var button = new Button(action.getLabel() != null ? action.getLabel() : action.getTitle());
+                    // Carry the action's style, the same class ActionRenderer
+                    // uses, so a danger row action reads as one.
+                    if (action.getStyle() != null) {
+                        button.getStyleClass().add("sui-action-" + action.getStyle().name().toLowerCase());
+                    }
                     button.setDisable(!action.isEnabled());
                     // The row is the payload source here — a row action acts on
                     // the row it sits in, not on the table.

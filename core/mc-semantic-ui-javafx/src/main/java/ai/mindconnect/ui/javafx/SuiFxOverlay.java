@@ -53,6 +53,7 @@ public class SuiFxOverlay extends StackPane {
     /** An empty host surface. The renderer fills it via {@link #setContent}. */
     public SuiFxOverlay() {
         getStyleClass().add("sui-overlay");
+        content.getStyleClass().add("sui-overlay-content");
 
         toasts.setAlignment(Pos.TOP_RIGHT);
         toasts.setPadding(new Insets(16));

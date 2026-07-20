@@ -1,66 +1,333 @@
 /*
- * Default look for the JavaFX renderer — the counterpart of sui.css.
- * Every painted node carries a "sui-<type>" style class (plus whatever the
- * model's cssClass adds), so an app restyles the vocabulary without touching
- * the renderers:
+ * Default look for the JavaFX renderer — the counterpart of sui.css, and
+ * deliberately close to it: the same cool-slate palette, rounded corners, a
+ * graphite primary button and a quiet blue accent, so the desktop client reads
+ * like the web one rather than like a stock Swing/JavaFX app.
  *
- *   scene.getStylesheets().add(getClass().getResource("/sui-fx/sui-fx.css").toExternalForm());
+ * Every painted node carries a "sui-<type>" style class; the base JavaFX
+ * controls (.button, .text-field, .table-view, …) are restyled too, since this
+ * file is the app's design system, the way sui.css styles <input>/<button>.
+ *
+ * Loaded automatically by SuiFxOverlay; override by adding your own stylesheet
+ * after it, or by redefining the -sui-* looked-up colors on .root.
  */
 
 .root {
+    /* Palette — the same cool slate scale as sui.css :root. */
+    -sui-bg:             #f8fafc;
+    -sui-surface:        #ffffff;
+    -sui-surface-alt:    #f1f5f9;
+    -sui-border:         #e2e8f0;
+    -sui-border-soft:    #f1f5f9;
+    -sui-border-strong:  #cbd5e1;
+    -sui-text:           #0f172a;
+    -sui-text-body:      #334155;
+    -sui-text-muted:     #64748b;
+    -sui-text-subtle:    #94a3b8;
+    -sui-primary:        #2563eb;
+    -sui-primary-hover:  #1d4ed8;
+    -sui-primary-soft:   #eff6ff;
+    -sui-action:         #111827;
+    -sui-action-hover:   #1f2937;
+    -sui-danger:         #dc2626;
+    -sui-danger-bg:      #fee2e2;
+
+    /* No -fx-font-family override: JavaFX's default "System" font renders bold
+       cleanly. Forcing an absent family (e.g. Inter) falls back to a face whose
+       bold advance widths make letters overlap, and JavaFX CSS has no
+       letter-spacing to compensate. */
     -fx-font-size: 13px;
+    -fx-background-color: -sui-bg;
+    -fx-text-base-color: -sui-text-body;
+
+    /* A clean blue focus ring instead of the default fuzzy glow. */
+    -fx-focus-color: -sui-primary;
+    -fx-faint-focus-color: transparent;
 }
+
+/* Breathing room from the window edge — the mounted tree never hugs the frame. */
+.sui-overlay-content {
+    -fx-padding: 20;
+    -fx-background-color: -sui-bg;
+}
+
+/* ── typography ─────────────────────────────────────────────────────────── */
 
 .sui-form-title,
-.sui-table-title {
-    -fx-font-size: 16px;
+.sui-table-title,
+.sui-detail-title,
+.sui-list-title,
+.sui-dialog-title {
+    -fx-font-size: 17px;
     -fx-font-weight: bold;
+    -fx-text-fill: -sui-text;
 }
 
-.sui-fieldgroup-title {
+.sui-fieldgroup-title,
+.sui-tree-title,
+.sui-list-label,
+.sui-upload-label,
+.sui-toast-title {
     -fx-font-weight: bold;
+    -fx-text-fill: -sui-text;
 }
 
 .sui-field-label {
     -fx-font-size: 12px;
-    -fx-text-fill: -fx-text-base-color;
+    -fx-text-fill: -sui-text-body;
 }
 
 .sui-field-hint,
-.sui-fieldgroup-hint {
+.sui-fieldgroup-hint,
+.sui-list-description,
+.sui-upload-hint,
+.sui-progress-value {
     -fx-font-size: 11px;
-    -fx-text-fill: derive(-fx-text-base-color, 40%);
+    -fx-text-fill: -sui-text-muted;
 }
 
-.sui-field-error,
-.sui-form-error {
-    -fx-font-size: 11px;
-    -fx-text-fill: #b3261e;
+.sui-detail-label {
+    -fx-text-fill: -sui-text-muted;
 }
 
-.sui-form-error {
-    -fx-font-size: 13px;
-    -fx-padding: 8;
-    -fx-background-color: #fce8e6;
-    -fx-background-radius: 4;
+.sui-empty {
+    -fx-text-fill: -sui-text-subtle;
+}
+
+/* ── text inputs ────────────────────────────────────────────────────────── */
+
+.text-field,
+.text-area,
+.combo-box,
+.date-picker,
+.spinner {
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -sui-border-strong;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 6 10 6 10;
+    -fx-text-fill: -sui-text;
+    -fx-prompt-text-fill: -sui-text-subtle;
+}
+
+.text-area {
+    -fx-padding: 0;
+}
+.text-area .content {
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 7;
+}
+
+/* The combo/date pull the button and cell into the same flat, rounded shell. */
+.combo-box,
+.date-picker {
+    -fx-padding: 0;
+}
+.combo-box .list-cell,
+.date-picker .text-field {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 6 10 6 10;
+    -fx-text-fill: -sui-text;
+}
+.combo-box .arrow-button,
+.date-picker .arrow-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0 8 8 0;
+}
+.combo-box-popup .list-view {
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -sui-border;
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.14), 16, 0, 0, 6);
+}
+.combo-box-popup .list-cell:filled:hover,
+.combo-box-popup .list-cell:filled:selected {
+    -fx-background-color: -sui-primary-soft;
+    -fx-text-fill: -sui-primary;
+}
+
+.text-field:focused,
+.text-area:focused,
+.combo-box:focused,
+.date-picker:focused {
+    -fx-border-color: -sui-primary;
 }
 
 .sui-field-readonly {
     -fx-padding: 4 0 4 0;
+    -fx-text-fill: -sui-text-body;
 }
 
+/* ── check boxes ────────────────────────────────────────────────────────── */
+
+.check-box .box {
+    -fx-background-color: -sui-surface;
+    -fx-border-color: -sui-border-strong;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 3;
+}
+.check-box:selected .box {
+    -fx-background-color: -sui-primary;
+    -fx-border-color: -sui-primary;
+}
+.check-box:selected .mark {
+    -fx-background-color: white;
+}
+
+/* ── buttons ────────────────────────────────────────────────────────────── */
+
+/* Base button: a flat, rounded "secondary" — white on a slate border. */
+.button {
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -sui-border-strong;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 7 14 7 14;
+    -fx-text-fill: -sui-text-body;
+    -fx-cursor: hand;
+}
+.button:hover {
+    -fx-background-color: -sui-surface-alt;
+}
+.button:focused {
+    -fx-border-color: -sui-primary;
+}
+
+/* Filled primary — graphite, like the web's filled button (not the accent). */
 .sui-action-primary {
-    -fx-base: #1a73e8;
+    -fx-background-color: -sui-action;
+    -fx-border-color: transparent;
     -fx-text-fill: white;
+}
+.sui-action-primary:hover {
+    -fx-background-color: -sui-action-hover;
 }
 
 .sui-action-danger {
-    -fx-base: #b3261e;
-    -fx-text-fill: white;
+    -fx-background-color: -sui-danger-bg;
+    -fx-border-color: transparent;
+    -fx-text-fill: -sui-danger;
+}
+.sui-action-danger:hover {
+    -fx-background-color: derive(-sui-danger-bg, -6%);
 }
 
+/* Links look like links, not buttons. */
+.sui-link,
+.hyperlink {
+    -fx-text-fill: -sui-primary;
+    -fx-border-width: 0;
+    -fx-padding: 2 0 2 0;
+}
+
+/* ── tables ─────────────────────────────────────────────────────────────── */
+
+.table-view {
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -sui-border;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 0;
+}
+.table-view .column-header-background {
+    -fx-background-color: -sui-surface-alt;
+    -fx-background-radius: 12 12 0 0;
+}
+.table-view .column-header,
+.table-view .filler {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4 0 4 0;
+}
+.table-view .column-header .label {
+    -fx-text-fill: -sui-text-muted;
+    -fx-font-weight: bold;
+    -fx-alignment: center-left;
+}
+.table-view .table-row-cell {
+    -fx-background-color: -sui-surface;
+    -fx-border-color: transparent transparent -sui-border-soft transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-table-cell-border-color: transparent;
+    -fx-cell-size: 38px;
+}
+.table-view .table-row-cell:odd {
+    -fx-background-color: -sui-surface;
+}
+/* Empty filler rows below the data draw nothing — no ghost separator lines. */
+.table-view .table-row-cell:empty {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.table-view .table-row-cell:selected {
+    -fx-background-color: -sui-primary-soft;
+    -fx-text-fill: -sui-text;
+}
+.table-view .table-cell {
+    -fx-text-fill: -sui-text-body;
+    -fx-padding: 6 12 6 12;
+    -fx-border-color: transparent;
+}
 .sui-table-pagination {
-    -fx-padding: 4 0 0 0;
+    -fx-padding: 8 4 0 4;
+}
+
+/* ── tabs ───────────────────────────────────────────────────────────────── */
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+}
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8 8 0 0;
+    -fx-padding: 6 14 6 14;
+    -fx-border-width: 0;
+}
+.tab-pane .tab:hover {
+    -fx-background-color: -sui-surface-alt;
+}
+.tab-pane .tab:selected {
+    -fx-background-color: -sui-surface;
+}
+.tab-pane .tab .tab-label {
+    -fx-text-fill: -sui-text-muted;
+}
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: -sui-primary;
+    -fx-font-weight: bold;
+}
+/* Kill the default focus ring around the whole tab header. */
+.tab-pane:focused > .tab-header-area > .headers-region > .tab:selected .focus-indicator {
+    -fx-border-color: transparent;
+}
+
+/* ── scroll panes ───────────────────────────────────────────────────────── */
+
+.scroll-pane,
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+.sui-section-scroll {
+    -fx-padding: 12 0 0 0;
+}
+
+/* ── titled panes (collapsible lists) ───────────────────────────────────── */
+
+.titled-pane > .title {
+    -fx-background-color: -sui-surface-alt;
+    -fx-background-radius: 8;
+    -fx-border-width: 0;
+    -fx-padding: 6 10 6 10;
+}
+.titled-pane > .content {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
 }
 
 /* ── toasts ─────────────────────────────────────────────────────────────
@@ -68,180 +335,172 @@
    carries the level; the card itself stays neutral. */
 
 .sui-toast {
-    -fx-background-color: white;
-    -fx-background-radius: 6;
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 10;
     -fx-padding: 12 16 12 16;
     -fx-border-width: 0 0 0 4;
-    -fx-border-color: #5f6368;
-    -fx-border-radius: 6 0 0 6;
-    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 12, 0, 0, 3);
-}
-
-.sui-toast-title {
-    -fx-font-weight: bold;
+    -fx-border-color: -sui-text-muted;
+    -fx-border-radius: 10 0 0 10;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.20), 18, 0, 0, 6);
 }
 
 .sui-toast-message {
-    -fx-text-fill: #3c4043;
+    -fx-text-fill: -sui-text-body;
 }
 
-.sui-toast-success { -fx-border-color: #1e8e3e; }
-.sui-toast-warn    { -fx-border-color: #f29900; }
-.sui-toast-error   { -fx-border-color: #b3261e; }
-.sui-toast-info    { -fx-border-color: #1a73e8; }
+.sui-toast-success { -fx-border-color: #16a34a; }
+.sui-toast-warn    { -fx-border-color: #d97706; }
+.sui-toast-error   { -fx-border-color: -sui-danger; }
+.sui-toast-info    { -fx-border-color: -sui-primary; }
+
+.sui-toast-close {
+    -fx-padding: 3 10 3 10;
+}
 
 /* ── busy ───────────────────────────────────────────────────────────────
    The scrim only appears for dispatches slower than SuiFxOverlay.BUSY_DELAY,
    so fast local handlers never flash it. */
 
 .sui-busy-scrim {
-    -fx-background-color: rgba(255, 255, 255, 0.55);
+    -fx-background-color: rgba(248, 250, 252, 0.6);
 }
 
 /* A control whose own trigger is in flight — set by the bus, and by the
    model's UiAction.loading flag. */
 .is-loading {
-    -fx-opacity: 0.7;
+    -fx-opacity: 0.6;
 }
 
-/* ── dialog ─────────────────────────────────────────────────────────── */
+/* ── error banners ──────────────────────────────────────────────────────── */
 
-.sui-dialog-panel {
-    -fx-background-color: white;
+.sui-field-error,
+.sui-form-error {
+    -fx-font-size: 11px;
+    -fx-text-fill: -sui-danger;
+}
+.sui-form-error {
+    -fx-font-size: 13px;
+    -fx-padding: 10 12 10 12;
+    -fx-background-color: -sui-danger-bg;
+    -fx-background-radius: 8;
 }
 
-.sui-dialog-title {
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
+/* ── dialog ─────────────────────────────────────────────────────────────── */
+
+.sui-dialog-panel,
+.sui-dialog {
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 12;
 }
 
-.sui-tree-title {
-    -fx-font-weight: bold;
-}
-
-/* ── menu ───────────────────────────────────────────────────────────── */
+/* ── menu (sidebar) ─────────────────────────────────────────────────────── */
 
 .sui-menu {
-    -fx-background-color: #f8f9fa;
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -sui-border;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 8;
 }
 
 .sui-menu-title {
     -fx-font-weight: bold;
-    -fx-padding: 4 0 8 0;
+    -fx-text-fill: -sui-text;
+    -fx-padding: 4 6 8 6;
 }
 
 /* Nav items are buttons, but should read as list rows: no chrome until
    hovered or selected. */
 .sui-menu-item {
     -fx-background-color: transparent;
-    -fx-background-radius: 4;
-    -fx-padding: 6 10 6 10;
+    -fx-background-radius: 8;
+    -fx-border-width: 0;
+    -fx-padding: 7 10 7 10;
+    -fx-text-fill: -sui-text-body;
 }
-
 .sui-menu-item:hover {
-    -fx-background-color: #e8eaed;
+    -fx-background-color: -sui-surface-alt;
 }
-
 .sui-menu-item-selected {
-    -fx-background-color: #e8f0fe;
-    -fx-text-fill: #1a73e8;
+    -fx-background-color: -sui-primary-soft;
+    -fx-text-fill: -sui-primary;
     -fx-font-weight: bold;
 }
-
 .sui-menu-item-danger {
-    -fx-text-fill: #b3261e;
+    -fx-text-fill: -sui-danger;
 }
-
 .sui-menu-badge {
-    -fx-background-color: #1a73e8;
+    -fx-background-color: -sui-primary;
     -fx-text-fill: white;
     -fx-background-radius: 10;
-    -fx-padding: 1 7 1 7;
+    -fx-padding: 1 8 1 8;
     -fx-font-size: 11px;
 }
-
 .sui-menu-toggle {
     -fx-background-color: transparent;
+    -fx-border-width: 0;
     -fx-padding: 4 8 4 8;
 }
 
-/* ── detail and list ────────────────────────────────────────────────── */
+/* ── detail and list ────────────────────────────────────────────────────── */
 
-.sui-detail-title,
-.sui-list-title {
-    -fx-font-size: 16px;
-    -fx-font-weight: bold;
+.sui-list {
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 12;
+    -fx-border-color: -sui-border;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 4;
 }
-
-.sui-detail-label {
-    -fx-text-fill: derive(-fx-text-base-color, 35%);
-}
-
-.sui-empty {
-    -fx-text-fill: derive(-fx-text-base-color, 55%);
-}
-
 .sui-list-item {
-    -fx-background-color: white;
-    -fx-background-radius: 4;
-    -fx-border-color: #dadce0;
-    -fx-border-radius: 4;
-}
-
-.sui-list-label {
-    -fx-font-weight: bold;
-}
-
-.sui-list-description {
-    -fx-font-size: 11px;
-    -fx-text-fill: derive(-fx-text-base-color, 40%);
+    -fx-background-color: transparent;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10 8 10;
 }
 
 /* Rows that carry an onClick should look like they do. */
 .sui-clickable:hover {
-    -fx-background-color: #f1f3f4;
+    -fx-background-color: -sui-surface-alt;
     -fx-cursor: hand;
 }
 
-/* ── upload ─────────────────────────────────────────────────────────── */
+/* ── upload ─────────────────────────────────────────────────────────────── */
 
 .sui-upload-zone {
-    -fx-border-color: #a0a0a0;
-    -fx-border-style: segments(6, 4) line-cap round;
+    -fx-border-color: -sui-border-strong;
+    -fx-border-style: segments(7, 5) line-cap round;
     -fx-border-width: 2;
-    -fx-border-radius: 6;
-    -fx-background-radius: 6;
+    -fx-border-radius: 12;
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 12;
+    -fx-padding: 24;
 }
-
 /* Same class name the web renderer uses for the drag highlight. */
 .sui-upload--dragover {
-    -fx-border-color: #1a73e8;
-    -fx-background-color: #e8f0fe;
+    -fx-border-color: -sui-primary;
+    -fx-background-color: -sui-primary-soft;
 }
 
-.sui-upload-label {
-    -fx-font-weight: bold;
+/* ── progress ───────────────────────────────────────────────────────────── */
+
+.progress-bar > .track {
+    -fx-background-color: -sui-surface-alt;
+    -fx-background-radius: 6;
 }
-
-.sui-upload-hint {
-    -fx-font-size: 11px;
-    -fx-text-fill: derive(-fx-text-base-color, 40%);
+.progress-bar > .bar {
+    -fx-background-radius: 6;
+    -fx-background-insets: 0;
 }
+.sui-progress-success .bar { -fx-background-color: #16a34a; }
+.sui-progress-warning .bar { -fx-background-color: #d97706; }
+.sui-progress-error   .bar { -fx-background-color: -sui-danger; }
 
-/* ── progress ───────────────────────────────────────────────────────── */
-
-.sui-progress-success .bar { -fx-background-color: #1e8e3e; }
-.sui-progress-warning .bar { -fx-background-color: #f29900; }
-.sui-progress-error   .bar { -fx-background-color: #b3261e; }
-
-.sui-progress-value {
-    -fx-font-size: 11px;
-    -fx-text-fill: derive(-fx-text-base-color, 40%);
-}
+/* ── unsupported placeholder ────────────────────────────────────────────── */
 
 .sui-unsupported {
-    -fx-text-fill: #8a6d3b;
-    -fx-background-color: #fcf8e3;
-    -fx-padding: 4 8 4 8;
-    -fx-background-radius: 4;
+    -fx-text-fill: #92400e;
+    -fx-background-color: #fef3c7;
+    -fx-padding: 6 10 6 10;
+    -fx-background-radius: 8;
 }
