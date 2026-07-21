@@ -6,7 +6,7 @@
 
     <groupId>ai.mindconnect</groupId>
     <artifactId>mc-semantic-ui-parent</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Semantic UI :: Parent</name>
     <description>
@@ -164,32 +164,32 @@
             <dependency>
                 <groupId>ai.mindconnect</groupId>
                 <artifactId>mc-semantic-ui-core</artifactId>
-                <version>0.1.0</version>
+                <version>0.1.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>ai.mindconnect</groupId>
                 <artifactId>mc-semantic-ui-javafx</artifactId>
-                <version>0.1.0</version>
+                <version>0.1.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>ai.mindconnect</groupId>
                 <artifactId>mc-semantic-ui-ext-json</artifactId>
-                <version>0.1.0</version>
+                <version>0.1.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>ai.mindconnect</groupId>
                 <artifactId>mc-semantic-ui-ext-markdown</artifactId>
-                <version>0.1.0</version>
+                <version>0.1.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>ai.mindconnect</groupId>
                 <artifactId>mc-semantic-ui-ext-diagram</artifactId>
-                <version>0.1.0</version>
+                <version>0.1.1-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>ai.mindconnect</groupId>
                 <artifactId>mc-semantic-ui-ext-chart</artifactId>
-                <version>0.1.0</version>
+                <version>0.1.1-SNAPSHOT</version>
             </dependency>
             <!-- Jackson (pinned; overrides the Spring BOM) -->
             <dependency>
