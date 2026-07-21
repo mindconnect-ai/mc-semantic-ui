@@ -63,7 +63,7 @@ jobs:
       - name: Build the browser assets the site serves
         run: >
           mvn -B -ntp -DskipTests install
-          -pl core/mc-semantic-ui-core,ext/mc-semantic-ui-ext-diagram,ext/mc-semantic-ui-ext-chart,demo/mc-sui-widget-demo,editor/mc-sui-editor-standalone-app
+          -pl core/mc-semantic-ui-core,ext/mc-semantic-ui-ext-diagram,ext/mc-semantic-ui-ext-chart,demo/mc-sui-widget-demo,demo/mc-sui-shop-client-demo,editor/mc-sui-editor-standalone-app
           -am
 
       # ci, not install: reproducible, and it fails loudly if package-lock.json
@@ -91,14 +91,15 @@ jobs:
                    build/sui/eventbus.js \
                    build/sui/icons.svg \
                    build/editor/index.html \
-                   build/widget-demo/index.html; do
+                   build/widget-demo/index.html \
+                   build/shop-client-demo/index.html; do
             if [ ! -f "$f" ]; then echo "MISSING: $f"; missing=1; fi
           done
           if [ "$missing" = "1" ]; then
             echo "Those pages would 404. Did the Maven step build every module?"
             exit 1
           fi
-          echo "Embedded runtime, editor and widget demo all present."
+          echo "Embedded runtime, editor and both static demos present."
 
       - uses: actions/configure-pages@v6
 

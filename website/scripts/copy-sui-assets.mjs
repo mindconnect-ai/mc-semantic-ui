@@ -68,9 +68,10 @@ mergeDir(resolve(EXT_CHART, "src/main/resources/META-INF/resources/sui-ext"),
         resolve(STATIC, "sui-ext"),
         "ext/mc-semantic-ui-ext-chart/src/main/resources/META-INF/resources/sui-ext");
 
-// ── the two backend-free apps, folded into the site ─────────────────────────
-// These back the /widget-demo and /editor links the docs point at, and the
-// <iframe> embeds on the editor page.
+// ── the backend-free apps, folded into the site ─────────────────────────────
+// These back the /widget-demo, /editor and /shop-client-demo links the docs
+// point at, and the <iframe> embeds on the editor page. Only apps that need no
+// server can go here — mc-sui-shop-demo wants Postgres and stays local.
 copyDir(resolve(repo, "demo/mc-sui-widget-demo/target/dist"),
         resolve(STATIC, "widget-demo"),
         "demo/mc-sui-widget-demo/target/dist (run: mvn -pl demo/mc-sui-widget-demo package)");
@@ -78,6 +79,12 @@ copyDir(resolve(repo, "demo/mc-sui-widget-demo/target/dist"),
 copyDir(resolve(repo, "editor/mc-sui-editor-standalone-app/target/dist"),
         resolve(STATIC, "editor"),
         "editor/mc-sui-editor-standalone-app/target/dist (run: mvn -pl editor/mc-sui-editor-standalone-app package)");
+
+// Named after the module, like widget-demo above: "shop-demo" alone would read
+// as the Postgres one, which is exactly the app that cannot be deployed.
+copyDir(resolve(repo, "demo/mc-sui-shop-client-demo/target/dist"),
+        resolve(STATIC, "shop-client-demo"),
+        "demo/mc-sui-shop-client-demo/target/dist (run: mvn -pl demo/mc-sui-shop-client-demo process-resources)");
 
 if (missing.length) {
     console.warn("[copy-sui-assets] not built yet, skipping:\n  - " + missing.join("\n  - "));

@@ -37,6 +37,7 @@ website/static/sui/
 website/static/sui-ext/
 website/static/widget-demo/
 website/static/editor/
+website/static/shop-client-demo/
 
 # Local secrets. demo/mc-sui-shop-demo/docker-compose.yml reads .env.docker,
 # which is a copy of the committed .env.docker.example with real credentials.

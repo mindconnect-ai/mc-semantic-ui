@@ -44,6 +44,12 @@ no backend at all**. It is a static site — the build assembles a self-containe
 folder (the compiled core renderer + stylesheets, plus an `index.html` and an
 `app.js` of plain `UiNode` literals) that you can serve from any static host.
 
+**[Open the client-only shop ↗](pathname:///shop-client-demo/)** — running right
+here on this documentation site, which is the point: it needs nothing but a
+static host. The Postgres variant above cannot be published this way.
+
+To run it yourself:
+
 ```bash
 mvn -f semantic-ui/core/mc-semantic-ui-core/pom.xml install -DskipTests
 mvn -f semantic-ui/demo/mc-sui-shop-client-demo/pom.xml process-resources
