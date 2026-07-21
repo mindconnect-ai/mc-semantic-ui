@@ -26,14 +26,21 @@ in the parent, and each library module overrides it to `false` in its own
 `<properties>`. A module is therefore **not** published unless you opt it in —
 so a new app or demo never ships to Central by accident.
 
-## Two publish targets, kept apart
+## One publish target
 
-- **Snapshots → GitHub Packages.** A plain `mvn deploy` (no profile) pushes
-  `-SNAPSHOT` builds to GitHub Packages, unchanged from before.
-- **Releases → Maven Central.** `mvn deploy -Prelease` builds sources +
-  javadoc, GPG-signs everything, and uploads to the Central Portal. The
-  `release` profile flips `maven.deploy.skip=true`, so the GitHub-Packages
-  deploy does **not** also fire — the two never run in one command.
+**Releases → Maven Central.** `mvn deploy -Prelease` builds sources + javadoc,
+GPG-signs everything, and uploads to the Central Portal.
+
+**Snapshots are not published anywhere.** They stay on the machine that built
+them (`mvn install`); the parent sets `maven.deploy.skip=true`, so a plain
+`mvn deploy` is a no-op rather than an error.
+
+> Why no snapshot repository: these artifacts were once published to GitHub
+> Packages from the old monorepo, and GitHub binds a Maven package to the
+> repository that first pushed it — every push from this repo is rejected with
+> `422 Unprocessable Entity`. Central's snapshot repository
+> (`central.sonatype.com/repository/maven-snapshots/`) is the obvious
+> replacement if remote snapshots are ever needed; nothing consumes them today.
 
 ---
 
@@ -42,8 +49,8 @@ so a new app or demo never ships to Central by accident.
 **You do not have to release from your machine.**
 [`.github/workflows/release.yml`](.github/workflows/release.yml) does the whole
 thing: it cuts the version, updates the version in the docs, publishes to
-GitHub Packages *and* Maven Central, tags, opens the next `-SNAPSHOT`, and
-creates the GitHub Release.
+Maven Central, tags, opens the next `-SNAPSHOT`, and creates the GitHub
+Release.
 
 Run it from **Actions → release → Run workflow**. Both inputs are optional —
 blank means "drop `-SNAPSHOT`" and "bump the patch level".
@@ -127,9 +134,8 @@ pair (not your login). The `ai.mindconnect` namespace is already verified.
 
 ### 3. `~/.m2/settings.xml`
 
-Add the Central server (the `id` must be `central`, matching the profile's
-`publishingServerId`) and, if you don't rely on a gpg-agent, the passphrase.
-Keep the GitHub server you already have for snapshots.
+Add the Central server — the `id` must be `central`, matching the profile's
+`publishingServerId`.
 
 ```xml
 <settings>
@@ -139,13 +145,6 @@ Keep the GitHub server you already have for snapshots.
       <id>central</id>
       <username>YOUR_CENTRAL_TOKEN_USERNAME</username>
       <password>YOUR_CENTRAL_TOKEN_PASSWORD</password>
-    </server>
-
-    <!-- GitHub Packages (snapshots) — unchanged. -->
-    <server>
-      <id>github</id>
-      <username>YOUR_GITHUB_USERNAME</username>
-      <password>YOUR_GITHUB_PAT</password>
     </server>
   </servers>
 </settings>

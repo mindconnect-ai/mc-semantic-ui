@@ -93,6 +93,19 @@
         <sui.publish.skip>true</sui.publish.skip>
 
         <!--
+            There is no remote SNAPSHOT repository: snapshots stay local
+            (`mvn install`), and only releases leave the machine — through the
+            Central Portal, which the `release` profile drives via its own
+            plugin rather than through <distributionManagement>.
+
+            Skipping maven-deploy-plugin everywhere keeps `mvn deploy` a no-op
+            instead of a hard failure ("no distributionManagement"), and does
+            not affect the Central upload: central-publishing-maven-plugin has
+            its own switch (sui.publish.skip).
+        -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+
+        <!--
             Build outputs of the asset-producing modules, for the apps and demos
             that assemble a static site out of them.
 
@@ -257,27 +270,8 @@
     </build>
 
     <!--
-        Publish target for `mvn deploy`. GitHub Packages: one URL for the whole
-        repo, same for releases and snapshots. The <id> must match a <server> in
-        the deployer's settings.xml. Deploying is optional — the repo builds and
-        runs entirely locally without it.
-    -->
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/mindconnect-ai/mc-semantic-ui</url>
-        </repository>
-        <snapshotRepository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/mindconnect-ai/mc-semantic-ui</url>
-        </snapshotRepository>
-    </distributionManagement>
-
-    <!--
-        Release to Maven Central. OFF by default, so ordinary builds and the
-        snapshot deploy to GitHub Packages (above) are untouched.
+        Release to Maven Central. OFF by default, so ordinary builds are
+        untouched.
 
         Activate only for a real release:  mvn deploy -Prelease
 
@@ -286,10 +280,8 @@
           * a GPG signature for every artifact  (Central requires it)
           * upload to the Central Portal via the central-publishing plugin
 
-        It also flips maven.deploy.skip to true, so the GitHub-Packages deploy
-        does NOT run during a release — the two publish targets never fire in
-        the same command. Which modules go up is decided by ${sui.publish.skip}:
-        libraries set it to false, everything else keeps the default true.
+        Which modules go up is decided by ${sui.publish.skip}: libraries set it
+        to false, everything else keeps the default true.
 
         Prerequisites (a GPG key, the Central token in settings.xml) and the
         step-by-step release flow live in RELEASING.md.
@@ -297,11 +289,6 @@
     <profiles>
         <profile>
             <id>release</id>
-
-            <properties>
-                <!-- During a release, publish to Central, not to GitHub Packages. -->
-                <maven.deploy.skip>true</maven.deploy.skip>
-            </properties>
 
             <build>
                 <plugins>

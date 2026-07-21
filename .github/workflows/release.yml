@@ -1,15 +1,18 @@
 name: release
 
 # Manual, deliberate releases only — never on every merge. You pick the moment;
-# this cuts the -SNAPSHOT to a real version, publishes the modules to GitHub
-# Packages AND to Maven Central, tags it, then opens the next -SNAPSHOT on main.
+# this cuts the -SNAPSHOT to a real version, publishes the libraries to Maven
+# Central, tags it, then opens the next -SNAPSHOT on main.
+#
+# Central is the only publish target. Snapshots are not published anywhere —
+# they stay local (`mvn install`); see the parent POM's maven.deploy.skip.
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
 #   MAVEN_GPG_PRIVATE_KEY   armored private key: gpg --armor --export-secret-keys <KEY_ID>
 #   MAVEN_GPG_PASSPHRASE    that key's passphrase
 #   CENTRAL_TOKEN_USERNAME  Central Portal user token — username half
 #   CENTRAL_TOKEN_PASSWORD  Central Portal user token — password half
-# See RELEASING.md. Without them the Central step fails; GitHub Packages still works.
+# See RELEASING.md. Without them the release fails at the Central upload.
 on:
   workflow_dispatch:
     inputs:
@@ -24,7 +27,6 @@ on:
 
 permissions:
   contents: write   # push the version-bump commits and the tag
-  packages: write   # publish to GitHub Packages
 
 jobs:
   release:
@@ -44,22 +46,14 @@ jobs:
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
 
-      # This release publishes to TWO places, so settings.xml needs two servers
-      # — one more than setup-java's server-id can wire. Passwords stay out of
-      # the file: ${env.*} is resolved by Maven at deploy time from the step's
-      # env, so nothing secret is ever written to disk.
-      - name: Write Maven settings for both publish targets
+      # Passwords stay out of the file: ${env.*} is resolved by Maven at deploy
+      # time from the step's env, so nothing secret is ever written to disk.
+      - name: Write Maven settings for the Central upload
         run: |
           mkdir -p ~/.m2
           cat > ~/.m2/settings.xml <<'XML'
           <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
             <servers>
-              <!-- id matches <distributionManagement> in mc-semantic-ui-parent -->
-              <server>
-                <id>github</id>
-                <username>${env.GITHUB_ACTOR}</username>
-                <password>${env.GH_PACKAGES_TOKEN}</password>
-              </server>
               <!-- id matches <publishingServerId> in the parent's release profile -->
               <server>
                 <id>central</id>
@@ -111,18 +105,9 @@ jobs:
           | xargs -0 perl -0777 -pi -e
           's|(<artifactId>mc-[^<]+</artifactId>\s*<version>)[^<]+(</version>)|${1}$ENV{RELEASE}${2}|g'
 
-      # Publish target comes from <distributionManagement> in mc-semantic-ui-parent
-      # (server id "github"). No -D needed. Tests are skipped here — CI already
-      # ran them on the commit being released.
-      - name: Build & publish to GitHub Packages
-        env:
-          GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: mvn -B -ntp -DskipTests deploy
-
-      # Then the same artifacts to Maven Central. The `release` profile adds the
-      # -sources/-javadoc jars and the GPG signatures Central requires, and sets
-      # maven.deploy.skip=true — so this run uploads ONLY to Central and does not
-      # deploy to GitHub Packages a second time.
+      # The `release` profile adds the -sources/-javadoc jars and the GPG
+      # signatures Central requires. Tests are skipped here — CI already ran
+      # them on the commit being released.
       #
       # autoPublish is false, so the bundle lands in the portal as a validated
       # draft: it does not go live until you press Publish at
