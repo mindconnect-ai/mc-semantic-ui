@@ -51,18 +51,19 @@ jobs:
           java-version: '21'
           cache: maven
 
-      # The site embeds a LIVE demo (static/embed/*.html) that imports the real
-      # /sui/renderer.js and /sui/eventbus.js. Those are Maven build output:
-      # website's prebuild hook copies them out of target/ts-dist, and silently
-      # skips ("not built yet") when they are missing — so without this step the
-      # build stays green and the deployed page 404s on its own scripts.
+      # The site serves real build output, not just markdown: the embedded live
+      # demo (static/embed/*.html) imports /sui/renderer.js and
+      # /sui/eventbus.js, and the /editor and /widget-demo links are whole
+      # backend-free apps. website's prebuild hook stages all of that out of
+      # target/, and silently skips ("not built yet") whatever is missing — so
+      # without this step the build stays green and the deployed pages 404.
       #
-      # Only the three modules that produce browser assets, not the whole
-      # reactor.
-      - name: Build the TypeScript bundles the site embeds
+      # Only the modules that produce browser assets; -am pulls in what they
+      # depend on (the parent, core, mc-sui-editor).
+      - name: Build the browser assets the site serves
         run: >
           mvn -B -ntp -DskipTests install
-          -pl core/mc-semantic-ui-core,ext/mc-semantic-ui-ext-diagram,ext/mc-semantic-ui-ext-chart
+          -pl core/mc-semantic-ui-core,ext/mc-semantic-ui-ext-diagram,ext/mc-semantic-ui-ext-chart,demo/mc-sui-widget-demo,editor/mc-sui-editor-standalone-app
           -am
 
       # ci, not install: reproducible, and it fails loudly if package-lock.json
@@ -82,18 +83,22 @@ jobs:
       # docs-only build locally). That is exactly how a deploy once went out
       # with a live demo 404ing on its own scripts — so here, where it does get
       # published, assert the files are really in the artifact.
-      - name: Verify the embedded runtime is in the build
+      - name: Verify the staged apps and runtime are in the build
         working-directory: website
         run: |
           missing=0
-          for f in build/sui/renderer.js build/sui/eventbus.js build/sui/icons.svg; do
+          for f in build/sui/renderer.js \
+                   build/sui/eventbus.js \
+                   build/sui/icons.svg \
+                   build/editor/index.html \
+                   build/widget-demo/index.html; do
             if [ ! -f "$f" ]; then echo "MISSING: $f"; missing=1; fi
           done
           if [ "$missing" = "1" ]; then
-            echo "The embedded demo would 404. Did the Maven step run?"
+            echo "Those pages would 404. Did the Maven step build every module?"
             exit 1
           fi
-          echo "Embedded runtime present."
+          echo "Embedded runtime, editor and widget demo all present."
 
       - uses: actions/configure-pages@v6
 
