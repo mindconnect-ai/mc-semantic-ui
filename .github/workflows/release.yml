@@ -93,15 +93,19 @@ jobs:
       - name: Set release version
         run: find . -name pom.xml -exec sed -i "s|<version>${{ steps.v.outputs.current }}</version>|<version>${{ steps.v.outputs.release }}</version>|g" {} +
 
-      # Keep the copy-paste dependency snippets in the docs on the version people
-      # can actually pull. Targets only a <version> that follows an mc-* artifactId,
+      # Keep the copy-paste dependency snippets on the version people can
+      # actually pull. Targets only a <version> that follows an mc-* artifactId,
       # so third-party versions (spring-boot, …) are untouched. Docusaurus can't
       # interpolate variables inside code fences, so this source rewrite is the way.
+      #
+      # README.md and doc/ are included deliberately: the README is the first
+      # thing anyone copies from, and it drifted to a version that was never
+      # released while only website/docs was being rewritten.
       - name: Update dependency snippets in the docs
         env:
           RELEASE: ${{ steps.v.outputs.release }}
         run: >
-          find website/docs \( -name '*.md' -o -name '*.mdx' \) -print0
+          find README.md doc website/docs \( -name '*.md' -o -name '*.mdx' \) -print0
           | xargs -0 perl -0777 -pi -e
           's|(<artifactId>mc-[^<]+</artifactId>\s*<version>)[^<]+(</version>)|${1}$ENV{RELEASE}${2}|g'
 

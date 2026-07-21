@@ -25,11 +25,10 @@ No template files, no frontend build.
 The core module serves the browser runtime (`/sui/renderer.js`, `/sui/sui.css`,
 …) from the jar — you ship neither yourself.
 
-:::note Resolving the artifact
-`0.1.0-SNAPSHOT` is not on Maven Central. Either build it locally
-(`git clone` this repo, then `mvn install -DskipTests`), or add the GitHub
-Packages repository for `mindconnect-ai/mc-semantic-ui` to your `pom.xml` /
-`settings.xml`.
+:::note Snapshots
+Releases are on Maven Central, so the dependency above resolves with no extra
+configuration. Snapshots are not published anywhere — to try an unreleased
+state, clone this repo and `mvn install -DskipTests`.
 :::
 
 ## 2. Turn SSR on

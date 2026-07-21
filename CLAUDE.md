@@ -83,8 +83,11 @@ Lombok + Spring Boot BOM + Jackson + frontend/handlebars). Every module inherits
 it via `relativePath`. Libraries (`core`, `extensions`) stay Spring-free — the
 BOM only manages versions; app modules add their own starters.
 
-Version is `0.1.0-SNAPSHOT` (SemVer; pre-1.0 — breaking changes may land in a
-minor). Keep the whole repo on one version.
+The whole repo shares one version (SemVer; pre-1.0 — breaking changes may land
+in a minor); `main` always carries the next `-SNAPSHOT`. Keep it that way — the
+release workflow rewrites the version across every pom, so a module that drifts
+out of step breaks it. Released versions go to Maven Central, see
+[RELEASING.md](RELEASING.md).
 
 ## Conventions
 
