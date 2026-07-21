@@ -211,7 +211,7 @@ public class SuiFxRenderer {
      * Registers the built-in renderers. The JavaFX twin of
      * {@code installDefaultHandlers()} in {@code renderer.ts}.
      */
-    protected void installDefaultRenderers() {
+    public void installDefaultRenderers() {
         register(UiText.class,       new TextRenderer());
         register(UiForm.class,       new FormRenderer());
         register(UiField.class,      new FieldRenderer());
@@ -230,6 +230,14 @@ public class SuiFxRenderer {
         register(UiDetail.class,     new DetailRenderer());
         register(UiList.class,       new ListRenderer());
         register(UiUpload.class,     new UploadRenderer());
+    }
+
+    public static SuiFxRenderer createDefaultRenderer() {
+        return new SuiFxRenderer();
+    }
+
+    public static SuiFxRenderer createDefaultRenderer(SuiFxOverlay overlay) {
+        return createDefaultRenderer().attach(overlay);
     }
 
     /** Registers (or replaces) the renderer for one node type. */

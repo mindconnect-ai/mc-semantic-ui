@@ -103,7 +103,7 @@ public class DemoApplication extends Application {
     // the bus drives the renderer and routes toasts + busy state to the overlay.
     // The overlay loads sui-fx.css itself, so there is no stylesheet wiring here.
     private final SuiFxOverlay overlay = new SuiFxOverlay();
-    private final SuiFxRenderer renderer = new SuiFxRenderer().attach(overlay);
+    private final SuiFxRenderer renderer = SuiFxRenderer.createDefaultRenderer(overlay);
     private final SuiFxEventBus bus = new SuiFxEventBus(renderer);
     private DemoServer server;
 

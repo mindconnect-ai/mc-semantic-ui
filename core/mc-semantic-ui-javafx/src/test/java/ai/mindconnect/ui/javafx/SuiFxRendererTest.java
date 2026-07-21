@@ -151,6 +151,85 @@ class SuiFxRendererTest {
     }
 
     @Test
+    void aMenuKeepsLongLabelsSubmenusAndBadgesInside() {
+        // The menu has a fixed width, so anything wider than it — a long label,
+        // a badge pushed to the right, a submenu's title + arrow — has to
+        // truncate rather than spill past the edge.
+        var menu = UiMenu.of("nav", "Sections",
+                UiMenuItem.of("inbox", "Inbox with a really quite long label").badge("128"),
+                UiMenuItem.of("archive", "Archive"),
+                UiMenuItem.group("settings", "Settings and other preferences",
+                        UiMenuItem.of("profile", "Profile"),
+                        UiMenuItem.of("billing", "Billing")).open(true));
+
+        double overflow = onFxThread(() -> layoutStandalone(menu));
+
+        // A few px of rounding is fine; a spilling submenu overran by tens.
+        assertThat(overflow).isLessThan(2.0);
+    }
+
+    @Test
+    void railCollapsesTheMenuButKeepsTheToggleReachable() {
+        // No icons in this renderer, so a narrow "rail" could only show
+        // truncated labels. RAIL therefore collapses the menu — but the toggle
+        // has to survive, or it could never be opened again.
+        var menu = UiMenu.of("nav", "Sections",
+                        UiMenuItem.of("inbox", "Inbox"),
+                        UiMenuItem.of("archive", "Archive"))
+                .state(UiMenu.State.RAIL)
+                .toggle(true);
+
+        Node painted = onFxThread(() -> new SuiFxEventBus().mount(menu));
+        var box = (VBox) painted;
+
+        assertThat(box.isVisible()).as("the menu itself stays, for the toggle").isTrue();
+        // Children are [toggle, body]; the body is the collapsible part.
+        var body = box.getChildren().get(1);
+        assertThat(body.isVisible()).as("items are collapsed away").isFalse();
+        assertThat(body.isManaged()).as("and take no layout space").isFalse();
+        var toggle = (javafx.scene.control.Button) box.getChildren().get(0);
+        assertThat(toggle.getText()).contains("☰");
+    }
+
+    @Test
+    void railWithoutAToggleRemovesTheMenuEntirely() {
+        // Nothing would be left to click, so the whole node goes.
+        var menu = UiMenu.of("nav", "Sections", UiMenuItem.of("inbox", "Inbox"))
+                .state(UiMenu.State.RAIL);
+
+        Node painted = onFxThread(() -> new SuiFxEventBus().mount(menu));
+
+        assertThat(painted.isVisible()).isFalse();
+        assertThat(painted.isManaged()).isFalse();
+    }
+
+    /** Lays a node out on its own and returns how far its content overruns it. */
+    private static double layoutStandalone(ai.mindconnect.ui.model.UiNode model) {
+        var node = (javafx.scene.layout.Region) new SuiFxEventBus().mount(model);
+        new javafx.scene.Scene(node);
+        node.applyCss();
+        node.autosize();      // the menu pins its own width; height follows
+        node.layout();
+        double right = node.localToScene(0, 0).getX() + node.getWidth();
+        return maxDescendantRight(node) - right;
+    }
+
+    /** The right-most scene x of any descendant — how far content actually reaches. */
+    private static double maxDescendantRight(javafx.scene.Parent root) {
+        double max = Double.NEGATIVE_INFINITY;
+        for (Node c : root.getChildrenUnmodifiable()) max = Math.max(max, sceneRight(c));
+        return max;
+    }
+
+    private static double sceneRight(Node n) {
+        double r = n.localToScene(n.getBoundsInLocal()).getMaxX();
+        if (n instanceof javafx.scene.Parent p) {
+            for (Node c : p.getChildrenUnmodifiable()) r = Math.max(r, sceneRight(c));
+        }
+        return r;
+    }
+
+    @Test
     void paintsTextTableAndTabs() {
         var table = UiTable.of("orders", "Orders")
                 .column(ai.mindconnect.ui.model.UiColumn.text("id", "Id"))
@@ -383,7 +462,10 @@ class SuiFxRendererTest {
 
         Node painted = onFxThread(() -> new SuiFxEventBus().mount(menu));
 
-        var children = ((VBox) painted).getChildren();
+        // The items live in the collapsible body, not directly in the menu —
+        // that split is what lets RAIL hide them while keeping the toggle.
+        var body = (VBox) ((VBox) painted).getChildren().get(0);
+        var children = body.getChildren();
         // badge → row, divider → separator, group → titled pane
         assertThat(children).hasSize(3);
         assertThat(children.get(1)).isInstanceOf(javafx.scene.control.Separator.class);
