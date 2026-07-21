@@ -13,6 +13,12 @@
 
     <artifactId>mc-semantic-ui-ext-chart</artifactId>
     <packaging>jar</packaging>
+    <name>Semantic UI :: Chart extension</name>
+
+    <!-- Opt in to Maven Central publishing; see the parent's release profile. -->
+    <properties>
+        <sui.publish.skip>false</sui.publish.skip>
+    </properties>
     <description>
         Semantic UI chart extension — draws the core `chart` node instead of the
         placeholder the core emits. Unlike the diagram extension it adds no node

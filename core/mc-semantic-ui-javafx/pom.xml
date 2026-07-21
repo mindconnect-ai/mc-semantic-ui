@@ -13,7 +13,14 @@
 
     <artifactId>mc-semantic-ui-javafx</artifactId>
     <packaging>jar</packaging>
+    <name>Semantic UI :: JavaFX renderer</name>
     <description>Semantic UI JavaFX — third renderer for the UiNode vocabulary: a rich client</description>
+
+    <!-- Published to Maven Central. Experimental, but shipped so consumers can
+         depend on it. See RELEASING.md. -->
+    <properties>
+        <sui.publish.skip>false</sui.publish.skip>
+    </properties>
 
     <dependencies>
         <dependency>

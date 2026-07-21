@@ -13,6 +13,12 @@
 
     <artifactId>mc-semantic-ui-ext-json</artifactId>
     <packaging>jar</packaging>
+    <name>Semantic UI :: JSON viewer extension</name>
+
+    <!-- Opt in to Maven Central publishing; see the parent's release profile. -->
+    <properties>
+        <sui.publish.skip>false</sui.publish.skip>
+    </properties>
     <description>
         Semantic UI JSON-viewer extension — adds the `json-viewer` node type: a
         collapsible, syntax-highlighted view of an arbitrary JSON value.

@@ -13,6 +13,12 @@
 
     <artifactId>mc-semantic-ui-ext-diagram</artifactId>
     <packaging>jar</packaging>
+    <name>Semantic UI :: Diagram extension</name>
+
+    <!-- Opt in to Maven Central publishing; see the parent's release profile. -->
+    <properties>
+        <sui.publish.skip>false</sui.publish.skip>
+    </properties>
     <description>
         Semantic UI diagram extension — UiDiagram node type with graph (nodes + edges)
         wire model, SVG-based renderer Web Component, and Jackson/Spring auto-wiring.

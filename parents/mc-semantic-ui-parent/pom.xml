@@ -8,12 +8,56 @@
     <artifactId>mc-semantic-ui-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <name>Semantic UI :: Parent</name>
     <description>
         Single parent for the semantic-ui repo: Java 21 + Lombok + the Spring Boot
         BOM (version management only — libraries stay Spring-free unless they
         declare a starter), plus the semantic-ui specifics (Jackson, Handlebars,
         the Node/npm frontend build).
     </description>
+
+    <!--
+        Maven Central requires url + licenses + developers + scm on every
+        published artifact. They live here so all library modules inherit them;
+        each module still adds its own <name> (Central wants one per artifact).
+    -->
+    <!-- inherit.append.path=false: children keep this exact url instead of
+         getting their module path appended (…/mc-semantic-ui/mc-…-core), which
+         would point at pages that do not exist. Same for scm below. -->
+    <url child.project.url.inherit.append.path="false">https://github.com/mindconnect-ai/mc-semantic-ui</url>
+    <inceptionYear>2026</inceptionYear>
+
+    <organization>
+        <name>mindconnect.ai</name>
+        <url>https://github.com/mindconnect-ai</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>beisdog</id>
+            <name>David Beisert</name>
+            <email>beisdog@web.de</email>
+            <organization>mindconnect.ai</organization>
+            <organizationUrl>https://github.com/mindconnect-ai</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm child.scm.connection.inherit.append.path="false"
+         child.scm.developerConnection.inherit.append.path="false"
+         child.scm.url.inherit.append.path="false">
+        <connection>scm:git:https://github.com/mindconnect-ai/mc-semantic-ui.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/mindconnect-ai/mc-semantic-ui.git</developerConnection>
+        <url>https://github.com/mindconnect-ai/mc-semantic-ui</url>
+        <tag>HEAD</tag>
+    </scm>
 
     <properties>
         <java.version>21</java.version>
@@ -32,6 +76,21 @@
         <handlebars.version>4.3.1</handlebars.version>
         <javafx.version>21.0.4</javafx.version>
         <javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
+
+        <!-- Release-to-Central toolchain; only used by the `release` profile. -->
+        <central-publishing-maven-plugin.version>0.11.0</central-publishing-maven-plugin.version>
+        <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
+        <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
+
+        <!--
+            Central-publishing switch, read by the `release` profile. Default
+            true = "do not publish", so no app/demo ships to Central by
+            accident. Every LIBRARY module (core, the extensions, the JavaFX
+            renderer, the editor) opts in by overriding this to false in its own
+            <properties>. See RELEASING.md.
+        -->
+        <sui.publish.skip>true</sui.publish.skip>
 
         <!--
             Build outputs of the asset-producing modules, for the apps and demos
@@ -215,5 +274,112 @@
             <url>https://maven.pkg.github.com/mindconnect-ai/mc-semantic-ui</url>
         </snapshotRepository>
     </distributionManagement>
+
+    <!--
+        Release to Maven Central. OFF by default, so ordinary builds and the
+        snapshot deploy to GitHub Packages (above) are untouched.
+
+        Activate only for a real release:  mvn deploy -Prelease
+
+        What it adds, on top of a normal build:
+          * -sources.jar and -javadoc.jar  (Central requires both)
+          * a GPG signature for every artifact  (Central requires it)
+          * upload to the Central Portal via the central-publishing plugin
+
+        It also flips maven.deploy.skip to true, so the GitHub-Packages deploy
+        does NOT run during a release — the two publish targets never fire in
+        the same command. Which modules go up is decided by ${sui.publish.skip}:
+        libraries set it to false, everything else keeps the default true.
+
+        Prerequisites (a GPG key, the Central token in settings.xml) and the
+        step-by-step release flow live in RELEASING.md.
+    -->
+    <profiles>
+        <profile>
+            <id>release</id>
+
+            <properties>
+                <!-- During a release, publish to Central, not to GitHub Packages. -->
+                <maven.deploy.skip>true</maven.deploy.skip>
+            </properties>
+
+            <build>
+                <plugins>
+                    <!-- -sources.jar -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${maven-source-plugin.version}</version>
+                        <configuration>
+                            <skipSource>${sui.publish.skip}</skipSource>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals><goal>jar-no-fork</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- -javadoc.jar. doclint off + failOnError false so a
+                         release never dies on a stray @link; the jar only has
+                         to exist and be well-formed. -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${maven-javadoc-plugin.version}</version>
+                        <configuration>
+                            <skip>${sui.publish.skip}</skip>
+                            <doclint>none</doclint>
+                            <failOnError>false</failOnError>
+                            <quiet>true</quiet>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals><goal>jar</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Detached GPG signatures (.asc). The passphrase comes
+                         from the environment / gpg-agent, never from the POM —
+                         see RELEASING.md. -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${maven-gpg-plugin.version}</version>
+                        <configuration>
+                            <skip>${sui.publish.skip}</skip>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Uploads the bundle to the Central Portal. autoPublish
+                         false = it lands in the portal as a validated draft and
+                         waits for a human to click Publish; flip it once you
+                         trust the flow. skipPublishing keeps non-library modules
+                         out. -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-publishing-maven-plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <autoPublish>false</autoPublish>
+                            <skipPublishing>${sui.publish.skip}</skipPublishing>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

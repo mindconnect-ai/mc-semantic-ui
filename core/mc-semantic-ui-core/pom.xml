@@ -13,6 +13,12 @@
 
     <artifactId>mc-semantic-ui-core</artifactId>
     <packaging>jar</packaging>
+    <name>Semantic UI :: Core</name>
+
+    <!-- Opt in to Maven Central publishing; see the parent's release profile. -->
+    <properties>
+        <sui.publish.skip>false</sui.publish.skip>
+    </properties>
     <description>Semantic UI core — model classes and default TypeScript renderer in one module</description>
 
     <dependencies>

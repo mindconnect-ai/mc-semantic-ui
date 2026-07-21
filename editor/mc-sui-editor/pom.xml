@@ -13,6 +13,12 @@
 
     <artifactId>mc-sui-editor</artifactId>
     <packaging>jar</packaging>
+    <name>Semantic UI :: Visual editor</name>
+
+    <!-- Published to Maven Central. See RELEASING.md. -->
+    <properties>
+        <sui.publish.skip>false</sui.publish.skip>
+    </properties>
     <description>
         Semantic UI WYSIWYG editor — embeddable Spring Boot library exposing
         REST endpoints + a static TypeScript-built UI for editing arbitrary

@@ -13,6 +13,12 @@
 
     <artifactId>mc-semantic-ui-ext-markdown</artifactId>
     <packaging>jar</packaging>
+    <name>Semantic UI :: Markdown extension</name>
+
+    <!-- Opt in to Maven Central publishing; see the parent's release profile. -->
+    <properties>
+        <sui.publish.skip>false</sui.publish.skip>
+    </properties>
     <description>
         Semantic UI Markdown extension — adds the `markdown` node type, rendering a
         Markdown string to HTML. Browser-side only (no Handlebars template), so a

@@ -2,7 +2,14 @@ name: release
 
 # Manual, deliberate releases only — never on every merge. You pick the moment;
 # this cuts the -SNAPSHOT to a real version, publishes the modules to GitHub
-# Packages, tags it, then opens the next -SNAPSHOT on main.
+# Packages AND to Maven Central, tags it, then opens the next -SNAPSHOT on main.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   MAVEN_GPG_PRIVATE_KEY   armored private key: gpg --armor --export-secret-keys <KEY_ID>
+#   MAVEN_GPG_PASSPHRASE    that key's passphrase
+#   CENTRAL_TOKEN_USERNAME  Central Portal user token — username half
+#   CENTRAL_TOKEN_PASSWORD  Central Portal user token — password half
+# See RELEASING.md. Without them the Central step fails; GitHub Packages still works.
 on:
   workflow_dispatch:
     inputs:
@@ -31,12 +38,37 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-          # Writes ~/.m2/settings.xml with a server whose id matches the
-          # <distributionManagement> id ("github") in mc-semantic-ui-parent;
-          # credentials come from the env at deploy time.
-          server-id: github
-          server-username: MAVEN_USERNAME
-          server-password: MAVEN_TOKEN
+          # Imports the signing key into the runner's keyring (and sets up the
+          # gpg-agent for non-interactive use). Maven Central rejects unsigned
+          # artifacts, so this is what makes the release publishable.
+          gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
+
+      # This release publishes to TWO places, so settings.xml needs two servers
+      # — one more than setup-java's server-id can wire. Passwords stay out of
+      # the file: ${env.*} is resolved by Maven at deploy time from the step's
+      # env, so nothing secret is ever written to disk.
+      - name: Write Maven settings for both publish targets
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<'XML'
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.2.0">
+            <servers>
+              <!-- id matches <distributionManagement> in mc-semantic-ui-parent -->
+              <server>
+                <id>github</id>
+                <username>${env.GITHUB_ACTOR}</username>
+                <password>${env.GH_PACKAGES_TOKEN}</password>
+              </server>
+              <!-- id matches <publishingServerId> in the parent's release profile -->
+              <server>
+                <id>central</id>
+                <username>${env.CENTRAL_USERNAME}</username>
+                <password>${env.CENTRAL_PASSWORD}</password>
+              </server>
+            </servers>
+          </settings>
+          XML
 
       - name: Configure git identity
         run: |
@@ -80,13 +112,28 @@ jobs:
           's|(<artifactId>mc-[^<]+</artifactId>\s*<version>)[^<]+(</version>)|${1}$ENV{RELEASE}${2}|g'
 
       # Publish target comes from <distributionManagement> in mc-semantic-ui-parent
-      # (server id "github", which setup-java wired above). No -D needed. Tests are
-      # skipped here — CI already ran them on the commit being released.
+      # (server id "github"). No -D needed. Tests are skipped here — CI already
+      # ran them on the commit being released.
       - name: Build & publish to GitHub Packages
         env:
-          MAVEN_USERNAME: ${{ github.actor }}
-          MAVEN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: mvn -B -ntp -DskipTests deploy
+
+      # Then the same artifacts to Maven Central. The `release` profile adds the
+      # -sources/-javadoc jars and the GPG signatures Central requires, and sets
+      # maven.deploy.skip=true — so this run uploads ONLY to Central and does not
+      # deploy to GitHub Packages a second time.
+      #
+      # autoPublish is false, so the bundle lands in the portal as a validated
+      # draft: it does not go live until you press Publish at
+      # https://central.sonatype.com/publishing/deployments
+      # A Central release can never be deleted, hence the deliberate manual gate.
+      - name: Publish to Maven Central
+        env:
+          CENTRAL_USERNAME: ${{ secrets.CENTRAL_TOKEN_USERNAME }}
+          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
+        run: mvn -B -ntp -DskipTests deploy -Prelease
 
       - name: Commit release version and tag
         run: |
