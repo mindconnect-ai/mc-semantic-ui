@@ -16,11 +16,13 @@ per component. Any container can opt in, including one you build yourself.
   src="/mc-semantic-ui/embed/node.html?spec=header-responsive"
   title="Live: overflow behaviour"
   loading="lazy"
-  style={{width: '100%', height: '260px', border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px'}}
+  style={{width: '460px', maxWidth: '100%', height: '340px', border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px'}}
 ></iframe>
 
-*Live — two headers, identical extras. Narrow the window: the first wraps, the
-second collapses into `⋯`.*
+*Live — two headers, identical extras. The frame is kept narrow on purpose:
+at full width everything fits and there is nothing to see. The first header
+wraps onto a second line, the second keeps one row and collapses the rest
+into `⋯`.*
 
 ## Opting in
 

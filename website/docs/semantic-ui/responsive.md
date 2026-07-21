@@ -38,15 +38,17 @@ UiTable.of("products", "Products")
 </TabItem>
 </Tabs>
 
-Renders below `640px` as:
+Live, in a frame deliberately kept below `640px` — so the media query is in
+effect and you see the real thing, not a sketch of it:
 
-```
-Name:  Widget
-Price: € 19.00
-──────────────
-Name:  Gadget
-Price: € 49.00
-```
+<iframe
+  src="/mc-semantic-ui/embed/node.html?spec=table-stacked"
+  title="Live: a table stacked into cards"
+  loading="lazy"
+  style={{width: '360px', maxWidth: '100%', height: '440px', border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px'}}
+></iframe>
+
+*The header row is gone; every cell prints its own column name.*
 
 Each `<td>` carries a `data-label` (the column label) that the CSS shows via a
 `::before`, so it works in both the SSR and SPA output and needs no script.
