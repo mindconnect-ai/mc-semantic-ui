@@ -1,0 +1,74 @@
+name: pages
+
+# Publishes the Docusaurus site to GitHub Pages:
+#   https://mindconnect-ai.github.io/mc-semantic-ui/
+#
+# Runs on every push to main that touches the site, and on demand. The release
+# workflow rewrites the version in the docs' dependency snippets and pushes that
+# commit, so a release republishes the site on its own.
+#
+# ┌ One-time setup, or the deploy step fails with "Pages site not found" ──────┐
+# │  Settings -> Pages -> Build and deployment -> Source: GitHub Actions       │
+# │  The repository must be public (GitHub Free serves Pages only from public  │
+# │  repos; private ones need Pro/Team/Enterprise).                            │
+# └───────────────────────────────────────────────────────────────────────────┘
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write        # publish the artifact
+  id-token: write     # deploy-pages authenticates via OIDC, not a token
+
+# One deployment at a time. Deliberately NOT cancel-in-progress: aborting a
+# half-finished deploy would leave the live site in an undefined state, and the
+# next push republishes anyway.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+
+      # ci, not install: reproducible, and it fails loudly if package-lock.json
+      # and package.json ever drift apart.
+      - name: Install dependencies
+        working-directory: website
+        run: npm ci
+
+      # baseUrl is '/mc-semantic-ui/' in docusaurus.config.js, which is what
+      # makes asset paths resolve under the project-page URL. Nothing to pass in
+      # here; the config already matches where Pages serves from.
+      - name: Build site
+        working-directory: website
+        run: npm run build
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: website/build
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
