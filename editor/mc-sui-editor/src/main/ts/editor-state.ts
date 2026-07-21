@@ -126,13 +126,26 @@ export class EditorState {
         // blocking the operation. Id uniqueness is an authoring concern,
         // not a hard model invariant: nodes with the same id still serialise
         // and round-trip just fine.
-        const existing = parent[property];
-        if (Array.isArray(existing)) {
-            const newIndex = existing.length;
-            existing.push(node);
+        // Cardinality comes from the schema, never from whatever the property
+        // happens to hold right now. An empty LIST slot is frequently absent
+        // from the JSON altogether — a hand-written tree, or anything that
+        // serialised with NON_EMPTY — and inferring "not an array, so SINGLE"
+        // used to overwrite such a slot with one bare object. The node then
+        // vanished from the tree, because every view expects a list there.
+        const slot = this.schema[parent.type]?.children
+            ?.find(c => c.property === property);
+        const isList = slot
+            ? slot.cardinality === "LIST"
+            : Array.isArray(parent[property]);   // unknown slot: fall back to the old guess
+
+        if (isList) {
+            const list: UiNodeJson[] = Array.isArray(parent[property])
+                ? parent[property]
+                : (parent[property] = []);
+            const newIndex = list.length;
+            list.push(node);
             this.selection = [...parentPath, property, newIndex];
         } else {
-            // SINGLE slot or never-populated: just set the property.
             parent[property] = node;
             this.selection = [...parentPath, property];
         }
