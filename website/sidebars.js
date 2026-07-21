@@ -9,6 +9,7 @@ const sidebars = {
       link: {type: 'doc', id: 'semantic-ui/overview'},
       items: [
         'semantic-ui/how-it-works',
+        {type: 'doc', id: 'semantic-ui/editor', label: 'Visual editor'},
         'semantic-ui/how-it-compares',
         {
           type: 'category',
@@ -134,14 +135,7 @@ const sidebars = {
             'semantic-ui/javafx',
           ],
         },
-        {
-          type: 'category',
-          label: 'Tooling',
-          items: [
-            'semantic-ui/editor',
-            {type: 'link', label: 'Visual editor ↗', href: 'pathname:///editor/'},
-          ],
-        },
+        {type: 'link', label: 'Open the visual editor ↗', href: 'pathname:///editor/'},
       ],
     },
   ],

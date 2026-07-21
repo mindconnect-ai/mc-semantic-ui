@@ -1,5 +1,5 @@
 ---
-title: semantic-ui
+title: Semantic UI
 slug: /
 sidebar_position: 1
 ---
@@ -7,7 +7,7 @@ sidebar_position: 1
 import Tabs from '@theme/Tabs';
 import TabItem from '@theme/TabItem';
 
-# semantic-ui
+# Semantic UI
 
 > **Stop wasting your time with complicated frontend frameworks.**
 >

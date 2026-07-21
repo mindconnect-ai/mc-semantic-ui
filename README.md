@@ -102,7 +102,10 @@ is a sweet spot, and where it explicitly isn't.
 
 ## The core idea in one example
 
-A typed Java tree on the server:
+The tree is **just JSON**. Any language that can produce it can drive the UI —
+here it is in Java and in Node.js, both rendered by the same client.
+
+**Java / Spring Boot**
 
 ```java
 @GetMapping(path = "/admin/products", produces = "application/json,text/html")
@@ -110,9 +113,7 @@ public UiPage list(@RequestParam(defaultValue = "") String q,
                    @RequestParam(defaultValue = "0") int page) {
 
     var table = UiTable.of("products-table", "Products")
-            .column(UiColumn.text("sku",  "SKU").asSortable()
-                    .withCellTemplate(UiLink.of("sku-link",
-                            "/admin/products/{id}", "{sku}")))
+            .column(UiColumn.text("sku",  "SKU").asSortable())
             .column(UiColumn.text("name", "Name").asSortable())
             .column(UiColumn.text("price","Price"))
             .rowAction(UiAction.secondary("edit", "Edit")
@@ -137,7 +138,53 @@ public UiPage list(@RequestParam(defaultValue = "") String q,
 }
 ```
 
-Three things happen for free:
+**Node.js / Express** — no Java anywhere. There is no server-side library to
+install: the endpoint just returns the same JSON shape. Only the browser-side
+renderer is shared.
+
+```js
+import express from "express";
+const app = express();
+
+app.get("/products", (req, res) => {
+  const q = (req.query.q ?? "").toLowerCase();
+  const rows = products
+    .filter(p => !q || p.sku.toLowerCase().includes(q))
+    .map(p => ({type: "row", id: p.id, data: p}));
+
+  const search = {
+    type: "form", id: "product-search",
+    fields: [{type: "field", id: "q", label: "Search", fieldType: "TEXT",
+              value: req.query.q ?? "", editable: true}],
+    actions: [{type: "action", id: "search", label: "Search", style: "PRIMARY",
+               onClick: {url: "/products", method: "GET"}}],
+  };
+
+  const table = {
+    type: "table", id: "products-table", title: "Products",
+    columns: [
+      {type: "column", id: "col-sku",   label: "SKU",   dataKey: "sku"},
+      {type: "column", id: "col-name",  label: "Name",  dataKey: "name"},
+      {type: "column", id: "col-price", label: "Price", dataKey: "price"},
+    ],
+    rows,
+    rowActions: [
+      {type: "action", id: "delete", label: "Delete", style: "DANGER",
+       confirm: "Delete this product?",
+       onClick: {url: "/products/{id}", method: "DELETE"}},
+    ],
+  };
+
+  res.json({type: "page", navigate: "/products",
+            node: {type: "stack", id: "product-page", children: [search, table]}});
+});
+```
+
+That is the whole backend. See [`demo/mc-sui-node-demo`](demo/mc-sui-node-demo)
+for the runnable version.
+
+Three things happen for free. The first needs the JVM renderer; the other two
+work whichever backend produced the JSON:
 
 1. **Browser with `Accept: text/html`** → Spring's HTTP message converter
    walks the tree through `SuiServerRenderer`, which dispatches each node
@@ -187,7 +234,7 @@ Each node has an `id` that flows all the way through: it's the JSON id,
 the DOM `id="..."` on the wrapper element, the editor's selection
 target, and the trigger anchor for `data-action` / `name=` form fields.
 
-## Three key mechanics that are worth knowing
+## Two key mechanics that are worth knowing
 
 ### Hybrid actions / triggers
 
@@ -202,22 +249,6 @@ The renderer emits **both**:
 
 A page upgrades from SSR to SPA by just including the bootstrap script —
 no controller change.
-
-### Cell templates
-
-A `UiColumn` can carry a `cellTemplate: UiNode`. For every row the
-template is cloned, all string fields are run through `{dataKey}`
-substitution against the row's data map, and the resulting node is
-rendered through the dispatcher. Same trick works for both renderers.
-
-```java
-UiColumn.text("sku", "SKU").withCellTemplate(
-        UiLink.of("sku-link", "/admin/products/{id}", "{sku}"));
-```
-
-Every row's SKU cell becomes a real navigation link. The substitution
-also adds a per-row suffix to nested ids (`sku-link__<row-id>`) so DOM
-id uniqueness holds across rows.
 
 ### Partial updates with `UiPatch`
 
