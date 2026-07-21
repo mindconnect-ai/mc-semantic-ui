@@ -96,7 +96,6 @@ const sidebars = {
           label: 'Extensions',
           items: [
             'semantic-ui/chart-extension',
-            'semantic-ui/elements/chart',
             'semantic-ui/diagram-extension',
           ],
         },
