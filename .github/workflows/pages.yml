@@ -44,6 +44,27 @@ jobs:
           cache: npm
           cache-dependency-path: website/package-lock.json
 
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # The site embeds a LIVE demo (static/embed/*.html) that imports the real
+      # /sui/renderer.js and /sui/eventbus.js. Those are Maven build output:
+      # website's prebuild hook copies them out of target/ts-dist, and silently
+      # skips ("not built yet") when they are missing — so without this step the
+      # build stays green and the deployed page 404s on its own scripts.
+      #
+      # Only the three modules that produce browser assets, not the whole
+      # reactor.
+      - name: Build the TypeScript bundles the site embeds
+        run: >
+          mvn -B -ntp -DskipTests install
+          -pl core/mc-semantic-ui-core,ext/mc-semantic-ui-ext-diagram,ext/mc-semantic-ui-ext-chart
+          -am
+
       # ci, not install: reproducible, and it fails loudly if package-lock.json
       # and package.json ever drift apart.
       - name: Install dependencies
@@ -56,6 +77,23 @@ jobs:
       - name: Build site
         working-directory: website
         run: npm run build
+
+      # The copy hook fails soft by design (a missing bundle should not stop a
+      # docs-only build locally). That is exactly how a deploy once went out
+      # with a live demo 404ing on its own scripts — so here, where it does get
+      # published, assert the files are really in the artifact.
+      - name: Verify the embedded runtime is in the build
+        working-directory: website
+        run: |
+          missing=0
+          for f in build/sui/renderer.js build/sui/eventbus.js build/sui/icons.svg; do
+            if [ ! -f "$f" ]; then echo "MISSING: $f"; missing=1; fi
+          done
+          if [ "$missing" = "1" ]; then
+            echo "The embedded demo would 404. Did the Maven step run?"
+            exit 1
+          fi
+          echo "Embedded runtime present."
 
       - uses: actions/configure-pages@v6
 
