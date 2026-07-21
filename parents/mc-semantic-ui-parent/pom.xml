@@ -82,6 +82,7 @@
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
         <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
+        <flatten-maven-plugin.version>1.7.3</flatten-maven-plugin.version>
 
         <!--
             Central-publishing switch, read by the `release` profile. Default
@@ -292,6 +293,45 @@
 
             <build>
                 <plugins>
+                    <!--
+                        Publish a FLATTENED pom, not the authored one.
+
+                        Central validates the pom it receives, on its own — it
+                        does not resolve our parent to see what a module
+                        inherits. The authored module poms carry neither the
+                        url/licenses/scm/developers (inherited) nor dependency
+                        versions (managed in dependencyManagement), so Central
+                        rejected them with "Project URL is not defined" and
+                        "Dependency version information is missing", even
+                        though the effective pom had everything.
+
+                        flattenMode=ossrh keeps exactly the elements Central
+                        requires and resolves managed versions inline. The
+                        flattened file replaces the deployed pom; the authored
+                        one on disk is untouched.
+                    -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>flatten-maven-plugin</artifactId>
+                        <version>${flatten-maven-plugin.version}</version>
+                        <configuration>
+                            <flattenMode>ossrh</flattenMode>
+                            <updatePomFile>true</updatePomFile>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>flatten</id>
+                                <phase>process-resources</phase>
+                                <goals><goal>flatten</goal></goals>
+                            </execution>
+                            <execution>
+                                <id>flatten-clean</id>
+                                <phase>clean</phase>
+                                <goals><goal>clean</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
                     <!-- -sources.jar -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>

@@ -14,6 +14,11 @@
     <artifactId>mc-sui-editor</artifactId>
     <packaging>jar</packaging>
     <name>Semantic UI :: Visual editor</name>
+    <!-- Set explicitly: Maven would otherwise append the module path to the
+         parent's url, and flatten-maven-plugin ignores the
+         child.project.url.inherit.append.path=false that suppresses it —
+         the published pom would carry a 404. -->
+    <url>https://github.com/mindconnect-ai/mc-semantic-ui</url>
 
     <!-- Published to Maven Central. See RELEASING.md. -->
     <properties>
