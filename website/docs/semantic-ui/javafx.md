@@ -146,6 +146,17 @@ Anything else paints a visible placeholder instead of throwing, so an unknown
 node degrades rather than taking the window down. Not painted yet: `UiAppShell`,
 `UiHeader`, `UiIcon`, `UiPage`.
 
+:::warning One place where the same model looks different
+`UiMenu.State.RAIL` **collapses** the menu here instead of narrowing it to an
+icon strip — a rail is a column of icons, and there are none yet. With
+`toggle`, the hamburger button stays behind so the menu can be reopened;
+without one, `RAIL` behaves like `HIDDEN`.
+
+`UiField`'s `CURRENCY`, `PERCENT`, `DATETIME` and `REFERENCE` render as a plain
+text field rather than a dedicated control, and `min`/`max`/`step` are carried
+but not enforced.
+:::
+
 {/* Markdown image syntax inside the columns on purpose: a raw <img src="/img/…">
     would keep that literal path and miss the site's baseUrl. */}
 

@@ -128,6 +128,13 @@ Honest list, not a roadmap:
 - `UiPatch` `REPLACE` needs the target's parent to be a `Pane`. Tab content is
   not, which is why the demo wraps patch targets in a `UiStack`.
 - Icons are ignored everywhere — there is no sprite-sheet equivalent.
+- **`UiMenu.State.RAIL` collapses the menu instead of narrowing it to a strip.**
+  A rail is a column of icons, and there are none, so a strip could only show
+  truncated labels. With `toggle` the hamburger button stays behind so the menu
+  can be reopened; without one, `RAIL` behaves like `HIDDEN`. This is the one
+  place where the same model looks different here than in the browser.
+- `UiField`'s `CURRENCY`, `PERCENT`, `DATETIME` and `REFERENCE` fall back to a
+  plain text field; `min`/`max`/`step` are carried but not enforced.
 - `UiColumn.cellTemplate` is not applied.
 - `UiMenu.Mode`/`Side` and tab overflow are ignored.
 - Pagination fires without a target page — a model-level gap that affects all
