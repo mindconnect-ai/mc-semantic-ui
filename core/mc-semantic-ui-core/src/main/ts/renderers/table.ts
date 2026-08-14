@@ -80,12 +80,16 @@ export function renderTable(node: UiTable, r: SuiRenderer): string {
     // Same data-node convention as renderForm.
     const nodeJson = escapeHtml(JSON.stringify(node));
     const stackCls = node.stackOnMobile ? "sui-table sui-table--stack" : "sui-table";
-    // The header bar carries the title AND the header-level actions. Gating
-    // it on the title alone would silently swallow the actions of a
-    // title-less table, so either one is enough to render the bar.
+    // The header bar carries the title, the headerExtra slot AND the
+    // header-level actions. Gating it on the title alone would silently
+    // swallow the actions of a title-less table, so any one is enough to
+    // render the bar.
     const actionsHtml = renderActions(node.actions || []);
-    const header = (node.title || actionsHtml)
-        ? `<div class="sui-table-header">${node.title ? `<h2>${escapeHtml(node.title)}</h2>` : ""}${actionsHtml}</div>`
+    const headerExtraHtml = node.headerExtra
+        ? `<div class="sui-header-extra">${r.render(node.headerExtra)}</div>`
+        : "";
+    const header = (node.title || headerExtraHtml || actionsHtml)
+        ? `<div class="sui-table-header">${node.title ? `<h2>${escapeHtml(node.title)}</h2>` : ""}${headerExtraHtml}${actionsHtml}</div>`
         : "";
     // maxHeight turns the table body into its own scroll container; the CSS
     // pins <thead> with position:sticky so the header stays visible.

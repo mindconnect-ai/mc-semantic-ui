@@ -12,10 +12,11 @@
      TS renderer). Hybrid pages (SSR + bootstrapped EventBus) need it so
      row/column patches can edit the model and re-render the table. --}}
 <div class="sui-table{{#if stackOnMobile}} sui-table--stack{{/if}}{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui="table" data-node='{{{nodeJson this}}}'>
-  {{!-- The header bar renders when there is a title OR at least one action:
-       gating it on the title alone silently swallowed a title-less table's
-       header actions. Parity with renderTable() in table.ts. --}}
-  {{#if (or title actions)}}<div class="sui-table-header">{{#if title}}<h2>{{title}}</h2>{{/if}}{{#each actions}}{{> action this}}{{/each}}</div>{{/if}}
+  {{!-- The header bar renders when there is a title, a headerExtra OR at
+       least one action: gating it on the title alone silently swallowed a
+       title-less table's header actions. Parity with renderTable() in
+       table.ts. --}}
+  {{#if (or title actions headerExtra)}}<div class="sui-table-header">{{#if title}}<h2>{{title}}</h2>{{/if}}{{#if headerExtra}}<div class="sui-header-extra">{{{render headerExtra}}}</div>{{/if}}{{#each actions}}{{> action this}}{{/each}}</div>{{/if}}
   {{!-- maxHeight caps this scroll container; CSS pins <thead> inside it. --}}
   <div class="sui-table-scroll{{#if maxHeight}} sui-table-scroll--capped{{/if}}"{{#if maxHeight}} style="max-height:{{maxHeight}}"{{/if}}>
   <table>

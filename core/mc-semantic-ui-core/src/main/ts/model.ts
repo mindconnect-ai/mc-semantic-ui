@@ -452,6 +452,8 @@ export interface UiTable extends UiNodeBase {
     pagination?: Pagination;
     actions?: UiAction[];
     rowActions?: UiAction[];
+    /** Optional node rendered in the header row between title and actions. */
+    headerExtra?: UiNode;
     /** Highlights a single row visually; orthogonal to selectMode. */
     selectedRowId?: string;
     /**
@@ -516,6 +518,8 @@ export interface UiList extends UiNodeBase {
     items: UiListItem[];
     pagination?: Pagination;
     actions?: UiAction[];
+    /** Optional node rendered in the header row between title and actions. */
+    headerExtra?: UiNode;
 }
 
 /**

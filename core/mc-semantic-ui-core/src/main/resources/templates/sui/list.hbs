@@ -7,6 +7,7 @@
 <div class="sui-list{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}">
   <div class="sui-list-header">
     {{#if title}}<h2>{{title}}</h2>{{/if}}
+    {{#if headerExtra}}<div class="sui-header-extra">{{{render headerExtra}}}</div>{{/if}}
     <div class="sui-actions">{{#each actions}}{{> action this}}{{/each}}</div>
   </div>
   <ul>{{#each items}}{{> list-item this}}{{/each}}</ul>

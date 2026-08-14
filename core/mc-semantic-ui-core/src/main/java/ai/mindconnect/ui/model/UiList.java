@@ -128,9 +128,12 @@ public class UiList extends UiNode {
     private List<Item>     items      = new ArrayList<>();
     private Pagination     pagination;
     private List<UiAction> actions    = new ArrayList<>();
+    /** Optional node rendered inside the header row, between title and actions — e.g. a compact search form. */
+    private UiNode         headerExtra;
 
     public UiList item(Item item)         { items.add(item);   return this; }
     public UiList action(UiAction action) { actions.add(action); return this; }
+    public UiList headerExtra(UiNode node) { this.headerExtra = node; return this; }
     public UiList paginate(int page, int size, long total) {
         this.pagination = Pagination.of(page, size, total);
         return this;

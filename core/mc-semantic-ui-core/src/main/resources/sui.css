@@ -233,6 +233,18 @@ body {
     padding: 16px 20px; border-bottom: 1px solid var(--sui-color-border);
 }
 .sui-list-header h2 { font-size: 17px; font-weight: 600; }
+
+/* headerExtra slot (list + table): a node between title and actions — built for
+   compact inline forms like a search field. Strips the form chrome so a single
+   field sits on the header line instead of opening a full form block. */
+.sui-header-extra { flex: 1; display: flex; align-items: center; justify-content: flex-end; margin: 0 12px; }
+.sui-header-extra .sui-form { margin: 0; padding: 0; border: none; background: none; box-shadow: none; border-radius: 0; }
+.sui-header-extra .sui-form .sui-form-footer { display: none; }
+.sui-header-extra .sui-field { margin: 0; display: flex; flex-direction: row; align-items: center; gap: 6px; }
+.sui-header-extra .sui-field label:empty { display: none; }
+.sui-header-extra .sui-field label { margin: 0; font-size: 13px; }
+.sui-header-extra .sui-field input { width: 220px; padding: 6px 10px; font-size: 13px; }
+.sui-header-extra .sui-hint { display: none; }
 .sui-list ul { list-style: none; }
 .sui-list-item {
     display: flex; align-items: center; justify-content: space-between;
