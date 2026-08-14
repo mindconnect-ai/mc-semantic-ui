@@ -307,6 +307,11 @@ a.sui-tree-label:hover { text-decoration: underline; }
 }
 .sui-form h2, .sui-detail h2 { margin-bottom: 20px; font-size: 17px; font-weight: 600; }
 .sui-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+/* Control + trailing action (e.g. Browse…) on one row. */
+.sui-field-row { display: flex; align-items: center; gap: 8px; }
+.sui-field-row > input, .sui-field-row > textarea, .sui-field-row > select,
+.sui-field-row > .sui-input-icon { flex: 1; min-width: 0; }
+.sui-field-row > .sui-btn, .sui-field-row > button { flex: 0 0 auto; }
 .sui-field label { font-size: 14px; font-weight: 500; color: var(--sui-color-text-body); }
 .sui-field input, .sui-field textarea, .sui-field select {
     padding: 9px 12px;

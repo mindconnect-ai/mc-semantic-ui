@@ -93,6 +93,8 @@ export interface UiField {
      */
     icon?: string;
     validationError?: string;
+    /** Action rendered on the control's row, right of the input (editable fields). */
+    trailing?: UiAction;
     options?: Array<{ value: string; label: string }>;
     /**
      * Only meaningful for {@code TEXTAREA}: when true, pressing Enter

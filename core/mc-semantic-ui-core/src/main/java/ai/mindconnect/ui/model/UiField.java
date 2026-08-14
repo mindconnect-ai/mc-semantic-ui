@@ -93,6 +93,12 @@ public class UiField extends UiNode {
 
 
     /**
+     * Optional action rendered on the same row, right of the control — e.g. a
+     * "Browse…" button next to a path field. Editable fields only.
+     */
+    private UiAction trailing;
+
+    /**
      * Only for {@link FieldType#FILE}: the HTML {@code accept} attribute
      * restricting the file picker (e.g. {@code "image/*"} or
      * {@code ".pdf,.docx"}). Null = any file.
@@ -206,6 +212,12 @@ public class UiField extends UiNode {
     /** Enables auto-submit on value change. See {@link #submitOnChange}. */
     public UiField submitOnChange() {
         this.submitOnChange = true;
+        return this;
+    }
+
+    /** Renders {@code action} on the control's row, right of the input. See {@link #trailing}. */
+    public UiField trailing(UiAction action) {
+        this.trailing = action;
         return this;
     }
 
