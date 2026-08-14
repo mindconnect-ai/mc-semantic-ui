@@ -915,7 +915,10 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
 }
 .sui-activity-summary::-webkit-details-marker { display: none; }
 .sui-activity-summary::before { content: "▶ "; font-size: 10px; }
-details[open] .sui-activity-summary::before { content: "▼ "; }
+/* Child selector, not descendant — with nested <details> (e.g. collapsible
+   groups containing collapsible rows) an inner closed summary must not
+   inherit the ▼ from an open ancestor. */
+details[open] > .sui-activity-summary::before { content: "▼ "; }
 .sui-activity-body { padding: 4px 0 0 12px; }
 
 /* ── Loading overlay (drawn by SuiRenderer.showLoading) ─────────────────── */
