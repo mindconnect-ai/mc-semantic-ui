@@ -190,11 +190,14 @@ body {
 .sui-header-extras { flex-wrap: wrap; }
 
 @media (max-width: 768px) {
-    .sui-header { gap: 12px; padding: 0 12px; height: auto; min-height: 56px; flex-wrap: wrap; }
-    .sui-header-right { gap: 8px; }
+    /* One 56px row, always: the brand shrinks (smaller type, clipped when it
+       must) instead of the user widget wrapping onto a second line. */
+    .sui-header { gap: 10px; padding: 0 12px; }
+    .sui-header-brand { font-size: 14px; white-space: nowrap; min-width: 0; overflow: hidden; }
+    .sui-header-right { gap: 8px; flex: 0 0 auto; }
     .sui-header-username { display: none; }        /* avatar carries the identity */
     .sui-header-user { padding: 4px; }
-    .sui-header-logo { height: 28px; }
+    .sui-header-logo { height: 26px; }
 }
 
 /* One-row mode: never wrap, overflow goes to the "⋯" menu. Set by the shared
@@ -251,6 +254,18 @@ body {
 .sui-header-extra .sui-field label { margin: 0; font-size: 13px; }
 .sui-header-extra .sui-field input { width: 220px; padding: 6px 10px; font-size: 13px; }
 .sui-header-extra .sui-hint { display: none; }
+/* Narrow screens: the header line (title + extra + actions) doesn't fit —
+   wrap, and give the extra (usually a search field) its own full-width row
+   so the actions stay on the title line instead of spilling past the card. */
+@media (max-width: 640px) {
+    .sui-list-header, .sui-table-header { flex-wrap: wrap; row-gap: 10px; padding: 12px 16px; }
+    .sui-list-header .sui-header-extra, .sui-table-header .sui-header-extra {
+        order: 3; flex: 1 1 100%; margin: 0; justify-content: stretch;
+    }
+    .sui-header-extra .sui-field { flex: 1; }
+    .sui-header-extra .sui-field input { width: 100%; flex: 1; }
+    .sui-list-header .sui-actions, .sui-table-header > .sui-btn { margin-left: auto; }
+}
 .sui-list ul { list-style: none; }
 .sui-list-item {
     display: flex; align-items: center; justify-content: space-between;
@@ -511,6 +526,24 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-icon-btn .sui-icon { width: 1.15em; height: 1.15em; vertical-align: 0; }
 
 /* In-field leading icon: overlay it on the input's left padding. */
+/* Password reveal (FieldType.PASSWORD): input with a trailing eye toggle.
+   The EventBus flips the input's type and the .is-revealed class; the two
+   glyph spans swap visibility accordingly. */
+.sui-input-reveal { position: relative; display: block; }
+.sui-input-reveal > input { width: 100%; padding-right: 40px; box-sizing: border-box; }
+.sui-input-reveal-btn {
+    position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none; background: transparent; cursor: pointer;
+    padding: 5px; border-radius: var(--sui-radius-sm);
+    color: var(--sui-color-text-muted);
+}
+.sui-input-reveal-btn:hover { color: var(--sui-color-text-body); background: var(--sui-color-border-soft); }
+.sui-reveal-show, .sui-reveal-hide { display: inline-flex; }
+.sui-input-reveal .sui-reveal-hide { display: none; }
+.sui-input-reveal.is-revealed .sui-reveal-show { display: none; }
+.sui-input-reveal.is-revealed .sui-reveal-hide { display: inline-flex; }
+
 .sui-input-icon { position: relative; display: block; }
 .sui-input-icon > .sui-icon {
     position: absolute; left: 10px; top: 50%; transform: translateY(-50%);

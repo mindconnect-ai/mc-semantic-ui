@@ -1142,6 +1142,22 @@ export class SuiEventBus {
         // persisted to localStorage by applyMenuState. Handled before the
         // generic [data-trigger]/[data-action] paths so the toggle never
         // dispatches a fetch.
+        // Password reveal: flip the sibling input between password/text and
+        // mirror the state on the wrapper so CSS can swap the eye glyph.
+        // Purely client-side — no trigger, no fetch.
+        const pwToggle = target.closest<HTMLElement>("[data-sui-password-toggle]");
+        if (pwToggle && this.inScope(pwToggle)) {
+            e.preventDefault();
+            const wrap = pwToggle.closest<HTMLElement>(".sui-input-reveal");
+            const input = wrap?.querySelector<HTMLInputElement>("input");
+            if (wrap && input) {
+                const reveal = input.type === "password";
+                input.type = reveal ? "text" : "password";
+                wrap.classList.toggle("is-revealed", reveal);
+            }
+            return;
+        }
+
         const menuToggle = target.closest<HTMLElement>("[data-menu-toggle]");
         if (menuToggle && this.inScope(menuToggle)) {
             e.preventDefault();

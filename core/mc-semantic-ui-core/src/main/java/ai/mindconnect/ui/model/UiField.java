@@ -18,7 +18,9 @@ public class UiField extends UiNode {
         DATE, DATETIME,
         BOOLEAN,
         SELECT, MULTISELECT,
-        FILE, REFERENCE
+        FILE, REFERENCE,
+        /** Masked input with a built-in eye toggle that reveals the value. */
+        PASSWORD
     }
 
     @Data
@@ -111,6 +113,11 @@ public class UiField extends UiNode {
 
     public static UiField text(String id, String label, Object value) {
         return of(id, label, FieldType.TEXT, value);
+    }
+
+    /** Masked input with an eye toggle that reveals the value while pressed. */
+    public static UiField password(String id, String label, Object value) {
+        return of(id, label, FieldType.PASSWORD, value);
     }
 
     public static UiField textarea(String id, String label, Object value) {

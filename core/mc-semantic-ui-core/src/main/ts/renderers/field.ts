@@ -104,6 +104,17 @@ function renderInput(f: UiField): string {
             // No value attribute — file inputs are set by the user only.
             return `<input type="file" id="${id}" name="${name}"${accept}${multiple}${changeAttrs}>`;
         }
+        case "PASSWORD":
+            // Masked input + eye toggle. The toggle is handled by the
+            // EventBus ([data-sui-password-toggle]) which flips the input's
+            // type and the wrapper's .is-revealed class; CSS swaps the
+            // show/hide glyphs. Parity with field.hbs.
+            return `<div class="sui-input-reveal">`
+                + `<input type="password" id="${id}" name="${name}" value="${valueAttr}" placeholder="${escapeHtml(f.placeholder ?? "")}"${changeAttrs}>`
+                + `<button type="button" class="sui-input-reveal-btn" data-sui-password-toggle aria-label="Show password">`
+                + `<span class="sui-reveal-show">${renderIcon("show")}</span>`
+                + `<span class="sui-reveal-hide">${renderIcon("hide")}</span>`
+                + `</button></div>`;
         default:
             return `<input type="text" id="${id}" name="${name}" value="${valueAttr}" placeholder="${escapeHtml(f.placeholder ?? "")}"${changeAttrs}>`;
     }

@@ -41,6 +41,11 @@
       <input type="datetime-local" id="{{id}}__input" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}"{{#if this.min}} min="{{this.min}}"{{/if}}{{#if max}} max="{{max}}"{{/if}}{{#if step}} step="{{step}}"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
     {{~else if (eq fieldType "FILE")~}}
       <input type="file" id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if accept}} accept="{{accept}}"{{/if}}{{#if multiple}} multiple{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
+    {{~else if (eq fieldType "PASSWORD")~}}
+      {{!-- Masked input + eye toggle. The EventBus handles the toggle
+           ([data-sui-password-toggle]): flips the input's type and the
+           wrapper's .is-revealed class; CSS swaps the show/hide glyphs. --}}
+      <div class="sui-input-reveal"><input type="password" id="{{id}}__input" name="{{id}}" value="{{value}}" placeholder="{{placeholder}}" data-sui-type="{{fieldType}}"{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}><button type="button" class="sui-input-reveal-btn" data-sui-password-toggle aria-label="Show password"><span class="sui-reveal-show">{{{icon "show"}}}</span><span class="sui-reveal-hide">{{{icon "hide"}}}</span></button></div>
     {{~else~}}
       <input type="text" id="{{id}}__input" name="{{id}}" value="{{value}}" placeholder="{{placeholder}}" data-sui-type="{{fieldType}}"{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
     {{~/if~}}

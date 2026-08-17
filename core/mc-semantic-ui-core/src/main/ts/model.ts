@@ -5,7 +5,8 @@ export type FieldType =
     | "DATE" | "DATETIME"
     | "BOOLEAN"
     | "SELECT" | "MULTISELECT"
-    | "FILE" | "REFERENCE";
+    | "FILE" | "REFERENCE"
+    | "PASSWORD";
 
 export type ActionStyle = "PRIMARY" | "SECONDARY" | "DANGER";
 export type ActionAppearance = "BUTTON" | "LINK" | "ICON";
