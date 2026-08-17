@@ -1401,6 +1401,57 @@ a[data-trigger].is-loading::before,
     .sui-menu, .sui-menu--overlay, .sui-menu-backdrop { transition: none; }
 }
 
+/* ── Scroll pane (UiScrollPane) ─────────────────────────────────────────── */
+
+/* A scrolling viewport around one child. maxHeight caps it in normal flow;
+   in a flex column it takes the leftover space (chat: messages between
+   header and composer). */
+.sui-scrollpane {
+    position: relative;
+    overflow-y: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+/* A list directly inside a pane keeps its header row (title + actions) in
+   view while the items scroll — the header doubles as the pane's toolbar. */
+.sui-scrollpane > .sui-list > .sui-list-header {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--sui-color-surface);
+}
+/* Zero-height sticky host for the jump-to-latest arrow inside a pane that
+   scrolls itself — an absolute button would scroll away with the content. */
+.sui-scroll-latest-host {
+    position: sticky; bottom: 10px; height: 0;
+    display: flex; justify-content: center;
+    overflow: visible; z-index: 5;
+}
+.sui-scroll-latest-host .sui-scroll-latest {
+    position: static; transform: translateY(-100%);
+}
+
+/* ── Auto-scroll feeds (.sui-autoscroll) ────────────────────────────────── */
+
+/* Wired by the bus's auto-enhance (wireAutoScroll): the container sticks to
+   its newest entry; this floating arrow appears once the user scrolls up
+   and jumps back to the latest on click. */
+.sui-autoscroll { position: relative; }
+.sui-scroll-latest {
+    position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid var(--sui-color-border);
+    background: var(--sui-color-surface);
+    color: var(--sui-color-text-body);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, .18);
+    cursor: pointer;
+    opacity: 0; pointer-events: none;
+    transition: opacity .15s;
+    z-index: 5;
+}
+.sui-scroll-latest.is-visible { opacity: 1; pointer-events: auto; }
+.sui-scroll-latest:hover { background: var(--sui-color-surface-alt); }
+.sui-scroll-latest .sui-icon { width: 18px; height: 18px; }
+
 /* ── Dialogs ────────────────────────────────────────────────────────────── */
 
 /* Host: full-viewport flex container so the dialog centres itself. Sits

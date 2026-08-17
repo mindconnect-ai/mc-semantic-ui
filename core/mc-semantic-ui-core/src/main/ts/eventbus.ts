@@ -4,6 +4,7 @@ import { applyMenuState, nextMenuState, restoreMenuState } from "./renderers/men
 import { renderIcon } from "./renderers/icon.js";
 import { wireOverflow } from "./renderers/overflow.js";
 import { wireMenuButtons } from "./renderers/menu-button.js";
+import { wireAutoScroll } from "./renderers/autoscroll.js";
 
 /**
  * Context handed to every {@link BehaviorHandler}. Captures the trigger
@@ -688,6 +689,9 @@ export class SuiEventBus {
         // tab bars, header extras, application toolbars.
         try { wireOverflow(this.root); } catch { /* ignore */ }
         try { wireMenuButtons(this.root); } catch { /* ignore */ }
+        // Live feeds marked .sui-autoscroll stick to their newest entry and
+        // surface a jump-to-latest arrow when the user scrolls up.
+        try { wireAutoScroll(this.root); } catch { /* ignore */ }
     }
 
     /** Applies a {@link UiPatch} via the renderer. Convenience wrapper. */
