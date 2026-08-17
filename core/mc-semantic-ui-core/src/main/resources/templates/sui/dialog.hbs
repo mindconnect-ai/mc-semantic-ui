@@ -11,7 +11,7 @@
 --}}
 <div class="sui-dialog-host"{{{events this}}}{{#if id}} id="{{id}}"{{/if}} data-close-href="{{closeHref}}">
   <div class="sui-dialog-backdrop" data-sui-dialog-close></div>
-  <div class="sui-dialog" role="dialog" aria-modal="true"{{#if title}} aria-label="{{title}}"{{/if}}>
+  <div class="sui-dialog{{#if cssClass}} {{cssClass}}{{/if}}" role="dialog" aria-modal="true"{{#if title}} aria-label="{{title}}"{{/if}}>
     <div class="sui-dialog-header">
       {{#if title}}<h2 class="sui-dialog-title">{{title}}</h2>{{else}}<span></span>{{/if}}
       {{#if closeHref}}

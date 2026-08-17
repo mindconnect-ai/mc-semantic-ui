@@ -1,6 +1,7 @@
 import type { UiField } from "../model.js";
 import { escapeHtml, encodeTrigger } from "../renderer.js";
 import { renderIcon } from "./icon.js";
+import { renderActions } from "./shared.js";
 import { evt } from "./util.js";
 
 export function renderField(f: UiField): string {
@@ -12,6 +13,10 @@ export function renderField(f: UiField): string {
     // single-line controls; harmless otherwise.
     if (f.icon && f.editable) {
         input = `<div class="sui-input-icon">${renderIcon(f.icon)}${input}</div>`;
+    }
+    // Trailing action (e.g. a Browse… button) shares the control's row.
+    if (f.trailing && f.editable) {
+        input = `<div class="sui-field-row">${input}${renderActions([f.trailing])}</div>`;
     }
     // The wrapper carries the UiNode id so the editor's id-based selection
     // works symmetrically with every other node type. The inner control
@@ -99,6 +104,17 @@ function renderInput(f: UiField): string {
             // No value attribute — file inputs are set by the user only.
             return `<input type="file" id="${id}" name="${name}"${accept}${multiple}${changeAttrs}>`;
         }
+        case "PASSWORD":
+            // Masked input + eye toggle. The toggle is handled by the
+            // EventBus ([data-sui-password-toggle]) which flips the input's
+            // type and the wrapper's .is-revealed class; CSS swaps the
+            // show/hide glyphs. Parity with field.hbs.
+            return `<div class="sui-input-reveal">`
+                + `<input type="password" id="${id}" name="${name}" value="${valueAttr}" placeholder="${escapeHtml(f.placeholder ?? "")}"${changeAttrs}>`
+                + `<button type="button" class="sui-input-reveal-btn" data-sui-password-toggle aria-label="Show password">`
+                + `<span class="sui-reveal-show">${renderIcon("show")}</span>`
+                + `<span class="sui-reveal-hide">${renderIcon("hide")}</span>`
+                + `</button></div>`;
         default:
             return `<input type="text" id="${id}" name="${name}" value="${valueAttr}" placeholder="${escapeHtml(f.placeholder ?? "")}"${changeAttrs}>`;
     }

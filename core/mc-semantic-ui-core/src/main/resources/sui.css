@@ -190,11 +190,14 @@ body {
 .sui-header-extras { flex-wrap: wrap; }
 
 @media (max-width: 768px) {
-    .sui-header { gap: 12px; padding: 0 12px; height: auto; min-height: 56px; flex-wrap: wrap; }
-    .sui-header-right { gap: 8px; }
+    /* One 56px row, always: the brand shrinks (smaller type, clipped when it
+       must) instead of the user widget wrapping onto a second line. */
+    .sui-header { gap: 10px; padding: 0 12px; }
+    .sui-header-brand { font-size: 14px; white-space: nowrap; min-width: 0; overflow: hidden; }
+    .sui-header-right { gap: 8px; flex: 0 0 auto; }
     .sui-header-username { display: none; }        /* avatar carries the identity */
     .sui-header-user { padding: 4px; }
-    .sui-header-logo { height: 28px; }
+    .sui-header-logo { height: 26px; }
 }
 
 /* One-row mode: never wrap, overflow goes to the "⋯" menu. Set by the shared
@@ -233,6 +236,39 @@ body {
     padding: 16px 20px; border-bottom: 1px solid var(--sui-color-border);
 }
 .sui-list-header h2 { font-size: 17px; font-weight: 600; }
+/* Optional leading header icon (UiList.icon / UiTable.icon): sized to the
+   title, slightly muted so the text stays the headline. */
+.sui-list-header h2, .sui-table-header h2 { display: inline-flex; align-items: center; gap: 8px; }
+.sui-list-header h2 .sui-icon, .sui-table-header h2 .sui-icon {
+    width: 19px; height: 19px; flex: 0 0 auto; color: var(--sui-color-text-subtle);
+}
+
+/* headerExtra slot (list + table): a node between title and actions — built for
+   compact inline forms like a search field. Strips the form chrome so a single
+   field sits on the header line instead of opening a full form block. */
+.sui-header-extra { flex: 1; display: flex; align-items: center; justify-content: flex-end; margin: 0 12px; }
+.sui-header-extra .sui-form { margin: 0; padding: 0; border: none; background: none; box-shadow: none; border-radius: 0; }
+.sui-header-extra .sui-form .sui-form-footer { display: none; }
+.sui-header-extra .sui-field { margin: 0; display: flex; flex-direction: row; align-items: center; gap: 6px; }
+.sui-header-extra .sui-field label:empty { display: none; }
+.sui-header-extra .sui-field label { margin: 0; font-size: 13px; }
+.sui-header-extra .sui-field input { width: 220px; padding: 6px 10px; font-size: 13px; }
+/* With an in-field icon the compact header input still needs room for it —
+   this rule re-applies the left inset the compact padding above overrides. */
+.sui-header-extra .sui-input-icon > input { padding-left: 32px; }
+.sui-header-extra .sui-hint { display: none; }
+/* Narrow screens: the header line (title + extra + actions) doesn't fit —
+   wrap, and give the extra (usually a search field) its own full-width row
+   so the actions stay on the title line instead of spilling past the card. */
+@media (max-width: 640px) {
+    .sui-list-header, .sui-table-header { flex-wrap: wrap; row-gap: 10px; padding: 12px 16px; }
+    .sui-list-header .sui-header-extra, .sui-table-header .sui-header-extra {
+        order: 3; flex: 1 1 100%; margin: 0; justify-content: stretch;
+    }
+    .sui-header-extra .sui-field { flex: 1; }
+    .sui-header-extra .sui-field input { width: 100%; flex: 1; }
+    .sui-list-header .sui-actions, .sui-table-header > .sui-btn { margin-left: auto; }
+}
 .sui-list ul { list-style: none; }
 .sui-list-item {
     display: flex; align-items: center; justify-content: space-between;
@@ -295,6 +331,11 @@ a.sui-tree-label:hover { text-decoration: underline; }
 }
 .sui-form h2, .sui-detail h2 { margin-bottom: 20px; font-size: 17px; font-weight: 600; }
 .sui-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+/* Control + trailing action (e.g. Browse…) on one row. */
+.sui-field-row { display: flex; align-items: center; gap: 8px; }
+.sui-field-row > input, .sui-field-row > textarea, .sui-field-row > select,
+.sui-field-row > .sui-input-icon { flex: 1; min-width: 0; }
+.sui-field-row > .sui-btn, .sui-field-row > button { flex: 0 0 auto; }
 .sui-field label { font-size: 14px; font-weight: 500; color: var(--sui-color-text-body); }
 .sui-field input, .sui-field textarea, .sui-field select {
     padding: 9px 12px;
@@ -488,6 +529,24 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-icon-btn .sui-icon { width: 1.15em; height: 1.15em; vertical-align: 0; }
 
 /* In-field leading icon: overlay it on the input's left padding. */
+/* Password reveal (FieldType.PASSWORD): input with a trailing eye toggle.
+   The EventBus flips the input's type and the .is-revealed class; the two
+   glyph spans swap visibility accordingly. */
+.sui-input-reveal { position: relative; display: block; }
+.sui-input-reveal > input { width: 100%; padding-right: 40px; box-sizing: border-box; }
+.sui-input-reveal-btn {
+    position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+    display: inline-flex; align-items: center; justify-content: center;
+    border: none; background: transparent; cursor: pointer;
+    padding: 5px; border-radius: var(--sui-radius-sm);
+    color: var(--sui-color-text-muted);
+}
+.sui-input-reveal-btn:hover { color: var(--sui-color-text-body); background: var(--sui-color-border-soft); }
+.sui-reveal-show, .sui-reveal-hide { display: inline-flex; }
+.sui-input-reveal .sui-reveal-hide { display: none; }
+.sui-input-reveal.is-revealed .sui-reveal-show { display: none; }
+.sui-input-reveal.is-revealed .sui-reveal-hide { display: inline-flex; }
+
 .sui-input-icon { position: relative; display: block; }
 .sui-input-icon > .sui-icon {
     position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
@@ -618,6 +677,9 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-table tbody tr.sui-row--selected { background: var(--sui-color-primary-soft); }
 .sui-table tbody tr.sui-row--selected td { font-weight: 500; }
 .sui-table-row-actions { text-align: right; white-space: nowrap; }
+/* Row actions sit shoulder to shoulder as inline elements — give them the
+   same breathing room action rows get elsewhere (.sui-actions gap). */
+.sui-table-row-actions > * + * { margin-left: 8px; }
 /* Leading selection column (radio / checkbox) — a comfortable touch target. */
 .sui-table-selection { width: 48px; text-align: center; padding: 0 4px; }
 .sui-table-empty { color: var(--sui-color-empty); font-style: italic; text-align: center; padding: 24px !important; }
@@ -723,7 +785,7 @@ details.sui-section--collapsible[open] > summary.sui-section-summary::before {
 details.sui-section--collapsible > summary.sui-section-summary:hover { background: var(--sui-color-border-soft); }
 
 /* Tabs wrap onto more rows by default when they don't fit ("umfliessen"). */
-.sui-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--sui-color-border); margin-bottom: 20px; }
+.sui-tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--sui-color-border); }
 /* Bordered "register" tabs (Ant card style): each tab is a box with rounded
    top corners; the active one gets a border and a bottom edge painted in the
    surface colour so it opens seamlessly into the panel below. */
@@ -743,6 +805,35 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
     border-color: var(--sui-color-border);
     border-bottom-color: var(--sui-color-surface);
 }
+
+/* The tabbed section encloses its panel: the panel carries the card chrome
+   and joins the tab bar seamlessly — the bar's border-bottom is the panel's
+   top edge, and the active tab opens into it. Scoped to .sui-tabs adjacency
+   so stack-mode sections (no tab bar, e.g. a chat page) keep their layout. */
+.sui-tabs + .sui-panels > .sui-panel {
+    background: var(--sui-color-surface);
+    border: 1px solid var(--sui-color-border);
+    border-top: none;
+    border-radius: 0 0 var(--sui-radius-lg) var(--sui-radius-lg);
+    box-shadow: var(--sui-shadow-card);
+    padding: 18px 20px;
+}
+/* Inside a tabbed panel the panel IS the card — direct child components
+   render flat instead of stacking card-on-card chrome. */
+.sui-tabs + .sui-panels > .sui-panel > .sui-list,
+.sui-tabs + .sui-panels > .sui-panel > .sui-table,
+.sui-tabs + .sui-panels > .sui-panel > .sui-detail,
+.sui-tabs + .sui-panels > .sui-panel > .sui-form,
+.sui-tabs + .sui-panels > .sui-panel > .sui-stack > .sui-list,
+.sui-tabs + .sui-panels > .sui-panel > .sui-stack > .sui-table {
+    box-shadow: none; background: transparent; border-radius: 0;
+}
+.sui-tabs + .sui-panels > .sui-panel > .sui-detail,
+.sui-tabs + .sui-panels > .sui-panel > .sui-form { padding: 8px 4px; }
+.sui-tabs + .sui-panels > .sui-panel > .sui-list:hover,
+.sui-tabs + .sui-panels > .sui-panel > .sui-table:hover,
+.sui-tabs + .sui-panels > .sui-panel > .sui-stack > .sui-list:hover,
+.sui-tabs + .sui-panels > .sui-panel > .sui-stack > .sui-table:hover { box-shadow: none; }
 
 /* Overflow-MENU tab bars: once wireTabOverflow() runs it keeps a single row
    (nowrap) and moves the tabs that don't fit into the "⋯ More" dropdown. */
@@ -915,7 +1006,10 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
 }
 .sui-activity-summary::-webkit-details-marker { display: none; }
 .sui-activity-summary::before { content: "▶ "; font-size: 10px; }
-details[open] .sui-activity-summary::before { content: "▼ "; }
+/* Child selector, not descendant — with nested <details> (e.g. collapsible
+   groups containing collapsible rows) an inner closed summary must not
+   inherit the ▼ from an open ancestor. */
+details[open] > .sui-activity-summary::before { content: "▼ "; }
 .sui-activity-body { padding: 4px 0 0 12px; }
 
 /* ── Loading overlay (drawn by SuiRenderer.showLoading) ─────────────────── */
@@ -1307,6 +1401,57 @@ a[data-trigger].is-loading::before,
     .sui-menu, .sui-menu--overlay, .sui-menu-backdrop { transition: none; }
 }
 
+/* ── Scroll pane (UiScrollPane) ─────────────────────────────────────────── */
+
+/* A scrolling viewport around one child. maxHeight caps it in normal flow;
+   in a flex column it takes the leftover space (chat: messages between
+   header and composer). */
+.sui-scrollpane {
+    position: relative;
+    overflow-y: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+/* A list directly inside a pane keeps its header row (title + actions) in
+   view while the items scroll — the header doubles as the pane's toolbar. */
+.sui-scrollpane > .sui-list > .sui-list-header {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--sui-color-surface);
+}
+/* Zero-height sticky host for the jump-to-latest arrow inside a pane that
+   scrolls itself — an absolute button would scroll away with the content. */
+.sui-scroll-latest-host {
+    position: sticky; bottom: 10px; height: 0;
+    display: flex; justify-content: center;
+    overflow: visible; z-index: 5;
+}
+.sui-scroll-latest-host .sui-scroll-latest {
+    position: static; transform: translateY(-100%);
+}
+
+/* ── Auto-scroll feeds (.sui-autoscroll) ────────────────────────────────── */
+
+/* Wired by the bus's auto-enhance (wireAutoScroll): the container sticks to
+   its newest entry; this floating arrow appears once the user scrolls up
+   and jumps back to the latest on click. */
+.sui-autoscroll { position: relative; }
+.sui-scroll-latest {
+    position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 1px solid var(--sui-color-border);
+    background: var(--sui-color-surface);
+    color: var(--sui-color-text-body);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, .18);
+    cursor: pointer;
+    opacity: 0; pointer-events: none;
+    transition: opacity .15s;
+    z-index: 5;
+}
+.sui-scroll-latest.is-visible { opacity: 1; pointer-events: auto; }
+.sui-scroll-latest:hover { background: var(--sui-color-surface-alt); }
+.sui-scroll-latest .sui-icon { width: 18px; height: 18px; }
+
 /* ── Dialogs ────────────────────────────────────────────────────────────── */
 
 /* Host: full-viewport flex container so the dialog centres itself. Sits
@@ -1336,6 +1481,14 @@ a[data-trigger].is-loading::before,
     overflow: hidden;
     animation: sui-dialog-in .15s ease-out;
 }
+/* Wide variant (set UiDialog cssClass "sui-dialog--wide"): for dialog
+   content with its own columns — a master-detail memory view, a trace
+   browser — that would suffocate at the default width. */
+.sui-dialog.sui-dialog--wide {
+    width: calc(100vw - 64px);
+    max-width: min(1100px, calc(100vw - 32px));
+}
+
 .sui-dialog-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 20px;

@@ -68,6 +68,8 @@ export interface UiField {
      */
     icon?: string;
     validationError?: string;
+    /** Action rendered on the control's row, right of the input (editable fields). */
+    trailing?: UiAction;
     options?: Array<{
         value: string;
         label: string;
@@ -415,6 +417,8 @@ export interface UiTable extends UiNodeBase {
     pagination?: Pagination;
     actions?: UiAction[];
     rowActions?: UiAction[];
+    /** Optional node rendered in the header row between title and actions. */
+    headerExtra?: UiNode;
     /** Highlights a single row visually; orthogonal to selectMode. */
     selectedRowId?: string;
     /**
@@ -477,6 +481,8 @@ export interface UiList extends UiNodeBase {
     items: UiListItem[];
     pagination?: Pagination;
     actions?: UiAction[];
+    /** Optional node rendered in the header row between title and actions. */
+    headerExtra?: UiNode;
 }
 /**
  * One node of a {@link UiTree}. Recursive: a node with {@code children} (or

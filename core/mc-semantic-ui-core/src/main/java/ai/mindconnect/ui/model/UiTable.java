@@ -63,6 +63,10 @@ public class UiTable extends UiNode {
     private Pagination                pagination;
     private List<UiAction>            actions       = new ArrayList<>();
     private List<UiAction>            rowActions    = new ArrayList<>();
+    /** Optional node rendered inside the header row, between title and actions — e.g. a compact search form. */
+    private UiNode                    headerExtra;
+    /** Leading icon token rendered in the header before the title. See {@link UiIcon}. */
+    private String                    icon;
     private String                    selectedRowId;
     private SelectMode                selectMode    = SelectMode.NONE;
     /** Pre-selected row ids — pre-checks the radio/checkbox at render time. */
@@ -111,6 +115,8 @@ public class UiTable extends UiNode {
     private String maxHeight;
 
     public UiTable column(UiColumn column)         { columns.add(column);    return this; }
+    public UiTable headerExtra(UiNode node)        { this.headerExtra = node; return this; }
+    public UiTable icon(String iconToken)          { this.icon = iconToken; return this; }
     /**
      * Convenience: wraps the row map in a {@link UiRow}. Lets callers stay
      * concise ({@code .row(Map.of("sku", "X-1"))}) while the model normalises

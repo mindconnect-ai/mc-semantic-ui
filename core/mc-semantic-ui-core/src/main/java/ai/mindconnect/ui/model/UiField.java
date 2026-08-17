@@ -18,7 +18,9 @@ public class UiField extends UiNode {
         DATE, DATETIME,
         BOOLEAN,
         SELECT, MULTISELECT,
-        FILE, REFERENCE
+        FILE, REFERENCE,
+        /** Masked input with a built-in eye toggle that reveals the value. */
+        PASSWORD
     }
 
     @Data
@@ -93,6 +95,12 @@ public class UiField extends UiNode {
 
 
     /**
+     * Optional action rendered on the same row, right of the control — e.g. a
+     * "Browse…" button next to a path field. Editable fields only.
+     */
+    private UiAction trailing;
+
+    /**
      * Only for {@link FieldType#FILE}: the HTML {@code accept} attribute
      * restricting the file picker (e.g. {@code "image/*"} or
      * {@code ".pdf,.docx"}). Null = any file.
@@ -105,6 +113,11 @@ public class UiField extends UiNode {
 
     public static UiField text(String id, String label, Object value) {
         return of(id, label, FieldType.TEXT, value);
+    }
+
+    /** Masked input with an eye toggle that reveals the value while pressed. */
+    public static UiField password(String id, String label, Object value) {
+        return of(id, label, FieldType.PASSWORD, value);
     }
 
     public static UiField textarea(String id, String label, Object value) {
@@ -206,6 +219,12 @@ public class UiField extends UiNode {
     /** Enables auto-submit on value change. See {@link #submitOnChange}. */
     public UiField submitOnChange() {
         this.submitOnChange = true;
+        return this;
+    }
+
+    /** Renders {@code action} on the control's row, right of the input. See {@link #trailing}. */
+    public UiField trailing(UiAction action) {
+        this.trailing = action;
         return this;
     }
 

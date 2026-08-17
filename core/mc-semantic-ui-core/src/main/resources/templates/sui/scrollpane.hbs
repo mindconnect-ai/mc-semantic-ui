@@ -1,0 +1,9 @@
+{{!--
+  UiScrollPane → a scrolling viewport around one child. Parity with
+  renderScrollPane() in renderers/scrollpane.ts.
+
+  data-stick-latest marks the live-feed variant; the bus's auto-enhance
+  (wireAutoScroll) picks it up and adds the pin-to-newest behaviour plus the
+  floating jump-to-latest arrow. Without JS the pane simply scrolls.
+--}}
+<div class="sui-scrollpane{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}"{{#if maxHeight}} style="max-height:{{maxHeight}}"{{/if}}{{#if stickToLatest}} data-stick-latest{{/if}}>{{#if content}}{{{render content}}}{{/if}}</div>

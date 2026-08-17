@@ -4,6 +4,7 @@ import { applyMenuState, nextMenuState, restoreMenuState } from "./renderers/men
 import { renderIcon } from "./renderers/icon.js";
 import { wireOverflow } from "./renderers/overflow.js";
 import { wireMenuButtons } from "./renderers/menu-button.js";
+import { wireAutoScroll } from "./renderers/autoscroll.js";
 
 /**
  * Context handed to every {@link BehaviorHandler}. Captures the trigger
@@ -688,6 +689,9 @@ export class SuiEventBus {
         // tab bars, header extras, application toolbars.
         try { wireOverflow(this.root); } catch { /* ignore */ }
         try { wireMenuButtons(this.root); } catch { /* ignore */ }
+        // Live feeds marked .sui-autoscroll stick to their newest entry and
+        // surface a jump-to-latest arrow when the user scrolls up.
+        try { wireAutoScroll(this.root); } catch { /* ignore */ }
     }
 
     /** Applies a {@link UiPatch} via the renderer. Convenience wrapper. */
@@ -1142,6 +1146,22 @@ export class SuiEventBus {
         // persisted to localStorage by applyMenuState. Handled before the
         // generic [data-trigger]/[data-action] paths so the toggle never
         // dispatches a fetch.
+        // Password reveal: flip the sibling input between password/text and
+        // mirror the state on the wrapper so CSS can swap the eye glyph.
+        // Purely client-side — no trigger, no fetch.
+        const pwToggle = target.closest<HTMLElement>("[data-sui-password-toggle]");
+        if (pwToggle && this.inScope(pwToggle)) {
+            e.preventDefault();
+            const wrap = pwToggle.closest<HTMLElement>(".sui-input-reveal");
+            const input = wrap?.querySelector<HTMLInputElement>("input");
+            if (wrap && input) {
+                const reveal = input.type === "password";
+                input.type = reveal ? "text" : "password";
+                wrap.classList.toggle("is-revealed", reveal);
+            }
+            return;
+        }
+
         const menuToggle = target.closest<HTMLElement>("[data-menu-toggle]");
         if (menuToggle && this.inScope(menuToggle)) {
             e.preventDefault();
@@ -1357,8 +1377,12 @@ export class SuiEventBus {
         // theme stylesheet, the SPA bootstrap script) also gets refreshed.
         if (form.dataset.suiReload === "true") return;
         e.preventDefault();
+        // Prefer the form's PRIMARY-styled action as the default submitter —
+        // Enter should send/save, not fire whatever helper button happens to
+        // come first in the footer (e.g. a chat form's attach "+").
         const submitter = (e.submitter as HTMLElement | null)
             ?? form.querySelector<HTMLElement>("button[type=submit][data-action]")
+            ?? form.querySelector<HTMLElement>("[data-action].sui-btn--primary, [data-action].sui-icon-btn--primary")
             ?? form.querySelector<HTMLElement>("[data-action]");
         if (!submitter) return;
         if (submitter.dataset.confirm && !window.confirm(submitter.dataset.confirm)) return;

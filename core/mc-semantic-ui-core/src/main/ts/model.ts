@@ -5,7 +5,8 @@ export type FieldType =
     | "DATE" | "DATETIME"
     | "BOOLEAN"
     | "SELECT" | "MULTISELECT"
-    | "FILE" | "REFERENCE";
+    | "FILE" | "REFERENCE"
+    | "PASSWORD";
 
 export type ActionStyle = "PRIMARY" | "SECONDARY" | "DANGER";
 export type ActionAppearance = "BUTTON" | "LINK" | "ICON";
@@ -93,6 +94,8 @@ export interface UiField {
      */
     icon?: string;
     validationError?: string;
+    /** Action rendered on the control's row, right of the input (editable fields). */
+    trailing?: UiAction;
     options?: Array<{ value: string; label: string }>;
     /**
      * Only meaningful for {@code TEXTAREA}: when true, pressing Enter
@@ -452,6 +455,10 @@ export interface UiTable extends UiNodeBase {
     pagination?: Pagination;
     actions?: UiAction[];
     rowActions?: UiAction[];
+    /** Optional node rendered in the header row between title and actions. */
+    headerExtra?: UiNode;
+    /** Leading icon token rendered in the header before the title. */
+    icon?: string;
     /** Highlights a single row visually; orthogonal to selectMode. */
     selectedRowId?: string;
     /**
@@ -516,6 +523,10 @@ export interface UiList extends UiNodeBase {
     items: UiListItem[];
     pagination?: Pagination;
     actions?: UiAction[];
+    /** Optional node rendered in the header row between title and actions. */
+    headerExtra?: UiNode;
+    /** Leading icon token rendered in the header before the title. */
+    icon?: string;
 }
 
 /**
@@ -642,6 +653,16 @@ export interface UiMenu extends UiNodeBase {
  * Plain composition container — children rendered one after another with no
  * chrome of its own. Parity with {@code UiStack.java}.
  */
+export interface UiScrollPane extends UiNodeBase {
+    type: "scrollpane";
+    /** The scrolled content. Any node; usually a list or stack. */
+    content?: UiNode;
+    /** CSS length capping the pane's height; absent = fill the flex parent. */
+    maxHeight?: string;
+    /** Live-feed mode: stick to the newest content + jump-to-latest arrow. */
+    stickToLatest?: boolean;
+}
+
 export interface UiStack extends UiNodeBase {
     type: "stack";
     children: UiNode[];
