@@ -253,6 +253,9 @@ body {
 .sui-header-extra .sui-field label:empty { display: none; }
 .sui-header-extra .sui-field label { margin: 0; font-size: 13px; }
 .sui-header-extra .sui-field input { width: 220px; padding: 6px 10px; font-size: 13px; }
+/* With an in-field icon the compact header input still needs room for it —
+   this rule re-applies the left inset the compact padding above overrides. */
+.sui-header-extra .sui-input-icon > input { padding-left: 32px; }
 .sui-header-extra .sui-hint { display: none; }
 /* Narrow screens: the header line (title + extra + actions) doesn't fit —
    wrap, and give the extra (usually a search field) its own full-width row
