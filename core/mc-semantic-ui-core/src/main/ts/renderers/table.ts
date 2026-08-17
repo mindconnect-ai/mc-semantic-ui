@@ -3,6 +3,7 @@ import { escapeHtml, encodeTrigger, type SuiRenderer } from "../renderer.js";
 import { cls, evt } from "./util.js";
 import { renderActions, renderPagination } from "./shared.js";
 import { renderAction } from "./action.js";
+import { renderIcon } from "./icon.js";
 
 export function renderTable(node: UiTable, r: SuiRenderer): string {
     const cols = node.columns || [];
@@ -89,7 +90,7 @@ export function renderTable(node: UiTable, r: SuiRenderer): string {
         ? `<div class="sui-header-extra">${r.render(node.headerExtra)}</div>`
         : "";
     const header = (node.title || headerExtraHtml || actionsHtml)
-        ? `<div class="sui-table-header">${node.title ? `<h2>${escapeHtml(node.title)}</h2>` : ""}${headerExtraHtml}${actionsHtml}</div>`
+        ? `<div class="sui-table-header">${node.title ? `<h2>${node.icon ? renderIcon(node.icon) : ""}${escapeHtml(node.title)}</h2>` : ""}${headerExtraHtml}${actionsHtml}</div>`
         : "";
     // maxHeight turns the table body into its own scroll container; the CSS
     // pins <thead> with position:sticky so the header stays visible.

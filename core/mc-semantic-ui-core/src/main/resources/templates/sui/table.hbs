@@ -16,7 +16,7 @@
        least one action: gating it on the title alone silently swallowed a
        title-less table's header actions. Parity with renderTable() in
        table.ts. --}}
-  {{#if (or title actions headerExtra)}}<div class="sui-table-header">{{#if title}}<h2>{{title}}</h2>{{/if}}{{#if headerExtra}}<div class="sui-header-extra">{{{render headerExtra}}}</div>{{/if}}{{#each actions}}{{> action this}}{{/each}}</div>{{/if}}
+  {{#if (or title actions headerExtra)}}<div class="sui-table-header">{{#if title}}<h2>{{#if icon}}{{{icon icon}}}{{/if}}{{title}}</h2>{{/if}}{{#if headerExtra}}<div class="sui-header-extra">{{{render headerExtra}}}</div>{{/if}}{{#each actions}}{{> action this}}{{/each}}</div>{{/if}}
   {{!-- maxHeight caps this scroll container; CSS pins <thead> inside it. --}}
   <div class="sui-table-scroll{{#if maxHeight}} sui-table-scroll--capped{{/if}}"{{#if maxHeight}} style="max-height:{{maxHeight}}"{{/if}}>
   <table>

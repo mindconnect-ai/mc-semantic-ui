@@ -233,6 +233,12 @@ body {
     padding: 16px 20px; border-bottom: 1px solid var(--sui-color-border);
 }
 .sui-list-header h2 { font-size: 17px; font-weight: 600; }
+/* Optional leading header icon (UiList.icon / UiTable.icon): sized to the
+   title, slightly muted so the text stays the headline. */
+.sui-list-header h2, .sui-table-header h2 { display: inline-flex; align-items: center; gap: 8px; }
+.sui-list-header h2 .sui-icon, .sui-table-header h2 .sui-icon {
+    width: 19px; height: 19px; flex: 0 0 auto; color: var(--sui-color-text-subtle);
+}
 
 /* headerExtra slot (list + table): a node between title and actions — built for
    compact inline forms like a search field. Strips the form chrome so a single

@@ -456,6 +456,8 @@ export interface UiTable extends UiNodeBase {
     rowActions?: UiAction[];
     /** Optional node rendered in the header row between title and actions. */
     headerExtra?: UiNode;
+    /** Leading icon token rendered in the header before the title. */
+    icon?: string;
     /** Highlights a single row visually; orthogonal to selectMode. */
     selectedRowId?: string;
     /**
@@ -522,6 +524,8 @@ export interface UiList extends UiNodeBase {
     actions?: UiAction[];
     /** Optional node rendered in the header row between title and actions. */
     headerExtra?: UiNode;
+    /** Leading icon token rendered in the header before the title. */
+    icon?: string;
 }
 
 /**
