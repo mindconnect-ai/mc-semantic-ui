@@ -24,7 +24,7 @@ export function renderDialog(node: UiDialog, r: SuiRenderer): string {
     return (
         `<div class="sui-dialog-host" id="${id}" data-close-href="${escapeHtml(node.closeHref ?? "")}">` +
         `<div class="sui-dialog-backdrop" data-sui-dialog-close></div>` +
-        `<div class="sui-dialog" role="dialog" aria-modal="true"${node.title ? ` aria-label="${escapeHtml(node.title)}"` : ""}>` +
+        `<div class="sui-dialog${node.cssClass ? " " + escapeHtml(node.cssClass) : ""}" role="dialog" aria-modal="true"${node.title ? ` aria-label="${escapeHtml(node.title)}"` : ""}>` +
         `<div class="sui-dialog-header">${title}${close}</div>` +
         `<div class="sui-dialog-body">${body}</div>` +
         `</div></div>`

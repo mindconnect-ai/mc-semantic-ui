@@ -1481,6 +1481,14 @@ a[data-trigger].is-loading::before,
     overflow: hidden;
     animation: sui-dialog-in .15s ease-out;
 }
+/* Wide variant (set UiDialog cssClass "sui-dialog--wide"): for dialog
+   content with its own columns — a master-detail memory view, a trace
+   browser — that would suffocate at the default width. */
+.sui-dialog.sui-dialog--wide {
+    width: calc(100vw - 64px);
+    max-width: min(1100px, calc(100vw - 32px));
+}
+
 .sui-dialog-header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 14px 20px;
