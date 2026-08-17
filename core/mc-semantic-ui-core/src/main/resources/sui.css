@@ -635,6 +635,9 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-table tbody tr.sui-row--selected { background: var(--sui-color-primary-soft); }
 .sui-table tbody tr.sui-row--selected td { font-weight: 500; }
 .sui-table-row-actions { text-align: right; white-space: nowrap; }
+/* Row actions sit shoulder to shoulder as inline elements — give them the
+   same breathing room action rows get elsewhere (.sui-actions gap). */
+.sui-table-row-actions > * + * { margin-left: 8px; }
 /* Leading selection column (radio / checkbox) — a comfortable touch target. */
 .sui-table-selection { width: 48px; text-align: center; padding: 0 4px; }
 .sui-table-empty { color: var(--sui-color-empty); font-style: italic; text-align: center; padding: 24px !important; }
