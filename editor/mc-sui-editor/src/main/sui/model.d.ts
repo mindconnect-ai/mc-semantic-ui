@@ -616,6 +616,15 @@ export interface UiScrollPane extends UiNodeBase {
     /** Live-feed mode: stick to the newest content + jump-to-latest arrow. */
     stickToLatest?: boolean;
 }
+export interface UiIFrame extends UiNodeBase {
+    type: "iframe";
+    /** The embedded page's URL. */
+    src?: string;
+    /** CSS length capping the frame's height; absent = fill the flex parent. */
+    height?: string;
+    /** Optional sandbox attribute value; absent = no sandbox (same-origin embeds). */
+    sandbox?: string;
+}
 export interface UiStack extends UiNodeBase {
     type: "stack";
     children: UiNode[];
