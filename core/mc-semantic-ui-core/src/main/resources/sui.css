@@ -548,6 +548,9 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-input-reveal.is-revealed .sui-reveal-hide { display: inline-flex; }
 
 .sui-input-icon { position: relative; display: block; }
+/* A leading in-field icon composes with the password reveal wrapper: the
+   input sits one level deeper there, so re-apply the icon inset. */
+.sui-input-icon > .sui-input-reveal > input { padding-left: 34px; }
 .sui-input-icon > .sui-icon {
     position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
     color: var(--sui-color-text-muted); pointer-events: none;

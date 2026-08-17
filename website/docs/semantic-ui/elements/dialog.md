@@ -35,7 +35,7 @@ toast).*
 | `title` | `String` | Heading rendered in the dialog header. Also becomes the `aria-label` of the `role="dialog"` box. |
 | `node` | `UiNode` | The dialog's body. Anything that renders as a node. |
 | `closeHref` | `String` | URL the close control navigates to. When set, the × is a real `<a href>` (works with no JavaScript); `null` renders a `<button>` and the SPA just removes the overlay in place. |
-| `cssClass` | `String` | Extra CSS class on the overlay element. |
+| `cssClass` | `String` | Extra CSS class on the `.sui-dialog` box. `sui-dialog--wide` widens it to `min(1100px, viewport)` — for content with its own columns (a master-detail view, a trace browser). |
 
 ## Building one
 

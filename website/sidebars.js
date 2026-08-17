@@ -38,6 +38,7 @@ const sidebars = {
               items: [
                 'semantic-ui/elements/app-shell',
                 'semantic-ui/elements/stack',
+                'semantic-ui/elements/scrollpane',
                 'semantic-ui/elements/section',
                 'semantic-ui/elements/section-entry',
                 'semantic-ui/elements/page',
