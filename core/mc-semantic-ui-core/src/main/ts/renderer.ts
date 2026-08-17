@@ -1,7 +1,7 @@
 import type {
     UiNode, UiField, UiAction, UiLink, UiListItem, UiTrigger, Pagination,
     UiForm, UiDetail, UiTable, UiTableColumn, UiTableRow,
-    UiList, UiTree, UiTreeNode, UiMenu, UiMenuItem, UiMenuButton, UiSection, UiSectionEntry, UiStack, UiScrollPane, UiAppShell, UiHeader,
+    UiList, UiTree, UiTreeNode, UiMenu, UiMenuItem, UiMenuButton, UiSection, UiSectionEntry, UiStack, UiScrollPane, UiIFrame, UiAppShell, UiHeader,
     UiText, UiIcon, UiSpinner, UiProgress, UiUpload, UiFieldGroup, UiDialog, UiPatch, UiPatchOperation,
 } from "./model.js";
 
@@ -18,6 +18,7 @@ import { renderSection }      from "./renderers/section.js";
 import { renderSectionEntry } from "./renderers/section-entry.js";
 import { renderStack }        from "./renderers/stack.js";
 import { renderScrollPane }   from "./renderers/scrollpane.js";
+import { renderIFrame }       from "./renderers/iframe.js";
 import { renderTable }        from "./renderers/table.js";
 import { renderColumn }       from "./renderers/column.js";
 import { renderRow }          from "./renderers/row.js";
@@ -633,6 +634,7 @@ export function installDefaultHandlers(renderer: SuiRenderer): SuiRenderer {
         .register<UiSectionEntry>("section-entry", renderSectionEntry)
         .register<UiStack>("stack",              renderStack)
         .register<UiScrollPane>("scrollpane",    renderScrollPane)
+        .register<UiIFrame>("iframe",             renderIFrame)
         .register<UiAppShell>("app-shell",       renderAppShell)
         .register<UiTable>("table",              renderTable)
         .register<UiTableColumn>("column",       renderColumn)

@@ -34,6 +34,7 @@ preview you can click.
 |---|---|
 | [`stack`](./elements/stack.md) | Vertical / horizontal layout box |
 | [`scrollpane`](./elements/scrollpane.md) | Scrolling viewport; optional stick-to-latest live-feed mode |
+| [`iframe`](./elements/iframe.md) | Embedded browsing context — fold a foreign page into a screen |
 | [`section`](./elements/section.md) | Tabbed or collapsible container |
 | [`section-entry`](./elements/section-entry.md) | One tab + its panel body |
 | [`page`](./elements/page.md) | Top-level envelope; carries toasts and dialogs |

@@ -1432,6 +1432,22 @@ a[data-trigger].is-loading::before,
     position: static; transform: translateY(-100%);
 }
 
+/* ── Embedded frame (UiIFrame) ──────────────────────────────────────────── */
+
+/* A height caps the frame in normal flow (inline style); without one it
+   fills the leftover space of a flex-column parent — same convention as the
+   scroll pane. display:block kills the inline-baseline gap. */
+.sui-iframe {
+    display: block;
+    border: 0;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    background: var(--sui-color-surface);
+    border-radius: var(--sui-radius-lg);
+    box-shadow: var(--sui-shadow-card);
+}
+
 /* ── Auto-scroll feeds (.sui-autoscroll) ────────────────────────────────── */
 
 /* Wired by the bus's auto-enhance (wireAutoScroll): the container sticks to
