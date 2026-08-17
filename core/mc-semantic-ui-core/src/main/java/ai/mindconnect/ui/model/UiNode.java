@@ -20,6 +20,7 @@ import java.util.Map;
     @JsonSubTypes.Type(value = UiSectionEntry.class, name = "section-entry"),
     @JsonSubTypes.Type(value = UiStack.class,        name = "stack"),
     @JsonSubTypes.Type(value = UiScrollPane.class,   name = "scrollpane"),
+    @JsonSubTypes.Type(value = UiIFrame.class,       name = "iframe"),
     @JsonSubTypes.Type(value = UiForm.class,      name = "form"),
     @JsonSubTypes.Type(value = UiTable.class,     name = "table"),
     @JsonSubTypes.Type(value = UiColumn.class,    name = "column"),
