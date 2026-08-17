@@ -22,7 +22,7 @@ was web-shaped to begin with; the browser was simply the first renderer.
 <dependency>
   <groupId>ai.mindconnect</groupId>
   <artifactId>mc-semantic-ui-javafx</artifactId>
-  <version>0.1.2</version>
+  <version>0.1.3</version>
 </dependency>
 ```
 
