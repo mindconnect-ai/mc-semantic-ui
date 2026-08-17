@@ -34,6 +34,8 @@ stack, and a pagination footer.*
 |---|---|---|
 | `id` | `String` | Node id and DOM `id` of the wrapping `<div class="sui-list">`. |
 | `title` | `String` | Rendered as the `<h2>` in the list header. Omitted when absent. |
+| `icon` | `String` | Leading icon token in the header, before the title — lets a page's main list carry the same icon as its navigation entry. See [icons](./icon.md). |
+| `headerExtra` | `UiNode` | Node rendered in the header row between title and actions — built for compact inline forms like a search field (the form chrome is stripped). |
 | `items` | `List<UiList.Item>` | The rows. Defaults to an empty list. See below. |
 | `actions` | `List<UiAction>` | List-level buttons in the header, next to the title (Refresh, Add, …). Defaults to an empty list. |
 | `pagination` | `UiList.Pagination` | Optional pager rendered under the items. `null` = no pager. |

@@ -1,4 +1,4 @@
-export type FieldType = "TEXT" | "TEXTAREA" | "NUMBER" | "CURRENCY" | "PERCENT" | "DATE" | "DATETIME" | "BOOLEAN" | "SELECT" | "MULTISELECT" | "FILE" | "REFERENCE";
+export type FieldType = "TEXT" | "TEXTAREA" | "NUMBER" | "CURRENCY" | "PERCENT" | "DATE" | "DATETIME" | "BOOLEAN" | "SELECT" | "MULTISELECT" | "FILE" | "REFERENCE" | "PASSWORD";
 export type ActionStyle = "PRIMARY" | "SECONDARY" | "DANGER";
 export type ActionAppearance = "BUTTON" | "LINK" | "ICON";
 export type TriggerBehavior = "APPLY_RESPONSE" | "STREAM" | "DOWNLOAD" | "OPEN_IN_TAB" | "INVOKE" | "PATCH" | "UPLOAD";
@@ -419,6 +419,8 @@ export interface UiTable extends UiNodeBase {
     rowActions?: UiAction[];
     /** Optional node rendered in the header row between title and actions. */
     headerExtra?: UiNode;
+    /** Leading icon token rendered in the header before the title. */
+    icon?: string;
     /** Highlights a single row visually; orthogonal to selectMode. */
     selectedRowId?: string;
     /**
@@ -483,6 +485,8 @@ export interface UiList extends UiNodeBase {
     actions?: UiAction[];
     /** Optional node rendered in the header row between title and actions. */
     headerExtra?: UiNode;
+    /** Leading icon token rendered in the header before the title. */
+    icon?: string;
 }
 /**
  * One node of a {@link UiTree}. Recursive: a node with {@code children} (or
@@ -603,6 +607,15 @@ export interface UiMenu extends UiNodeBase {
  * Plain composition container — children rendered one after another with no
  * chrome of its own. Parity with {@code UiStack.java}.
  */
+export interface UiScrollPane extends UiNodeBase {
+    type: "scrollpane";
+    /** The scrolled content. Any node; usually a list or stack. */
+    content?: UiNode;
+    /** CSS length capping the pane's height; absent = fill the flex parent. */
+    maxHeight?: string;
+    /** Live-feed mode: stick to the newest content + jump-to-latest arrow. */
+    stickToLatest?: boolean;
+}
 export interface UiStack extends UiNodeBase {
     type: "stack";
     children: UiNode[];

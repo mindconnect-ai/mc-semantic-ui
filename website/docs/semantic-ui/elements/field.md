@@ -41,6 +41,7 @@ which reports the new value without submitting anything.*
 | `placeholder` | `String` | Placeholder text. Emitted for `TEXT`, `REFERENCE` and any unrecognised type. |
 | `hint` | `String` | Small helper text below the control. |
 | `icon` | `String` | Leading in-field icon token. Decorative, and only rendered when `editable`. See [icons](./icon.md). |
+| `trailing` | `UiAction` | Action rendered on the control's row, right of the input — a Browse… next to a path field, an Encrypt next to a key field. Editable fields only. |
 | `validationError` | `String` | Per-field error message; also puts the wrapper into its error style. |
 | `options` | `List<Option>` | Choices for `SELECT` / `MULTISELECT`. Each `Option` has `value` and `label`. |
 | `min` | `String` | Lower bound, verbatim `min` attribute. Numeric and date types. |
@@ -59,6 +60,7 @@ which reports the new value without submitting anything.*
 |---|---|---|
 | `TEXT` | `<input type="text">` | `placeholder`, `icon` |
 | `TEXTAREA` | `<textarea rows="4">` | `submitOnEnter` |
+| `PASSWORD` | `<input type="password">` + eye toggle | `placeholder` — the built-in toggle flips the input to plain text and back; the value never leaves the field |
 | `NUMBER` | `<input type="number">` | `min`, `max`, `step` |
 | `CURRENCY` | `<input type="number">` | `min`, `max`, `step` (use `"0.01"`) |
 | `PERCENT` | `<input type="number">` | `min`, `max`, `step` |
@@ -69,6 +71,11 @@ which reports the new value without submitting anything.*
 | `MULTISELECT` | `<select multiple>` | `options`; `value` may be a list or a comma-separated string |
 | `FILE` | `<input type="file">` | `accept`, `multiple` |
 | `REFERENCE` | `<input type="text">` | `placeholder`, `icon` — a semantic marker for a foreign-key value; the renderer treats it like `TEXT` |
+
+`PASSWORD` builds the reveal toggle in: the eye button (wired by the event
+bus) switches the input between `password` and `text`, so an admin can check
+what is in the field before saving. Factory: `UiField.password(id, label,
+value)`.
 
 `icon`, `submitOnChange` and `onChange` work with every type. `CURRENCY` and
 `PERCENT` are semantic labels only: the renderer emits the same number input as

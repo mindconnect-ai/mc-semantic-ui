@@ -34,6 +34,8 @@ pagination trigger.*
 |---|---|---|
 | `id` | `String` | Node id — also the DOM `id`, the patch target, and the prefix of the selection form-name. |
 | `title` | `String` | Optional heading in the header bar. |
+| `icon` | `String` | Leading icon token in the header, before the title. See [icons](./icon.md). |
+| `headerExtra` | `UiNode` | Node rendered in the header bar between title and actions — e.g. a compact search form. The bar renders when there is a title, a headerExtra **or** an action. |
 | `columns` | `List<UiColumn>` | Column definitions, left to right. See [`column`](./column.md). |
 | `rows` | `List<UiRow>` | The data rows. Empty renders a single "No rows." cell. See [`row`](./row.md). |
 | `actions` | `List<UiAction>` | Table-level buttons in the header bar (New, Export, …). The bar renders when there is a title **or** at least one action. |
