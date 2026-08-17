@@ -1373,8 +1373,12 @@ export class SuiEventBus {
         // theme stylesheet, the SPA bootstrap script) also gets refreshed.
         if (form.dataset.suiReload === "true") return;
         e.preventDefault();
+        // Prefer the form's PRIMARY-styled action as the default submitter —
+        // Enter should send/save, not fire whatever helper button happens to
+        // come first in the footer (e.g. a chat form's attach "+").
         const submitter = (e.submitter as HTMLElement | null)
             ?? form.querySelector<HTMLElement>("button[type=submit][data-action]")
+            ?? form.querySelector<HTMLElement>("[data-action].sui-btn--primary, [data-action].sui-icon-btn--primary")
             ?? form.querySelector<HTMLElement>("[data-action]");
         if (!submitter) return;
         if (submitter.dataset.confirm && !window.confirm(submitter.dataset.confirm)) return;

@@ -27,6 +27,7 @@
     "confirm":      "check",
     "cancel":       "x",
     "send":         "send",
+    "stop":         "square",
     "reset":        "rotate-ccw",
     "refresh":      "refresh-cw",
 
