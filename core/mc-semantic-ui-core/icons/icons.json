@@ -109,7 +109,10 @@
     "share":        "share-2",
     "flash":        "zap",
     "light":        "sun",
-    "dark":         "moon"
+    "dark":         "moon",
+
+    "ai":           "sparkles",
+    "bot":          "bot"
   },
 
   "passthrough": [
