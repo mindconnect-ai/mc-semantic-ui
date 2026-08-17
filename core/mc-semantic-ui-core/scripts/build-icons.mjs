@@ -17,7 +17,7 @@
 // change LIB_ICON_DIR + the ids in icons.json, and regenerate. The semantic
 // tokens (and therefore all app JSON) stay identical.
 
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -54,7 +54,12 @@ const tokens = new Map();
 for (const [token, lucideId] of Object.entries(spec.aliases ?? {})) {
   tokens.set(token, lucideId);
 }
-for (const lucideId of spec.passthrough ?? []) {
+// passthrough: an explicit id list, or "*" to ship the ENTIRE library —
+// every raw id becomes a token, so new icons need no sprite release.
+const passthrough = spec.passthrough === "*"
+  ? readdirSync(LIB_ICON_DIR).filter(f => f.endsWith(".svg")).map(f => f.slice(0, -4))
+  : (spec.passthrough ?? []);
+for (const lucideId of passthrough) {
   if (!tokens.has(lucideId)) tokens.set(lucideId, lucideId);
 }
 

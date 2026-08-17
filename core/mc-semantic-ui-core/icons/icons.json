@@ -8,9 +8,11 @@
     "different library, re-point these values at that library's ids and",
     "regenerate — app JSON that uses the semantic tokens never changes.",
     "",
-    "Raw Lucide names not listed here still work at runtime IF present in the",
-    "sprite; the 'passthrough' block below pulls in extra raw ids verbatim so",
-    "authors can reference e.g. 'star' directly without inventing an alias.",
+    "'passthrough': \"*\" ships the ENTIRE Lucide set alongside the aliases,",
+    "each glyph under its raw Lucide name — so authors can reference e.g.",
+    "'rocket' or 'fingerprint' directly without inventing an alias (and no",
+    "sprite release is needed for a new icon). An explicit id array is still",
+    "accepted for hosts that want a curated, smaller sprite.",
     "",
     "Regenerate the sprite after editing:  npm run build:icons"
   ],
@@ -109,13 +111,11 @@
     "share":        "share-2",
     "flash":        "zap",
     "light":        "sun",
-    "dark":         "moon"
+    "dark":         "moon",
+
+    "ai":           "sparkles",
+    "bot":          "bot"
   },
 
-  "passthrough": [
-    "chevron-up", "chevron-down", "chevron-left", "chevron-right",
-    "circle-plus", "circle-minus", "circle-alert",
-    "arrow-up", "arrow-down", "arrow-left", "arrow-right",
-    "smartphone", "tablet", "monitor", "laptop"
-  ]
+  "passthrough": "*"
 }

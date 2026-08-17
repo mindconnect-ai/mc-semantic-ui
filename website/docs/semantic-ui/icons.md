@@ -18,14 +18,17 @@ For the `icon` node itself — fields, sizes, status colours, live preview — s
 The default sprite ships two kinds of name:
 
 - **Semantic aliases** — `delete`, `edit`, `add`, `back`, `download`, `show`,
-  `folder`, `document`, `info`, `warning`, `error`, `success`, `grid`. These
-  describe *intent*, so they survive a change of icon library.
-- **Raw sprite ids** — whatever the underlying set calls its glyphs.
+  `folder`, `document`, `info`, `warning`, `error`, `success`, `ai`, `bot`.
+  These describe *intent*, so they survive a change of icon library.
+- **Raw ids** — the **entire [Lucide](https://lucide.dev) set** (2000+ glyphs)
+  ships in the sprite, each under its Lucide name: `sparkles`, `rocket`,
+  `fingerprint`, `brain`, … Browse them at [lucide.dev/icons](https://lucide.dev/icons).
 
-Prefer the aliases. They are the reason a re-skin is a config change rather than
-a find-and-replace across your application code.
+Prefer the aliases where one fits. They are the reason a re-skin is a config
+change rather than a find-and-replace across your application code — raw ids
+are tied to Lucide's naming.
 
-The full list lives in
+The alias list lives in
 [`core/mc-semantic-ui-core/icons/icons.json`](https://github.com/mindconnect-ai/mc-semantic-ui/blob/main/core/mc-semantic-ui-core/icons/icons.json).
 An unknown token renders nothing visible — a missing icon is a typo, and it
 fails where you can see it.
