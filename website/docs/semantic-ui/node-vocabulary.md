@@ -18,6 +18,13 @@ rendered element, the `targetId` a [patch](./triggers.md) aims at, the editor's
 selection target, and the anchor for form-field names. Give ids you'd be happy to
 see in a test.
 
+Every node also carries a `display` state: omitted means visible,
+`hidden()` takes the node out of layout (`display:none`) **while keeping it in
+the DOM** — a hidden field's input still rides along in the form submission —
+and `blank()` makes it invisible but preserves its space, so toggling doesn't
+shift the layout. Renderers pick this up automatically; a patch that replaces
+the node with a visible version brings it back.
+
 Each type exists three times over, kept symmetric: a **Java class**, a
 **Handlebars template** for server-side rendering, and a **TypeScript render
 function** for the browser. Adding a type means adding all three — or, in the

@@ -89,9 +89,68 @@ public abstract class UiNode {
     /** A value changed as the user types. */
     private UiTrigger onInput;
 
+    /**
+     * Visibility. {@code null} (the default, omitted from JSON) means visible.
+     * {@link Display#HIDDEN} removes the node from layout ({@code display:none})
+     * but keeps it in the DOM — a hidden {@link UiField}'s input still rides
+     * along in the form submission. {@link Display#BLANK} keeps the node's
+     * space ({@code visibility:hidden}), useful to avoid layout jumps.
+     *
+     * <p>Renderers don't handle this individually: {@link #getCssClass()}
+     * merges the state into the css class ({@code sui-hidden} / {@code
+     * sui-blank}), so every template — SSR and SPA alike — inherits it.
+     */
+    private Display display;
+
+    public enum Display { HIDDEN, BLANK }
+
     @SuppressWarnings("unchecked")
     public <T extends UiNode> T withCssClass(String cssClass) {
-        this.cssClass = cssClass;
+        setCssClass(cssClass);
         return (T) this;
+    }
+
+    /** Removes the node from layout; its DOM (and form fields) stay. */
+    @SuppressWarnings("unchecked")
+    public <T extends UiNode> T hidden() {
+        this.display = Display.HIDDEN;
+        return (T) this;
+    }
+
+    /** Makes the node invisible but keeps its layout space. */
+    @SuppressWarnings("unchecked")
+    public <T extends UiNode> T blank() {
+        this.display = Display.BLANK;
+        return (T) this;
+    }
+
+    /** Back to visible (the default). */
+    @SuppressWarnings("unchecked")
+    public <T extends UiNode> T visible() {
+        this.display = null;
+        return (T) this;
+    }
+
+    /**
+     * The css classes, with the {@link #display} state merged in as
+     * {@code sui-hidden} / {@code sui-blank} — the single point that makes
+     * visibility work in every renderer without per-template handling.
+     */
+    public String getCssClass() {
+        String marker = display == Display.HIDDEN ? "sui-hidden"
+                : display == Display.BLANK ? "sui-blank" : null;
+        if (marker == null) return cssClass;
+        return cssClass == null || cssClass.isBlank() ? marker : cssClass + " " + marker;
+    }
+
+    /** Strips visibility markers — {@link #display} is their source of truth. */
+    public void setCssClass(String cssClass) {
+        if (cssClass == null) {
+            this.cssClass = null;
+            return;
+        }
+        String cleaned = cssClass.replace("sui-hidden", "").replace("sui-blank", "")
+                .replaceAll("\\s+", " ").trim();
+        this.cssClass = cleaned.isEmpty() ? null : cleaned;
     }
 }
