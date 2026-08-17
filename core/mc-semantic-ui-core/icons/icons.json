@@ -113,8 +113,9 @@
     "light":        "sun",
     "dark":         "moon",
 
-    "ai":           "sparkles",
-    "bot":          "bot"
+    "ai":           "brain",
+    "bot":          "bot",
+    "tools":        "wrench"
   },
 
   "passthrough": "*"

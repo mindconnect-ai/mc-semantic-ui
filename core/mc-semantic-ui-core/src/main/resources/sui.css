@@ -748,6 +748,12 @@ a.sui-tree-label:hover { text-decoration: underline; }
    boxes a set of related fields with a title. */
 .sui-cols { align-items: flex-start; }
 .sui-cols > * { flex: 1 1 0; min-width: 0; }
+/* ── Visibility (UiNode.display) ────────────────────────────────────────── */
+/* hidden: out of layout, but still in the DOM — a hidden field's input keeps
+   riding along in form submissions. blank: invisible, space preserved. */
+.sui-hidden { display: none !important; }
+.sui-blank  { visibility: hidden !important; }
+
 /* Works both as the UiFieldGroup <fieldset> and as an opt-in class on a stack.
    The fieldset resets (margin/min-width) keep it flush and flex-shrinkable. */
 .sui-fieldgroup {

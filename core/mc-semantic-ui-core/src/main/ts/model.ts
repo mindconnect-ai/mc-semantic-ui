@@ -59,6 +59,12 @@ export interface UiNodeBase {
     title?: string;
     cssClass?: string;
     /**
+     * Visibility; omitted = visible. Serialized for typed consumers — the web
+     * renderers never read it, because the server already merges the state
+     * into `cssClass` (`sui-hidden` / `sui-blank`).
+     */
+    display?: "HIDDEN" | "BLANK";
+    /**
      * DOM event triggers, inherited by every node type. `onClick` is also the
      * no-JS contract for an action (the server renders a real anchor/form).
      * The nearest handler wins: a button inside a clickable container keeps

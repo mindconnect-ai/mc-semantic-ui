@@ -43,7 +43,10 @@ function innerSvg(lucideId) {
   const raw = readFileSync(path, "utf8");
   const open = raw.indexOf(">", raw.indexOf("<svg"));
   const close = raw.lastIndexOf("</svg>");
-  return raw.slice(open + 1, close).replace(/\s*\n\s*/g, "").trim();
+  // Collapse line breaks to a SINGLE SPACE — some lucide files wrap inside a
+  // tag (`<path\n  d="…"`), and joining with "" would fuse `<path` and `d=`
+  // into an invalid attribute name, killing the whole sprite document.
+  return raw.slice(open + 1, close).replace(/\s*\n\s*/g, " ").trim();
 }
 
 const spec = JSON.parse(readFileSync(SPEC_PATH, "utf8"));
