@@ -566,8 +566,8 @@ export class SuiEventBus {
         const showRunning = running.length > 0;
         const focus = showRunning ? running[0] : completed[0];
         const label = showRunning
-            ? `${focus.label} läuft…`
-            : `${focus.label}: Antwort bereit`;
+            ? `${focus.label} running…`
+            : `${focus.label}: answer ready`;
 
         let toast = this.statusToastId ? document.getElementById(this.statusToastId) : null;
         if (!toast) {
@@ -587,7 +587,7 @@ export class SuiEventBus {
         const link = document.createElement("button");
         link.type = "button";
         link.className = "sui-toast-link";
-        link.textContent = "Zum Chat";
+        link.textContent = "Open chat";
         link.addEventListener("click", () => { void this.doNavigate(focus.returnHref); });
         toast.appendChild(link);
 
@@ -807,23 +807,23 @@ export class SuiEventBus {
      * Default {@link ErrorHandler}: renders a red, sticky-ish error toast via
      * the same body-level toast container the server-driven toasts use, so a
      * failed fetch is visible without any app wiring. Network failures and
-     * HTTP errors get distinct, human-readable German copy (the admin UI is
-     * German); apps needing other locales/UX replace this via
+     * HTTP errors get distinct, human-readable copy; apps needing other
+     * locales/UX replace this via
      * {@link #setOnError}.
      */
     showErrorToast(error: SuiFetchError): void {
         const toast: UiToast = error.kind === "network"
             ? {
                 level: "ERROR",
-                title: "Verbindungsfehler",
-                message: "Das Backend ist nicht erreichbar. Bitte prüfen Sie die "
-                    + "Verbindung und versuchen Sie es erneut.",
+                title: "Connection error",
+                message: "The backend is unreachable. Please check the "
+                    + "connection and try again.",
                 durationMs: 8000,
             }
             : {
                 level: "ERROR",
-                title: "Fehler",
-                message: `Die Anfrage ist fehlgeschlagen (HTTP ${error.response?.status}).`,
+                title: "Error",
+                message: `The request failed (HTTP ${error.response?.status}).`,
                 durationMs: 8000,
             };
         showToasts([toast]);
