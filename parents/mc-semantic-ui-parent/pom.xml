@@ -75,6 +75,7 @@
         <frontend-maven-plugin.version>1.15.0</frontend-maven-plugin.version>
         <handlebars.version>4.3.1</handlebars.version>
         <javafx.version>21.0.4</javafx.version>
+        <commonmark.version>0.24.0</commonmark.version>
         <javafx-maven-plugin.version>0.0.8</javafx-maven-plugin.version>
 
         <!-- Release-to-Central toolchain; only used by the `release` profile. -->
@@ -178,6 +179,11 @@
             </dependency>
             <dependency>
                 <groupId>ai.mindconnect</groupId>
+                <artifactId>mc-semantic-ui-javafx-markdown</artifactId>
+                <version>0.1.4-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.mindconnect</groupId>
                 <artifactId>mc-semantic-ui-ext-json</artifactId>
                 <version>0.1.4-SNAPSHOT</version>
             </dependency>
@@ -223,6 +229,13 @@
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-web</artifactId>
                 <version>${javafx.version}</version>
+            </dependency>
+
+            <!-- Markdown parsing for the JavaFX renderer; no transitive deps. -->
+            <dependency>
+                <groupId>org.commonmark</groupId>
+                <artifactId>commonmark</artifactId>
+                <version>${commonmark.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

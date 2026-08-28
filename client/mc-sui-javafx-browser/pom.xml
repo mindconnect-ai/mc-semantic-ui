@@ -37,9 +37,10 @@
             no JavaFX painters, so such a node comes up blank rather than
             taking the page down with it.
         -->
+        <!-- markdown, with a painter rather than only the type -->
         <dependency>
             <groupId>ai.mindconnect</groupId>
-            <artifactId>mc-semantic-ui-ext-markdown</artifactId>
+            <artifactId>mc-semantic-ui-javafx-markdown</artifactId>
         </dependency>
         <dependency>
             <groupId>ai.mindconnect</groupId>

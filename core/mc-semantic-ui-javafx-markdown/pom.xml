@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ai.mindconnect</groupId>
+        <artifactId>mc-semantic-ui-parent</artifactId>
+        <version>0.1.4-SNAPSHOT</version>
+        <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mc-semantic-ui-javafx-markdown</artifactId>
+    <packaging>jar</packaging>
+    <name>Semantic UI :: JavaFX markdown</name>
+    <!-- Set explicitly: Maven would otherwise append the module path to the
+         parent's url, and flatten-maven-plugin ignores the
+         child.project.url.inherit.append.path=false that suppresses it —
+         the published pom would carry a 404. -->
+    <url>https://github.com/mindconnect-ai/mc-semantic-ui</url>
+    <description>Semantic UI JavaFX markdown — paints the markdown node type on the desktop</description>
+
+    <!-- Published to Maven Central. Experimental, but shipped so consumers can
+         depend on it. See RELEASING.md. -->
+    <properties>
+        <sui.publish.skip>false</sui.publish.skip>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-javafx</artifactId>
+        </dependency>
+        <!-- The node type itself. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-ext-markdown</artifactId>
+        </dependency>
+
+        <!--
+            The parser. The extension ships none: on the web the markdown is
+            turned into HTML by the SSR template or the browser bundle, and
+            neither is any use to a scene graph. commonmark-java is the
+            reference implementation, has no transitive dependencies, and its
+            AST is what this renderer walks.
+        -->
+        <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

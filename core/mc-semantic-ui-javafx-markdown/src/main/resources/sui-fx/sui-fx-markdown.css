@@ -1,0 +1,79 @@
+/*
+ * Markdown, painted as real controls. Layered on top of sui-fx.css from
+ * mc-semantic-ui-javafx and redefining none of its rules.
+ *
+ * Inline runs are Text nodes, not Labels, so their colour is -fx-fill rather
+ * than -fx-text-fill — the one place this file cannot look like the others.
+ */
+
+.sui-markdown {
+    -fx-padding: 0;
+}
+
+/* ── blocks ─────────────────────────────────────────────────────────────── */
+
+.sui-md-heading  { -fx-text-fill: -sui-text; -fx-font-weight: bold; }
+.sui-md-h1       { -fx-font-size: 22; }
+.sui-md-h2       { -fx-font-size: 18; }
+.sui-md-h3       { -fx-font-size: 16; }
+.sui-md-h4,
+.sui-md-h5,
+.sui-md-h6       { -fx-font-size: 14; }
+
+.sui-md-paragraph { -fx-line-spacing: 2; }
+
+.sui-md-bullet {
+    -fx-text-fill: -sui-text-muted;
+}
+
+/* A quote is a left rule and a step in from the text around it. */
+.sui-md-quote {
+    -fx-border-color: transparent transparent transparent -sui-border-strong;
+    -fx-border-width: 0 0 0 3;
+    -fx-padding: 2 0 2 12;
+}
+
+.sui-md-rule {
+    -fx-padding: 4 0 4 0;
+}
+
+.sui-md-code-block {
+    -fx-font-family: "Menlo", "Consolas", "Liberation Mono", monospace;
+    -fx-font-size: 12;
+    -fx-text-fill: -sui-text;
+    -fx-background-color: -sui-surface-alt;
+    -fx-background-radius: 8;
+    -fx-border-color: -sui-border;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 10 12 10 12;
+}
+
+/* ── inline runs ────────────────────────────────────────────────────────── */
+
+.sui-md-text {
+    -fx-fill: -sui-text-body;
+}
+.sui-md-strong {
+    -fx-font-weight: bold;
+    -fx-fill: -sui-text;
+}
+.sui-md-emphasis {
+    -fx-font-style: italic;
+}
+.sui-md-code {
+    -fx-font-family: "Menlo", "Consolas", "Liberation Mono", monospace;
+    -fx-fill: -sui-primary;
+}
+.sui-md-image-alt {
+    -fx-fill: -sui-text-subtle;
+    -fx-font-style: italic;
+}
+
+/* A link inside a paragraph sits on the text baseline, so it gets none of the
+   padding a standalone .sui-link carries. */
+.sui-md-link {
+    -fx-text-fill: -sui-primary;
+    -fx-padding: 0;
+    -fx-border-width: 0;
+}

@@ -661,6 +661,47 @@ class SuiFxRendererTest {
     }
 
     @Test
+    void aSectionOfUnnamedEntriesStacksInsteadOfBecomingTabs() {
+        // What a chat page sends: a transcript and an input box as two entries
+        // of one section, neither named. As tabs that is a bar of blank buttons
+        // with only the first panel visible — a chat you cannot type into.
+        var chat = UiSection.of("chat", null)
+                .section("messages", null, UiText.of("m", "transcript"))
+                .section("input", null, UiText.of("i", "compose"));
+
+        Node painted = onFxThread(() -> new SuiFxEventBus().mount(chat));
+
+        assertThat(painted).isNotInstanceOf(TabPane.class);
+        assertThat(painted.getStyleClass()).contains("sui-section");
+        // Both panels present, not one behind the other.
+        var panels = ((VBox) painted).getChildren();
+        assertThat(panels).hasSize(2);
+        assertThat(panels).allMatch(p -> p.getStyleClass().contains("sui-panel"));
+    }
+
+    @Test
+    void aStackedPanelIsPatchableByItsEntryId() {
+        var chat = UiSection.of("chat", null).section("messages", null, UiText.of("m", "before"));
+
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.mount(chat));
+
+        // The server addresses the panel by the entry's id, as it does on the web.
+        assertThat(onFxThread(() -> bus.context().byId("messages"))).isNotNull();
+    }
+
+    @Test
+    void oneNamedEntryIsStillEnoughForTabs() {
+        var tabs = UiSection.of("s", null)
+                .section("one", "First", UiText.of("a", "a"))
+                .section("two", null, UiText.of("b", "b"));
+
+        Node painted = onFxThread(() -> new SuiFxEventBus().mount(tabs));
+
+        assertThat(painted).isInstanceOf(TabPane.class);
+    }
+
+    @Test
     void aTabCarriesTheEntrysIcon() {
         var section = UiSection.of("tabs", null).section("one", "One", UiText.of("a"));
         section.getSections().get(0).icon("house");
