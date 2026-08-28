@@ -184,6 +184,11 @@
             </dependency>
             <dependency>
                 <groupId>ai.mindconnect</groupId>
+                <artifactId>mc-semantic-ui-javafx-json</artifactId>
+                <version>0.1.4-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.mindconnect</groupId>
                 <artifactId>mc-semantic-ui-ext-json</artifactId>
                 <version>0.1.4-SNAPSHOT</version>
             </dependency>

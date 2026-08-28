@@ -1,0 +1,33 @@
+/*
+ * The JSON viewer: a payload, indented, in a monospace block. Layered on top
+ * of sui-fx.css from mc-semantic-ui-javafx.
+ *
+ * It is a TextArea so the text can be selected and copied, which means the
+ * background has to be set on the inner .content as well — a TextArea paints
+ * its own, and styling only the control leaves a white box inside a tinted one.
+ */
+
+.sui-json-viewer {
+    -fx-font-family: "Menlo", "Consolas", "Liberation Mono", monospace;
+    -fx-font-size: 12;
+    -fx-text-fill: -sui-text;
+    -fx-background-color: -sui-surface-alt;
+    -fx-background-radius: 8;
+    -fx-border-color: -sui-border;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 2;
+}
+.sui-json-viewer .content {
+    -fx-background-color: -sui-surface-alt;
+    -fx-background-radius: 6;
+    -fx-padding: 8 10 8 10;
+}
+/* Read-only, so the caret would only be misleading. */
+.sui-json-viewer:focused .content {
+    -fx-background-color: -sui-surface-alt;
+}
+.sui-json-viewer .scroll-pane,
+.sui-json-viewer .scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}

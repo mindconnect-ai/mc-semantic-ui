@@ -29,6 +29,7 @@
         <module>core/mc-semantic-ui-javafx</module>
         <module>core/mc-semantic-ui-javafx-shell</module>
         <module>core/mc-semantic-ui-javafx-markdown</module>
+        <module>core/mc-semantic-ui-javafx-json</module>
         <module>ext/mc-semantic-ui-ext-json</module>
         <module>ext/mc-semantic-ui-ext-markdown</module>
         <module>ext/mc-semantic-ui-ext-diagram</module>

@@ -661,6 +661,20 @@ class SuiFxRendererTest {
     }
 
     @Test
+    void aHorizontalStackSharesOutTheRoomItIsGiven() {
+        var row = UiStack.of(UiText.of("bar", "a"), UiText.of("label", "b"));
+        row.setDirection(UiStack.Direction.HORIZONTAL);
+
+        var painted = (javafx.scene.layout.HBox) onFxThread(() -> new SuiFxEventBus().mount(row));
+
+        // A VBox stretches its children by itself; an HBox needs telling, or
+        // the row bunches up on the left however much space it has.
+        assertThat(painted.getChildren()).allSatisfy(child ->
+                assertThat(javafx.scene.layout.HBox.getHgrow(child))
+                        .isEqualTo(javafx.scene.layout.Priority.ALWAYS));
+    }
+
+    @Test
     void aSectionOfUnnamedEntriesStacksInsteadOfBecomingTabs() {
         // What a chat page sends: a transcript and an input box as two entries
         // of one section, neither named. As tabs that is a bar of blank buttons

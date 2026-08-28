@@ -44,6 +44,10 @@
         </dependency>
         <dependency>
             <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-javafx-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
             <artifactId>mc-semantic-ui-ext-json</artifactId>
         </dependency>
         <dependency>
