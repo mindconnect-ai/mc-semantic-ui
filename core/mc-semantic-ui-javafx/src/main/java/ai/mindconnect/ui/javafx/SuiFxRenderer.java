@@ -11,6 +11,7 @@ import ai.mindconnect.ui.javafx.renderers.ListRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuButtonRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuRenderer;
 import ai.mindconnect.ui.javafx.renderers.ProgressRenderer;
+import ai.mindconnect.ui.javafx.renderers.ScrollPaneRenderer;
 import ai.mindconnect.ui.javafx.renderers.SectionRenderer;
 import ai.mindconnect.ui.javafx.renderers.SpinnerRenderer;
 import ai.mindconnect.ui.javafx.renderers.StackRenderer;
@@ -30,6 +31,7 @@ import ai.mindconnect.ui.model.UiMenu;
 import ai.mindconnect.ui.model.UiMenuButton;
 import ai.mindconnect.ui.model.UiProgress;
 import ai.mindconnect.ui.model.UiNode;
+import ai.mindconnect.ui.model.UiScrollPane;
 import ai.mindconnect.ui.model.UiSection;
 import ai.mindconnect.ui.model.UiSpinner;
 import ai.mindconnect.ui.model.UiStack;
@@ -63,9 +65,10 @@ import java.util.Optional;
  *
  * <p><b>Covered types:</b> {@code form}, {@code field}, {@code fieldgroup},
  * {@code text}, {@code table}, {@code section} (tabs), {@code stack},
- * {@code action}, {@code tree}, {@code dialog}, {@code spinner},
- * {@code progress}, {@code link}, {@code menu}, {@code menu-button},
- * {@code detail}, {@code list} and {@code upload}. Anything else paints as a
+ * {@code scrollpane}, {@code action}, {@code tree}, {@code dialog},
+ * {@code spinner}, {@code progress}, {@code link}, {@code menu},
+ * {@code menu-button}, {@code detail}, {@code list} and {@code upload}.
+ * Anything else paints as a
  * visible placeholder rather than failing, so a tree that is only partly
  * supported still comes up.
  *
@@ -218,6 +221,7 @@ public class SuiFxRenderer {
         register(UiFieldGroup.class, new FieldGroupRenderer());
         register(UiTable.class,      new TableRenderer());
         register(UiSection.class,    new SectionRenderer());
+        register(UiScrollPane.class, new ScrollPaneRenderer());
         register(UiStack.class,      new StackRenderer());
         register(UiAction.class,     new ActionRenderer());
         register(UiTree.class,       new TreeRenderer());

@@ -587,6 +587,34 @@ class SuiFxRendererTest {
     }
 
     @Test
+    void aScrollPanePaintsItsContentBehindACappedViewport() {
+        var pane = ai.mindconnect.ui.model.UiScrollPane
+                .of("feed", UiStack.of(UiText.of("first"), UiText.of("latest")))
+                .maxHeight("240px")
+                .stickToLatest(true);
+
+        Node painted = onFxThread(() -> new SuiFxEventBus().mount(pane));
+
+        assertThat(painted).isInstanceOf(ScrollPane.class);
+        var scroll = (ScrollPane) painted;
+        assertThat(scroll.getPrefViewportHeight()).isEqualTo(240);
+        assertThat(((VBox) scroll.getContent()).getChildren()).hasSize(2);
+    }
+
+    @Test
+    void aScrollPaneWithAViewportRelativeHeightFillsItsParentInstead() {
+        var pane = ai.mindconnect.ui.model.UiScrollPane
+                .of("feed", UiText.of("body")).maxHeight("60vh");
+
+        var scroll = (ScrollPane) onFxThread(() -> new SuiFxEventBus().mount(pane));
+
+        // 60vh has no JavaFX equivalent, so the pane stays uncapped and the
+        // grow hint gives it whatever the parent column has left.
+        assertThat(scroll.getMaxHeight()).isEqualTo(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
+        assertThat(VBox.getVgrow(scroll)).isEqualTo(javafx.scene.layout.Priority.ALWAYS);
+    }
+
+    @Test
     void anUploadZoneHandsItsFilesToTheTrigger() throws Exception {
         var upload = ai.mindconnect.ui.model.UiUpload.of("import", "Import")
                 .onUpload(UiTrigger.invoke("readFile"));

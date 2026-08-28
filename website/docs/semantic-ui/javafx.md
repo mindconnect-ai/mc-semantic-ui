@@ -132,11 +132,11 @@ the client replaces exactly that panel. The demo does this over a real socket.
 
 ## What is supported
 
-18 node types render today:
+19 node types render today:
 
 | | |
 |---|---|
-| Layout | `UiStack`, `UiSection` (tabs), `UiFieldGroup` |
+| Layout | `UiStack`, `UiSection` (tabs), `UiScrollPane`, `UiFieldGroup` |
 | Data | `UiTable` (sorting, row actions, pagination), `UiTree`, `UiDetail`, `UiList` |
 | Input | `UiForm`, `UiField` (text, textarea, number, boolean, date, select, multiselect, file), `UiUpload` |
 | Action | `UiAction`, `UiLink`, `UiMenu`, `UiMenuButton` |
@@ -155,6 +155,11 @@ without one, `RAIL` behaves like `HIDDEN`.
 `UiField`'s `CURRENCY`, `PERCENT`, `DATETIME` and `REFERENCE` render as a plain
 text field rather than a dedicated control, and `min`/`max`/`step` are carried
 but not enforced.
+
+`UiScrollPane` sticks to the newest content the same way, but without the
+floating jump-to-latest arrow — scrolling back down is what re-arms it. Its
+`maxHeight` takes pixels; a viewport-relative length like `60vh` leaves the
+pane uncapped, filling the space its parent column has left.
 :::
 
 {/* Markdown image syntax inside the columns on purpose: a raw <img src="/img/…">
