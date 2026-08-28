@@ -132,19 +132,150 @@ the client replaces exactly that panel. The demo does this over a real socket.
 
 ## What is supported
 
-18 node types render today:
+20 node types render today:
 
 | | |
 |---|---|
-| Layout | `UiStack`, `UiSection` (tabs), `UiFieldGroup` |
+| Layout | `UiStack`, `UiSection` (tabs), `UiScrollPane`, `UiFieldGroup` |
 | Data | `UiTable` (sorting, row actions, pagination), `UiTree`, `UiDetail`, `UiList` |
 | Input | `UiForm`, `UiField` (text, textarea, number, boolean, date, select, multiselect, file), `UiUpload` |
 | Action | `UiAction`, `UiLink`, `UiMenu`, `UiMenuButton` |
-| Feedback | `UiText`, `UiDialog`, `UiSpinner`, `UiProgress`, toasts |
+| Feedback | `UiText`, `UiIcon`, `UiDialog`, `UiSpinner`, `UiProgress`, toasts |
 
 Anything else paints a visible placeholder instead of throwing, so an unknown
-node degrades rather than taking the window down. Not painted yet: `UiAppShell`,
-`UiHeader`, `UiIcon`, `UiPage`.
+node degrades rather than taking the window down.
+
+`UiAppShell`, `UiHeader` and `UiIFrame` live in a second module — see
+[The shell module](#the-shell-module) below. `UiPage` is a response envelope
+rather than a visual node, and belongs to the event bus — see
+[Pages and navigation](#pages-and-navigation).
+
+### Pages and navigation
+
+`UiTrigger.go(href)` is an `APPLY_RESPONSE` GET, so navigating on the desktop
+means fetching a `UiPage` and applying it. `SuiFxEventBus.applyPage` remounts
+the tree, drops the previous page's dialogs before opening this page's own, and
+sends the toasts to the toast handler.
+
+#### Relative urls
+
+A server writes its links relatively — `/admin/tools`, `/img/logo.svg`,
+`agents/42` — and a browser resolves them against the address of the page they
+arrived on. The desktop needs the same base, or most links on a real screen are
+simply unusable.
+
+`SuiFxEventBus` sets it whenever it applies a page, so an app navigating
+through the bus never has to think about it. Renderers reach it through
+`ctx.resolve(url)`; set it by hand with `renderer.setDocumentBase(url)` when
+mounting a tree you fetched yourself.
+
+Only a page moves the base, exactly as in a browser: a navigation changes it, an
+in-place patch does not.
+
+#### Extension node types
+
+The bus's default mapper calls `findAndRegisterModules()`, so `markdown`,
+`chart`, `diagram` and `json-viewer` parse as soon as their jars are on the
+classpath — without it a page containing one fails to parse at all. A type
+nothing on the classpath knows arrives as `null` and paints as nothing, rather
+than taking the whole page down; the SPA degrades the same way.
+
+`navigate` is the one field with no desktop counterpart — it is a history
+push, and a window has no address bar — so instead of being acted on it goes to
+a handler that does nothing by default:
+
+```java
+bus.setNavigateHandler(href -> breadcrumb.setPath(href));
+```
+
+A page's `activeStreams` **are** acted on; see below.
+
+### Streaming
+
+`STREAM` opens its url as Server-Sent Events and feeds each event to the
+handler registered for its name. `patch` is built in — the universal case, an
+agent writing patches as it thinks — and an app registers whatever else its
+protocol speaks:
+
+```java
+bus.onStreamEvent("token", (data, handle) -> transcript.append(data));
+bus.onStreamEvent("done",  (data, handle) -> input.setDisable(false));
+```
+
+The dispatch returns as soon as the response headers are in, not when the
+stream ends: a button that starts a five-minute run should stop spinning once
+the run has *started*, and the user must stay free to navigate away. The reader
+keeps going until the server closes it or `FxStreamHandle.abort()` is called,
+so a stream outlives the tree it started from.
+
+The server's `Sui-Stream-Channel` header names the channel and its SSE event
+ids carry the channel's sequence, which is what makes resume work: when a page
+lists `activeStreams` this bus is not already reading — after a restart, or in
+a second window — it reconnects to their resume urls on its own.
+`bus.activeStreams()` lists what it is reading.
+
+### The shell module
+
+`mc-semantic-ui-javafx-shell` adds three more node types: `app-shell`, `header`
+and `iframe`.
+
+```xml
+<dependency>
+    <groupId>ai.mindconnect</groupId>
+    <artifactId>mc-semantic-ui-javafx-shell</artifactId>
+</dependency>
+```
+
+```java
+var renderer = SuiFxRenderer.createDefaultRenderer();
+SuiFxShell.install(renderer);
+SuiFxShell.style(scene.getRoot());
+```
+
+It is a separate artifact because of one of the three: `iframe` is a `WebView`,
+and `javafx-web` carries a WebKit build per platform — tens of megabytes. An
+app that wants an app-shell should not have to ship a browser engine it never
+opens.
+
+The shell puts the header on top, the menu and the page side by side beneath
+it, and the footer at the bottom. The page sits in a slot registered under
+`UiAppShell.contentId()`, so a patch can swap it while the header and menu stay
+put — the desktop counterpart of the web shell's `data-sui-slot="content"`.
+
+:::warning `sandbox` is not a security boundary here
+The attribute is a list of permissions the HTML spec defines for an `<iframe>`,
+and a `WebView` implements none of that vocabulary. The renderer honours the
+one distinction it can actually enforce — a `sandbox` without `allow-scripts`
+turns JavaScript off — and can do nothing about the rest. Point a `UiIFrame` at
+content you trust.
+
+`UiHeader.ExtrasOverflow.MENU` is not implemented either: the extras row wraps
+rather than collapsing into a dropdown.
+:::
+
+### Icons
+
+Icons come from the same `icons.svg` sprite the browser loads: the resolver
+rebuilds a symbol's shapes as JavaFX geometry, so an icon token means the same
+glyph in all three renderers and adding one to the sprite lights it up
+everywhere at once. All 2037 Lucide symbols are covered.
+
+The web icon is `1em` in `currentColor`. JavaFX has no such inheritance, so a
+glyph attached to a control binds to that control's font and text fill instead
+— it tracks the label through hover, disable and theme changes. Every model
+type that carries an icon token renders it: `UiAction`, `UiField`, `UiLink`,
+`UiList`, `UiMenuButton`, `UiMenuItem`, `UiSectionEntry`, `UiTable`,
+`UiTreeNode`, plus the standalone `UiIcon`.
+
+Point it somewhere else — a different sprite, an icon font, your own drawings —
+the same way the browser does, with `setIconResolver`:
+
+```java
+renderer.setIconResolver(token -> myOwnGlyphFor(token));
+```
+
+An unknown token paints nothing rather than failing: a typo costs a glyph, not
+the window.
 
 :::warning One place where the same model looks different
 `UiMenu.State.RAIL` **collapses** the menu here instead of narrowing it to an
@@ -155,6 +286,11 @@ without one, `RAIL` behaves like `HIDDEN`.
 `UiField`'s `CURRENCY`, `PERCENT`, `DATETIME` and `REFERENCE` render as a plain
 text field rather than a dedicated control, and `min`/`max`/`step` are carried
 but not enforced.
+
+`UiScrollPane` sticks to the newest content the same way, but without the
+floating jump-to-latest arrow — scrolling back down is what re-arms it. Its
+`maxHeight` takes pixels; a viewport-relative length like `60vh` leaves the
+pane uncapped, filling the space its parent column has left.
 :::
 
 {/* Markdown image syntax inside the columns on purpose: a raw <img src="/img/…">

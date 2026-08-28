@@ -101,7 +101,7 @@ public class SuiFxOverlay extends StackPane {
         card.getStyleClass().addAll("sui-toast", "sui-toast-" + level.name().toLowerCase());
         card.setMaxWidth(360);
 
-        if (toast.getTitle() != null) {
+        if (SuiFxText.present(toast.getTitle())) {
             var title = new Label(toast.getTitle());
             title.getStyleClass().add("sui-toast-title");
             title.setWrapText(true);

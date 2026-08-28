@@ -14,6 +14,7 @@ import ai.mindconnect.ui.model.UiTable;
 import ai.mindconnect.ui.model.UiText;
 import ai.mindconnect.ui.model.UiToast;
 import ai.mindconnect.ui.model.UiTrigger;
+import ai.mindconnect.ui.javafx.icons.SuiFxIcon;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -32,6 +33,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -401,10 +403,11 @@ class SuiFxRendererTest {
         assertThat(button.getStyleClass()).contains(SuiFxEventBus.LOADING_CLASS);
 
         release.countDown();
-        // Two hops: the handler completes onto the FX thread, then the busy
-        // state clears there.
-        onFxThread(() -> null);
-        onFxThread(() -> null);
+        // The handler completes onto the FX thread and the busy state clears
+        // in that same tick — but the background thread decides when it gets
+        // there, so wait for the state itself. A fixed number of hops is a bet
+        // on how fast that thread is scheduled, and it loses often enough.
+        awaitOnFxThread("the busy state to clear", () -> !button.isDisable());
 
         assertThat(button.isDisable()).isFalse();
         assertThat(button.getStyleClass()).doesNotContain(SuiFxEventBus.LOADING_CLASS);
@@ -587,6 +590,155 @@ class SuiFxRendererTest {
     }
 
     @Test
+    void aScrollPanePaintsItsContentBehindACappedViewport() {
+        var pane = ai.mindconnect.ui.model.UiScrollPane
+                .of("feed", UiStack.of(UiText.of("first"), UiText.of("latest")))
+                .maxHeight("240px")
+                .stickToLatest(true);
+
+        Node painted = onFxThread(() -> new SuiFxEventBus().mount(pane));
+
+        assertThat(painted).isInstanceOf(ScrollPane.class);
+        var scroll = (ScrollPane) painted;
+        assertThat(scroll.getPrefViewportHeight()).isEqualTo(240);
+        assertThat(((VBox) scroll.getContent()).getChildren()).hasSize(2);
+    }
+
+    @Test
+    void aScrollPaneWithAViewportRelativeHeightFillsItsParentInstead() {
+        var pane = ai.mindconnect.ui.model.UiScrollPane
+                .of("feed", UiText.of("body")).maxHeight("60vh");
+
+        var scroll = (ScrollPane) onFxThread(() -> new SuiFxEventBus().mount(pane));
+
+        // 60vh has no JavaFX equivalent, so the pane stays uncapped and the
+        // grow hint gives it whatever the parent column has left.
+        assertThat(scroll.getMaxHeight()).isEqualTo(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
+        assertThat(VBox.getVgrow(scroll)).isEqualTo(javafx.scene.layout.Priority.ALWAYS);
+    }
+
+    @Test
+    void aStandaloneIconNodePaintsTheSpriteGlyph() {
+        Node painted = onFxThread(() -> new SuiFxEventBus()
+                .mount(ai.mindconnect.ui.model.UiIcon.of("mark", "brain").labelled("AI")));
+
+        var label = (Label) painted;
+        assertThat(label.getGraphic()).isInstanceOf(SuiFxIcon.class);
+        assertThat(label.getAccessibleText()).isEqualTo("AI");
+    }
+
+    @Test
+    void anUnknownIconTokenLeavesTheNodeEmptyRatherThanFailing() {
+        Node painted = onFxThread(() -> new SuiFxEventBus()
+                .mount(ai.mindconnect.ui.model.UiIcon.of("no-such-token-at-all")));
+
+        assertThat(((Label) painted).getGraphic()).isNull();
+    }
+
+    @Test
+    void anActionWearsItsIconAndSizesItToTheLabel() {
+        var action = UiAction.primary("save", "Save").icon("check");
+
+        var button = (javafx.scene.control.Button) onFxThread(() -> new SuiFxEventBus().mount(action));
+
+        var icon = (SuiFxIcon) button.getGraphic();
+        assertThat(icon).isNotNull();
+        // 1em and currentColor, expressed the way JavaFX can: the glyph tracks
+        // the button's own font and text fill.
+        assertThat(icon.getSize()).isEqualTo(button.getFont().getSize());
+        assertThat(icon.getColor()).isEqualTo(button.getTextFill());
+    }
+
+    @Test
+    void aLoadingActionShowsTheSpinnerRatherThanItsIcon() {
+        var action = UiAction.primary("save", "Save").icon("check");
+        action.setLoading(true);
+
+        var button = (javafx.scene.control.Button) onFxThread(() -> new SuiFxEventBus().mount(action));
+
+        // The web swaps the glyph for the spinner; so does this.
+        assertThat(button.getGraphic()).isInstanceOf(ProgressIndicator.class);
+    }
+
+    @Test
+    void aHorizontalStackSharesOutTheRoomItIsGiven() {
+        var row = UiStack.of(UiText.of("bar", "a"), UiText.of("label", "b"));
+        row.setDirection(UiStack.Direction.HORIZONTAL);
+
+        var painted = (javafx.scene.layout.HBox) onFxThread(() -> new SuiFxEventBus().mount(row));
+
+        // A VBox stretches its children by itself; an HBox needs telling, or
+        // the row bunches up on the left however much space it has.
+        assertThat(painted.getChildren()).allSatisfy(child ->
+                assertThat(javafx.scene.layout.HBox.getHgrow(child))
+                        .isEqualTo(javafx.scene.layout.Priority.ALWAYS));
+    }
+
+    @Test
+    void aSectionOfUnnamedEntriesStacksInsteadOfBecomingTabs() {
+        // What a chat page sends: a transcript and an input box as two entries
+        // of one section, neither named. As tabs that is a bar of blank buttons
+        // with only the first panel visible — a chat you cannot type into.
+        var chat = UiSection.of("chat", null)
+                .section("messages", null, UiText.of("m", "transcript"))
+                .section("input", null, UiText.of("i", "compose"));
+
+        Node painted = onFxThread(() -> new SuiFxEventBus().mount(chat));
+
+        assertThat(painted).isNotInstanceOf(TabPane.class);
+        assertThat(painted.getStyleClass()).contains("sui-section");
+        // Both panels present, not one behind the other.
+        var panels = ((VBox) painted).getChildren();
+        assertThat(panels).hasSize(2);
+        assertThat(panels).allMatch(p -> p.getStyleClass().contains("sui-panel"));
+    }
+
+    @Test
+    void aStackedPanelIsPatchableByItsEntryId() {
+        var chat = UiSection.of("chat", null).section("messages", null, UiText.of("m", "before"));
+
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.mount(chat));
+
+        // The server addresses the panel by the entry's id, as it does on the web.
+        assertThat(onFxThread(() -> bus.context().byId("messages"))).isNotNull();
+    }
+
+    @Test
+    void oneNamedEntryIsStillEnoughForTabs() {
+        var tabs = UiSection.of("s", null)
+                .section("one", "First", UiText.of("a", "a"))
+                .section("two", null, UiText.of("b", "b"));
+
+        Node painted = onFxThread(() -> new SuiFxEventBus().mount(tabs));
+
+        assertThat(painted).isInstanceOf(TabPane.class);
+    }
+
+    @Test
+    void aTabCarriesTheEntrysIcon() {
+        var section = UiSection.of("tabs", null).section("one", "One", UiText.of("a"));
+        section.getSections().get(0).icon("house");
+
+        var pane = (TabPane) onFxThread(() -> new SuiFxEventBus().mount(section));
+
+        assertThat(pane.getTabs().get(0).getGraphic()).isInstanceOf(SuiFxIcon.class);
+    }
+
+    @Test
+    void aSwappedResolverTakesOverEveryIcon() {
+        var renderer = SuiFxRenderer.createDefaultRenderer();
+        // The icon library is not baked in: point the resolver somewhere with
+        // nothing in it and every glyph quietly disappears.
+        renderer.setIconResolver(name -> null);
+
+        var button = (javafx.scene.control.Button) onFxThread(() ->
+                new SuiFxEventBus(renderer).mount(UiAction.primary("save", "Save").icon("check")));
+
+        assertThat(button.getGraphic()).isNull();
+    }
+
+    @Test
     void anUploadZoneHandsItsFilesToTheTrigger() throws Exception {
         var upload = ai.mindconnect.ui.model.UiUpload.of("import", "Import")
                 .onUpload(UiTrigger.invoke("readFile"));
@@ -717,6 +869,26 @@ class SuiFxRendererTest {
     // ── harness ───────────────────────────────────────────────────────────
 
     /** Runs {@code work} on the JavaFX application thread and returns its result. */
+    /**
+     * Polls {@code condition} on the FX thread until it holds, or fails the
+     * test. Use this whenever a background thread decides when the scene graph
+     * changes — draining a couple of {@code runLater} hops only tests whether
+     * that thread happened to win the race.
+     */
+    private static void awaitOnFxThread(String what, BooleanSupplier condition) {
+        var deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        do {
+            if (onFxThread(condition::getAsBoolean)) return;
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError(e);
+            }
+        } while (System.nanoTime() < deadline);
+        throw new AssertionError("timed out waiting for " + what);
+    }
+
     private static <T> T onFxThread(Supplier<T> work) {
         var result = new AtomicReference<T>();
         var error = new AtomicReference<Throwable>();

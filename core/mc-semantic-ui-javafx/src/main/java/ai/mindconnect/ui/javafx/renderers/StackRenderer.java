@@ -7,6 +7,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
 /**
@@ -28,7 +29,16 @@ public class StackRenderer implements FxNodeRenderer<UiStack> {
         } else {
             pane = new VBox(gap);
         }
-        node.getChildren().forEach(child -> pane.getChildren().add(ctx.render(child)));
+        node.getChildren().forEach(child -> {
+            var painted = ctx.render(child);
+            pane.getChildren().add(painted);
+            // A vertical stack is a VBox and stretches its children on its own.
+            // A horizontal one does not: without a grow hint every child keeps
+            // its preferred width and the row bunches up on the left, however
+            // much room it was given. The web's flex row shares the space out;
+            // this is how JavaFX says the same thing.
+            if (pane instanceof HBox) HBox.setHgrow(painted, Priority.ALWAYS);
+        });
         return pane;
     }
 }

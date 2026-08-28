@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.javafx.SuiFxEventBus;
 import ai.mindconnect.ui.model.UiMenuButton;
 import ai.mindconnect.ui.model.UiMenuItem;
@@ -30,11 +31,12 @@ public class MenuButtonRenderer implements FxNodeRenderer<UiMenuButton> {
 
     @Override
     public Node render(UiMenuButton node, FxRenderContext ctx) {
-        var label = node.getLabel() != null ? node.getLabel() : node.getTitle();
-        // The ICON variant has no label on the web either; the glyph would come
-        // from the sprite, which JavaFX has no equivalent for yet — so it falls
-        // back to a compact ellipsis.
-        var button = new MenuButton(label != null ? label : "…");
+        var label = SuiFxText.first(node.getLabel(), node.getTitle());
+        var glyph = ctx.icon(node.getIcon());
+        // The ICON variant carries no label on the web either — it is the glyph.
+        // The ellipsis is the last resort, for a button with neither.
+        var button = new MenuButton(label != null ? label : glyph != null ? "" : "…");
+        if (glyph != null) button.setGraphic(glyph.inherit(button));
 
         if (node.getVariant() != null) {
             button.getStyleClass().add("sui-menu-button-" + node.getVariant().name().toLowerCase());
@@ -50,15 +52,17 @@ public class MenuButtonRenderer implements FxNodeRenderer<UiMenuButton> {
     static MenuItem menuItem(UiMenuItem item, FxRenderContext ctx) {
         if (item.isDivider()) return new SeparatorMenuItem();
 
-        var label = item.getLabel() != null ? item.getLabel() : item.getTitle();
+        var label = SuiFxText.first(item.getLabel(), item.getTitle());
 
         if (item.getChildren() != null && !item.getChildren().isEmpty()) {
             var submenu = new Menu(label);
+            Icons.lead(submenu, item.getIcon(), ctx);
             item.getChildren().forEach(child -> submenu.getItems().add(menuItem(child, ctx)));
             return submenu;
         }
 
         var menuItem = new MenuItem(label);
+        Icons.lead(menuItem, item.getIcon(), ctx);
         menuItem.setId(item.getId());
         menuItem.setDisable(!item.isEnabled());
         if (item.isDanger()) menuItem.getStyleClass().add("sui-menu-item-danger");

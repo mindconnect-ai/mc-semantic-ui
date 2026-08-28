@@ -1,5 +1,6 @@
 package ai.mindconnect.ui.javafx;
 
+import ai.mindconnect.ui.javafx.icons.SuiFxIcon;
 import ai.mindconnect.ui.model.UiNode;
 import javafx.scene.Node;
 
@@ -56,6 +57,25 @@ public class FxRenderContext {
         return renderer;
     }
 
+    /**
+     * Paints an icon token through the renderer's resolver, or {@code null}
+     * when it resolves to nothing. Renderers hang the result off their own
+     * control as a graphic — see {@link SuiFxIcon#inherit}.
+     */
+    public SuiFxIcon icon(String name) {
+        return renderer.icon(name);
+    }
+
+    /**
+     * Makes a url from the model absolute against the page's base — see
+     * {@link SuiFxRenderer#setDocumentBase}. Every renderer that paints a url
+     * an app will later fetch, open or display should put it through here, or
+     * the relative links a real server writes will not work.
+     */
+    public String resolve(String url) {
+        return renderer.resolve(url);
+    }
+
     /** The enclosing form, or {@code null} outside of one. */
     public FxFormScope form() {
         return form;
@@ -64,6 +84,22 @@ public class FxRenderContext {
     /** Looks up a painted node by its model id. */
     public Node byId(String id) {
         return id == null ? null : index.get(id);
+    }
+
+    /**
+     * Indexes {@code node} under an id no model node owns — a slot.
+     *
+     * <p>{@code UiAppShell} is the case this exists for: it paints a content
+     * container of its own and gives it {@link ai.mindconnect.ui.model.UiAppShell#contentId()},
+     * so a patch can swap the page under a header and menu that stay put. The
+     * web renderer does the same with {@code data-sui-slot="content"}.
+     *
+     * <p>Renderers living outside this package have no other way in, and
+     * without it a slot would be invisible to {@link #byId} and so to every
+     * patch.
+     */
+    public void indexSlot(String id, Node node) {
+        index(id, node);
     }
 
     void index(String id, Node node) {

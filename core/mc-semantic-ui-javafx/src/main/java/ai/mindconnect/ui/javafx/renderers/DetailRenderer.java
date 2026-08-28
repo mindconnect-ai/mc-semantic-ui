@@ -12,6 +12,7 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 /**
@@ -57,6 +58,10 @@ public class DetailRenderer implements FxNodeRenderer<UiDetail> {
         // wraps instead of stretching the window.
         var labels = new ColumnConstraints();
         labels.setHalignment(HPos.LEFT);
+        // And they must actually keep it: the value column grows always, and
+        // without a floor here GridPane squeezes this one to nothing — every
+        // term then renders as a bare "..." where its name should be.
+        labels.setMinWidth(Region.USE_PREF_SIZE);
         var values = new ColumnConstraints();
         values.setHgrow(Priority.ALWAYS);
         grid.getColumnConstraints().addAll(labels, values);

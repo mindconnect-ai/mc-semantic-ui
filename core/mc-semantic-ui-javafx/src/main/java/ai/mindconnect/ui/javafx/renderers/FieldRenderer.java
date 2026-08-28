@@ -2,9 +2,11 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiField;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
@@ -19,6 +21,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.util.StringConverter;
@@ -53,7 +56,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
     public Node render(UiField node, FxRenderContext ctx) {
         var box = new VBox(4);
 
-        var labelText = node.getLabel() != null ? node.getLabel() : node.getTitle();
+        var labelText = SuiFxText.first(node.getLabel(), node.getTitle());
         if (labelText != null) {
             var label = new Label(node.isRequired() ? labelText + " *" : labelText);
             label.getStyleClass().add("sui-field-label");
@@ -76,7 +79,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
             value = built.value();
         }
         control.getStyleClass().add("sui-field-control");
-        box.getChildren().add(control);
+        box.getChildren().add(withLeadingIcon(control, node, ctx));
 
         if (node.getId() != null && ctx.form() != null) {
             ctx.form().register(node.getId(), value);
@@ -87,7 +90,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
             error.getStyleClass().add("sui-field-error");
             error.setWrapText(true);
             box.getChildren().add(error);
-        } else if (node.getHint() != null) {
+        } else if (SuiFxText.present(node.getHint())) {
             var hint = new Label(node.getHint());
             hint.getStyleClass().add("sui-field-hint");
             hint.setWrapText(true);
@@ -98,6 +101,30 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
     }
 
     /** A painted control paired with the supplier that reads its current value. */
+    /**
+     * Lays the field's icon over the input's leading padding, the way
+     * {@code .sui-input-icon} does on the web.
+     *
+     * <p>Decorative and single-line only, as the model says: a text area or a
+     * read-only label is handed back untouched. The input takes a style class
+     * so the stylesheet, not this method, decides how much room the glyph gets.
+     */
+    private Node withLeadingIcon(Node control, UiField node, FxRenderContext ctx) {
+        if (node.getIcon() == null || !node.isEditable() || !(control instanceof TextField input)) {
+            return control;
+        }
+        var icon = ctx.icon(node.getIcon());
+        if (icon == null) return control;
+
+        input.getStyleClass().add("sui-input--with-icon");
+        icon.setColor(javafx.scene.paint.Color.web("#94a3b8"));   // -sui-text-subtle, like the placeholder
+
+        var stack = new StackPane(input, icon);
+        stack.setAlignment(Pos.CENTER_LEFT);
+        StackPane.setMargin(icon, new Insets(0, 0, 0, 10));
+        return stack;
+    }
+
     private record Bound(Node control, Supplier<Object> value) { }
 
     private Bound buildControl(UiField node, FxRenderContext ctx) {
@@ -291,7 +318,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
     }
 
     private static String optionLabel(UiField.Option option) {
-        return option.getLabel() != null ? option.getLabel() : option.getValue();
+        return SuiFxText.first(option.getLabel(), option.getValue());
     }
 
     private static StringConverter<UiField.Option> optionConverter() {

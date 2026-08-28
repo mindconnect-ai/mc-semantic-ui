@@ -2,9 +2,11 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiAction;
 import ai.mindconnect.ui.model.UiColumn;
 import ai.mindconnect.ui.model.UiRow;
+import ai.mindconnect.ui.model.UiTrigger;
 import ai.mindconnect.ui.model.UiTable;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -39,10 +41,18 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
     public Node render(UiTable node, FxRenderContext ctx) {
         var box = new VBox(8);
 
-        if (node.getTitle() != null) {
+        if (SuiFxText.present(node.getTitle())) {
             var title = new Label(node.getTitle());
             title.getStyleClass().add("sui-table-title");
+            Icons.lead(title, node.getIcon(), ctx);
             box.getChildren().add(title);
+        }
+
+        // Whatever the server wants above the table — a search box, a filter
+        // row. The web puts it in the header; without this it is dropped and
+        // the user simply has no way to filter.
+        if (node.getHeaderExtra() != null) {
+            box.getChildren().add(ctx.render(node.getHeaderExtra()));
         }
 
         if (!node.getActions().isEmpty()) {
@@ -63,7 +73,12 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
 
     private TableView<UiRow> buildTable(UiTable node, FxRenderContext ctx) {
         var table = new TableView<UiRow>(FXCollections.observableArrayList(node.getRows()));
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        // Unconstrained on purpose: the constrained policies force every column
+        // into the available width, so a table with more columns than room
+        // squeezes them all instead of scrolling — and the row actions on the
+        // far right become unreachable. The web scrolls such a table sideways;
+        // this policy is what lets the TableView do the same.
+        table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
 
         for (UiColumn column : node.getColumns()) {
             table.getColumns().add(dataColumn(column, node, ctx));
@@ -83,7 +98,7 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
     }
 
     private TableColumn<UiRow, String> dataColumn(UiColumn column, UiTable node, FxRenderContext ctx) {
-        var label = column.getLabel() != null ? column.getLabel() : column.getTitle();
+        var label = SuiFxText.first(column.getLabel(), column.getTitle());
         var tc = new TableColumn<UiRow, String>(label == null ? column.getDataKey() : label);
         tc.setId(column.getId());
         tc.setSortable(column.isSortable());
@@ -98,6 +113,11 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
     private TableColumn<UiRow, Void> rowActionColumn(UiTable node, FxRenderContext ctx) {
         var tc = new TableColumn<UiRow, Void>("");
         tc.setSortable(false);
+        // Wide enough for its buttons and no narrower: this column is the one
+        // the user came for, and a default-width column would clip them.
+        double width = Math.max(90, 96.0 * node.getRowActions().size());
+        tc.setMinWidth(width);
+        tc.setPrefWidth(width);
         tc.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(Void item, boolean empty) {
@@ -110,18 +130,29 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
                 var buttons = new HBox(4);
                 buttons.setAlignment(Pos.CENTER_LEFT);
                 for (UiAction action : node.getRowActions()) {
-                    var button = new Button(action.getLabel() != null ? action.getLabel() : action.getTitle());
+                    var button = new Button(SuiFxText.first(action.getLabel(), action.getTitle()));
                     // Carry the action's style, the same class ActionRenderer
                     // uses, so a danger row action reads as one.
                     if (action.getStyle() != null) {
                         button.getStyleClass().add("sui-action-" + action.getStyle().name().toLowerCase());
                     }
+                    if (action.getAppearance() != null) {
+                        button.getStyleClass().add("sui-action-" + action.getAppearance().name().toLowerCase());
+                    }
+                    Icons.lead(button, action.getIcon(), ctx);
                     button.setDisable(!action.isEnabled());
+
+                    // One trigger template is shared by every row, so it is
+                    // resolved against this row before it is fired.
+                    var trigger = Triggers.forRow(action.getOnClick(), row);
                     // The row is the payload source here — a row action acts on
                     // the row it sits in, not on the table.
                     button.setOnAction(e -> {
+                        if (trigger == null) return;
+                        if (action.getConfirm() != null
+                                && !MenuButtonRenderer.confirmed(action.getConfirm())) return;
                         ctx.bus().registerPayloadSource(row.getId(), () -> row.getData());
-                        ctx.bus().dispatch(action.getOnClick(), row, ctx);
+                        ctx.bus().dispatch(trigger, row, ctx);
                     });
                     buttons.getChildren().add(button);
                 }
@@ -197,11 +228,12 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
         previous.setDisable(page.getPage() <= 0);
         next.setDisable(page.getPage() >= lastPage);
 
-        // First draft: both buttons fire the page trigger as modelled. Carrying
-        // the target page number needs a place in the trigger to put it — see
-        // UiTable.Pagination#pageTrigger.
-        previous.setOnAction(e -> ctx.bus().dispatch(page.getPageTrigger(), node, ctx));
-        next.setOnAction(e -> ctx.bus().dispatch(page.getPageTrigger(), node, ctx));
+        // The target page goes into the trigger's {page}, which is exactly the
+        // place UiTable.Pagination#pageTrigger documents for it.
+        var back = Triggers.forPage(page.getPageTrigger(), page.getPage() - 1);
+        var forward = Triggers.forPage(page.getPageTrigger(), page.getPage() + 1);
+        previous.setOnAction(e -> ctx.bus().dispatch(back, node, ctx));
+        next.setOnAction(e -> ctx.bus().dispatch(forward, node, ctx));
 
         var bar = new HBox(8, previous, next, status);
         bar.setAlignment(Pos.CENTER_LEFT);

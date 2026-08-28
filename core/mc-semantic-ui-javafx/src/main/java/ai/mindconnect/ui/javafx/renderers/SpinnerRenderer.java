@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiSpinner;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -34,7 +35,7 @@ public class SpinnerRenderer implements FxNodeRenderer<UiSpinner> {
         indicator.setMinSize(size, size);
         indicator.setMaxSize(size, size);
 
-        var label = node.getLabel() != null ? node.getLabel() : node.getTitle();
+        var label = SuiFxText.first(node.getLabel(), node.getTitle());
         if (label == null) return indicator;
 
         var row = new HBox(8, indicator, new Label(label));

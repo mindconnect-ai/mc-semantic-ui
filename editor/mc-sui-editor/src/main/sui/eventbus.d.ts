@@ -415,9 +415,10 @@ export declare class SuiEventBus {
      * Default {@link ErrorHandler}: renders a red, sticky-ish error toast via
      * the same body-level toast container the server-driven toasts use, so a
      * failed fetch is visible without any app wiring. Network failures and
-     * HTTP errors get distinct, human-readable German copy (the admin UI is
-     * German); apps needing other locales/UX replace this via
-     * {@link #setOnError}.
+     * HTTP errors get distinct, human-readable copy from the
+     * {@code suiI18n} catalog (see {@code i18n.ts} — register or activate a
+     * locale bundle there); apps needing a different UX altogether replace
+     * this via {@link #setOnError}.
      */
     showErrorToast(error: SuiFetchError): void;
     /**

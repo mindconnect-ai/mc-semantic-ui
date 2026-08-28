@@ -1,0 +1,101 @@
+/*
+ * Chrome for the app-shell, its header and the embedded browsing context.
+ * Layered on top of sui-fx.css from mc-semantic-ui-javafx: this file adds the
+ * shell's own rules and redefines none of the base ones, so loading order
+ * between the two never matters.
+ *
+ * The -sui-* colours are looked-up colours declared on .root by sui-fx.css.
+ * They resolve at use, so a host that redefines them restyles the shell too.
+ */
+
+/* ── app shell ──────────────────────────────────────────────────────────── */
+
+.sui-shell {
+    -fx-background-color: -sui-bg;
+}
+.sui-shell-body {
+    -fx-background-color: transparent;
+}
+/* The page itself. Padding lives here rather than on the content node, so a
+   swapped-in page needs no chrome of its own to sit right. */
+.sui-shell-content {
+    -fx-background-color: transparent;
+    -fx-padding: 20;
+}
+/* The page scrolls when it outgrows the window; the base stylesheet already
+   makes .scroll-pane and its viewport transparent, so the shell colour shows
+   through. */
+.sui-shell-scroll {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.sui-shell-footer {
+    -fx-background-color: -sui-surface;
+    -fx-border-color: -sui-border transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 12 20 12 20;
+}
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+
+.sui-header {
+    -fx-background-color: -sui-surface;
+    -fx-border-color: transparent transparent -sui-border transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 10 16 10 16;
+    -fx-min-height: 56;
+}
+.sui-header-brand {
+    -fx-font-size: 16;
+    -fx-font-weight: bold;
+    -fx-text-fill: -sui-text;
+}
+/* The brand is a Hyperlink when it navigates; strip the underline and the
+   focus ring so it reads as a wordmark rather than a link in a sentence. */
+.sui-header-brand:visited,
+.sui-header-brand:hover {
+    -fx-underline: false;
+}
+.sui-header-brand:focused {
+    -fx-border-color: transparent;
+}
+.sui-header-burger {
+    -fx-background-color: transparent;
+    -fx-text-fill: -sui-text-muted;
+    -fx-padding: 4 8 4 8;
+}
+.sui-header-burger:hover {
+    -fx-background-color: -sui-border-soft;
+    -fx-background-radius: 8;
+}
+.sui-header-username {
+    -fx-text-fill: -sui-text-body;
+}
+/* Initials in a circle: a JavaFX Label has no border-radius shorthand, so the
+   radius is half the fixed size and the two must move together. */
+.sui-header-avatar {
+    -fx-min-width: 32;
+    -fx-min-height: 32;
+    -fx-pref-width: 32;
+    -fx-pref-height: 32;
+    -fx-alignment: center;
+    -fx-background-color: -sui-primary-soft;
+    -fx-background-radius: 16;
+    -fx-text-fill: -sui-primary;
+    -fx-font-size: 12;
+    -fx-font-weight: bold;
+}
+.sui-header-user--clickable:hover {
+    -fx-cursor: hand;
+}
+
+/* ── iframe ─────────────────────────────────────────────────────────────── */
+
+.sui-iframe {
+    -fx-background-color: -sui-surface;
+    -fx-border-color: -sui-border;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-border-width: 1;
+}

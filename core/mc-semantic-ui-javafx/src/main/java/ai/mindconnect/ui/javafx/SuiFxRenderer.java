@@ -10,7 +10,14 @@ import ai.mindconnect.ui.javafx.renderers.LinkRenderer;
 import ai.mindconnect.ui.javafx.renderers.ListRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuButtonRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuRenderer;
+import java.net.URI;
+
+import ai.mindconnect.ui.javafx.icons.FxIconResolver;
+import ai.mindconnect.ui.javafx.icons.SpriteIconResolver;
+import ai.mindconnect.ui.javafx.icons.SuiFxIcon;
+import ai.mindconnect.ui.javafx.renderers.IconRenderer;
 import ai.mindconnect.ui.javafx.renderers.ProgressRenderer;
+import ai.mindconnect.ui.javafx.renderers.ScrollPaneRenderer;
 import ai.mindconnect.ui.javafx.renderers.SectionRenderer;
 import ai.mindconnect.ui.javafx.renderers.SpinnerRenderer;
 import ai.mindconnect.ui.javafx.renderers.StackRenderer;
@@ -28,8 +35,10 @@ import ai.mindconnect.ui.model.UiLink;
 import ai.mindconnect.ui.model.UiList;
 import ai.mindconnect.ui.model.UiMenu;
 import ai.mindconnect.ui.model.UiMenuButton;
+import ai.mindconnect.ui.model.UiIcon;
 import ai.mindconnect.ui.model.UiProgress;
 import ai.mindconnect.ui.model.UiNode;
+import ai.mindconnect.ui.model.UiScrollPane;
 import ai.mindconnect.ui.model.UiSection;
 import ai.mindconnect.ui.model.UiSpinner;
 import ai.mindconnect.ui.model.UiStack;
@@ -63,9 +72,10 @@ import java.util.Optional;
  *
  * <p><b>Covered types:</b> {@code form}, {@code field}, {@code fieldgroup},
  * {@code text}, {@code table}, {@code section} (tabs), {@code stack},
- * {@code action}, {@code tree}, {@code dialog}, {@code spinner},
- * {@code progress}, {@code link}, {@code menu}, {@code menu-button},
- * {@code detail}, {@code list} and {@code upload}. Anything else paints as a
+ * {@code scrollpane}, {@code icon}, {@code action}, {@code tree}, {@code dialog},
+ * {@code spinner}, {@code progress}, {@code link}, {@code menu},
+ * {@code menu-button}, {@code detail}, {@code list} and {@code upload}.
+ * Anything else paints as a
  * visible placeholder rather than failing, so a tree that is only partly
  * supported still comes up.
  *
@@ -91,6 +101,8 @@ import java.util.Optional;
 public class SuiFxRenderer {
 
     private final Map<Class<?>, FxNodeRenderer<?>> renderers = new HashMap<>();
+    private FxIconResolver iconResolver = new SpriteIconResolver();
+    private URI documentBase;
 
     /** Model class → the {@code type} discriminator, read off {@link UiNode}'s Jackson config. */
     private static final Map<Class<?>, String> TYPE_NAMES = readTypeNames();
@@ -208,6 +220,92 @@ public class SuiFxRenderer {
     }
 
     /**
+     * Where the current page came from — the desktop's stand-in for a
+     * document's base URI.
+     *
+     * <p>A server writes its own links relatively: {@code /admin/tools},
+     * {@code /img/logo.svg}, {@code agents/42}. A browser resolves those
+     * against the address of the page they arrived on, and without an
+     * equivalent here every such link is simply unusable — which is most of
+     * them, on any real server.
+     *
+     * <p>{@link SuiFxEventBus} sets this when it applies a page, so an app
+     * that navigates through the bus never has to think about it.
+     */
+    public SuiFxRenderer setDocumentBase(String url) {
+        this.documentBase = toUri(url);
+        return this;
+    }
+
+    public URI documentBase() {
+        return documentBase;
+    }
+
+    /**
+     * Makes {@code url} absolute against {@link #documentBase()}.
+     *
+     * <p>An absolute url is returned untouched, and so is a relative one when
+     * no base is known — better to let the caller fail on the original string
+     * than to invent a host for it.
+     */
+    public String resolve(String url) {
+        if (url == null || url.isBlank()) return url;
+        var base = documentBase;
+        if (base == null) return url;
+        var trimmed = url.trim();
+        // A scheme means it stands on its own. Note this also covers data: and
+        // file:, which must not be resolved against an http base.
+        if (trimmed.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*")) return trimmed;
+        try {
+            // A query-only reference ("?page=2") keeps the base's path. Java's
+            // URI.resolve predates RFC 3986 and drops the last path segment
+            // instead, which would turn /admin/agents?page=2 into /admin/?page=2
+            // — so this one case is assembled by hand.
+            if (trimmed.startsWith("?")) {
+                var path = base.getRawPath() == null ? "" : base.getRawPath();
+                return URI.create(base.getScheme() + "://" + base.getRawAuthority() + path + trimmed)
+                        .toString();
+            }
+            return base.resolve(trimmed).toString();
+        } catch (IllegalArgumentException | NullPointerException notAUrl) {
+            return url;
+        }
+    }
+
+    private static URI toUri(String url) {
+        if (url == null || url.isBlank()) return null;
+        try {
+            return URI.create(url.trim());
+        } catch (IllegalArgumentException malformed) {
+            return null;
+        }
+    }
+
+    /**
+     * Turns an icon token into a glyph. Swap it to point at a different
+     * sprite, an icon font, or your own drawings — the JavaFX twin of
+     * {@code setIconResolver()} in {@code renderers/icon.ts}, and the reason
+     * no renderer here knows what an icon library is.
+     */
+    public SuiFxRenderer setIconResolver(FxIconResolver resolver) {
+        this.iconResolver = resolver == null ? new SpriteIconResolver() : resolver;
+        return this;
+    }
+
+    public FxIconResolver iconResolver() {
+        return iconResolver;
+    }
+
+    /**
+     * Paints an icon token, or {@code null} when it resolves to nothing —
+     * an absent name, an unknown token, an unreadable sprite. Callers treat
+     * that as "no icon" and carry on.
+     */
+    public SuiFxIcon icon(String name) {
+        return name == null || name.isBlank() ? null : iconResolver.resolve(name);
+    }
+
+    /**
      * Registers the built-in renderers. The JavaFX twin of
      * {@code installDefaultHandlers()} in {@code renderer.ts}.
      */
@@ -218,6 +316,8 @@ public class SuiFxRenderer {
         register(UiFieldGroup.class, new FieldGroupRenderer());
         register(UiTable.class,      new TableRenderer());
         register(UiSection.class,    new SectionRenderer());
+        register(UiScrollPane.class, new ScrollPaneRenderer());
+        register(UiIcon.class,       new IconRenderer());
         register(UiStack.class,      new StackRenderer());
         register(UiAction.class,     new ActionRenderer());
         register(UiTree.class,       new TreeRenderer());

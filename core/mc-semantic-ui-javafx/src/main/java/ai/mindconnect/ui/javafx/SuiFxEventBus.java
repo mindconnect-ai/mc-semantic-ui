@@ -1,12 +1,14 @@
 package ai.mindconnect.ui.javafx;
 
 import ai.mindconnect.ui.model.UiDialog;
+import ai.mindconnect.ui.model.UiPage;
 import ai.mindconnect.ui.model.UiNode;
 import ai.mindconnect.ui.model.UiPatch;
 import ai.mindconnect.ui.model.UiRow;
 import ai.mindconnect.ui.model.UiToast;
 import ai.mindconnect.ui.model.UiUpload;
 import ai.mindconnect.ui.model.UiTrigger;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -32,6 +34,8 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -90,6 +94,13 @@ public class SuiFxEventBus {
     /** Style class put on the clicked control while its trigger is in flight. */
     public static final String LOADING_CLASS = "is-loading";
 
+    /**
+     * The id the server appends dialogs to. The SPA creates a real container
+     * under it; here it names no node at all, and is recognised purely so the
+     * operations aimed at it can be turned into windows.
+     */
+    public static final String DIALOG_HOST_ID = "sui-dialogs";
+
     private final SuiFxRenderer renderer;
     private final ObjectMapper mapper;
     private final Map<String, FxBehaviorHandler> behaviors = new ConcurrentHashMap<>();
@@ -111,6 +122,15 @@ public class SuiFxEventBus {
             System.getLogger(SuiFxEventBus.class.getName())
                     .log(System.Logger.Level.ERROR, "SuiFxEventBus: trigger failed", err);
     private Consumer<String> linkOpener = SuiFxEventBus::browse;
+    /** No address bar on a desktop window, so a navigate hint goes nowhere by default. */
+    private Consumer<String> navigateHandler = href -> { };
+    /** A page's resume list reconnects by default, now that this bus reads SSE. */
+    private Consumer<List<UiPage.ActiveStream>> activeStreamHandler = this::reconnectMissingStreams;
+    /** Open dialog windows by node id, so a patch can close the one it names. */
+    private final java.util.Map<String, Stage> openDialogs = new java.util.LinkedHashMap<>();
+    /** Live SSE streams by channel id. A stream outlives the tree it started from. */
+    private final Map<String, FxStreamHandle> streams = new ConcurrentHashMap<>();
+    private final Map<String, FxStreamEventHandler> streamEventHandlers = new ConcurrentHashMap<>();
     private Consumer<File> downloadHandler = file ->
             System.getLogger(SuiFxEventBus.class.getName())
                     .log(System.Logger.Level.INFO, "SuiFxEventBus: downloaded to " + file);
@@ -128,7 +148,30 @@ public class SuiFxEventBus {
      * }</pre>
      */
     public SuiFxEventBus(SuiFxRenderer renderer) {
-        this(renderer, new ObjectMapper());
+        this(renderer, defaultMapper());
+    }
+
+    /**
+     * The mapper a bus uses when it is given none.
+     *
+     * <p>Two things a plain {@code new ObjectMapper()} gets wrong here.
+     *
+     * <p>It finds no extension node types. {@code markdown}, {@code chart},
+     * {@code diagram} and {@code json-viewer} register themselves through
+     * Jackson's ServiceLoader, which is what {@code findAndRegisterModules()}
+     * reads — without it a page containing any of them fails to parse at all.
+     *
+     * <p>And it treats a type it has never heard of as fatal, losing the whole
+     * page over one node. The SPA renderer does not: an unknown node paints a
+     * placeholder and the rest of the screen comes up. Disabling
+     * {@code FAIL_ON_INVALID_SUBTYPE} gets the same outcome here — the unknown
+     * node arrives as {@code null} and paints as nothing, while everything
+     * around it survives.
+     */
+    public static ObjectMapper defaultMapper() {
+        return new ObjectMapper()
+                .findAndRegisterModules()
+                .disable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE);
     }
 
     public SuiFxEventBus(SuiFxRenderer renderer, ObjectMapper mapper) {
@@ -136,6 +179,15 @@ public class SuiFxEventBus {
         this.mapper = mapper;
         renderer.setBus(this);
         installDefaultBehaviors();
+        // A patch event is universal enough to be built in; an app can replace
+        // it by registering another handler under the same name.
+        onStreamEvent("patch", (data, handle) -> {
+            try {
+                applyPatch(mapper.readValue(data, UiPatch.class));
+            } catch (Exception e) {
+                reportError(e);
+            }
+        });
         // The overlay is both the host and the toast/busy surface, so if the
         // renderer is already attached to one, wire it up with no extra call.
         if (renderer.host() != null) setOverlay(renderer.host());
@@ -444,11 +496,172 @@ public class SuiFxEventBus {
     public void applyPatch(UiPatch patch) {
         if (patch == null) return;
         onFxThread(() -> {
+            // Dialogs are windows here, not scene-graph children, so the
+            // operations aimed at the dialog host never reach the renderer.
+            var forRenderer = UiPatch.of();
+            for (var op : patch.getPatches()) {
+                if (!applyDialogOperation(op)) forRenderer.patch(op);
+            }
             // Node operations are the renderer's job (it owns the id index);
             // toasts are the bus's, since only it knows the toast handler.
-            renderer.applyPatch(patch);
+            if (!forRenderer.getPatches().isEmpty()) renderer.applyPatch(forRenderer);
             if (patch.getToasts() != null) patch.getToasts().forEach(toastHandler);
         });
+    }
+
+    /**
+     * Handles the operations that address dialogs rather than the tree.
+     *
+     * <p>The SPA keeps a body-level {@code #sui-dialogs} host and opens a
+     * dialog by appending it there, closes it by removing it by id. A desktop
+     * has no such container — a dialog is a window — so those operations are
+     * intercepted here and turned into windows. Without this the server's
+     * "open a dialog" patch finds no target and the button appears to do
+     * nothing at all, which is what it did.
+     *
+     * @return {@code true} when the operation was handled and must not go on
+     *         to the renderer
+     */
+    private boolean applyDialogOperation(UiPatch.Operation op) {
+        if (op == null || op.getOp() == null) return false;
+        var target = op.getTargetId();
+
+        if (DIALOG_HOST_ID.equals(target)) {
+            switch (op.getOp()) {
+                case APPEND -> openDialog(op.getNode());
+                case REPLACE -> {
+                    closeAllDialogs();
+                    openDialog(op.getNode());
+                }
+                case CLEAR -> closeAllDialogs();
+                default -> { }
+            }
+            return true;
+        }
+
+        var stage = openDialogs.get(target);
+        if (stage != null) {
+            switch (op.getOp()) {
+                case REMOVE -> closeDialog(target);
+                case REPLACE -> {
+                    closeDialog(target);
+                    openDialog(op.getNode());
+                }
+                // Anything else names a node inside the dialog's own tree,
+                // which the renderer indexed when it painted it.
+                default -> {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // "Make sure this dialog is gone" for one that is not open. The SPA
+        // removes nothing and carries on; the renderer would report a missing
+        // target, so swallow it here.
+        return op.getOp() == UiPatch.Op.REMOVE
+                && (renderer.context() == null || renderer.context().byId(target) == null);
+    }
+
+    /**
+     * Applies a {@link UiPage} — the response envelope a full navigation comes
+     * back in, as opposed to the in-place {@link UiPatch}.
+     *
+     * <p>This is what makes {@code UiTrigger.go(href)} work on the desktop: it
+     * is an {@code APPLY_RESPONSE} GET, and the page it fetches arrives here.
+     *
+     * <p>A page is a fresh screen, so it remounts the tree and drops the
+     * previous page's dialogs before opening its own — the same reset the SPA
+     * performs on its dialog host.
+     *
+     * <p>Two fields have no desktop counterpart and are handed to a handler
+     * rather than acted on: {@code navigate} is an address-bar push, and a
+     * window has no address bar; {@code activeStreams} asks the client to
+     * re-attach to server-sent event streams, which this bus does not read
+     * (its {@code STREAM} behaviour throws). Both default to doing nothing.
+     * See {@link #setNavigateHandler} and {@link #setActiveStreamHandler}.
+     */
+    public void applyPage(UiPage page) {
+        applyPage(page, null);
+    }
+
+    /**
+     * Applies a page fetched from {@code sourceUrl}, which becomes the base
+     * every relative url in it resolves against — see
+     * {@link SuiFxRenderer#setDocumentBase}. A page's own {@code navigate}
+     * refines it, the way a redirect does in a browser.
+     */
+    public void applyPage(UiPage page, String sourceUrl) {
+        if (page == null) return;
+        onFxThread(() -> {
+            // Before the mount: renderers paint asset urls (a brand logo, an
+            // iframe src) while the tree is being built, and they resolve
+            // against whatever the base is at that moment.
+            if (sourceUrl != null) renderer.setDocumentBase(renderer.resolve(sourceUrl));
+            if (page.getNavigate() != null) {
+                renderer.setDocumentBase(renderer.resolve(page.getNavigate()));
+            }
+            if (page.getNode() != null) renderer.mount(page.getNode());
+
+            // The tree the old dialogs were anchored to is gone; close them
+            // before painting this page's own.
+            closeAllDialogs();
+            if (page.getDialogs() != null) page.getDialogs().forEach(this::openDialog);
+
+            if (page.getToasts() != null) page.getToasts().forEach(toastHandler);
+            if (page.getNavigate() != null) {
+                navigateHandler.accept(renderer.resolve(page.getNavigate()));
+            }
+            if (page.getActiveStreams() != null && !page.getActiveStreams().isEmpty()) {
+                activeStreamHandler.accept(page.getActiveStreams());
+            }
+        });
+    }
+
+    /** Opens a dialog node as a window and remembers it under its id. */
+    private void openDialog(UiNode node) {
+        if (!(node instanceof UiDialog dialog)) return;
+        var stage = showDialog(dialog);
+        if (stage == null) return;
+
+        var id = dialog.getId() == null ? "sui-dialog-" + UUID.randomUUID() : dialog.getId();
+        openDialogs.put(id, stage);
+        // The user can close the window themselves; drop it either way, or a
+        // later patch would try to close a stage that is already gone.
+        stage.setOnHidden(e -> openDialogs.remove(id, stage));
+    }
+
+    private void closeDialog(String id) {
+        var stage = openDialogs.remove(id);
+        if (stage != null) stage.close();
+    }
+
+    /** Closes every dialog this bus has open. */
+    private void closeAllDialogs() {
+        List.copyOf(openDialogs.values()).forEach(Stage::close);
+        openDialogs.clear();
+    }
+
+    /**
+     * What to do with a page's {@code navigate} hint. On the web it is a
+     * history push; a desktop window has no address bar, so the default does
+     * nothing. Set it if the app keeps its own history, breadcrumb or
+     * back button.
+     */
+    public SuiFxEventBus setNavigateHandler(Consumer<String> handler) {
+        this.navigateHandler = handler == null ? href -> { } : handler;
+        return this;
+    }
+
+    /**
+     * What to do with the streams a page says are still running. This bus has
+     * no SSE reader — its {@code STREAM} behaviour throws — so the default does
+     * nothing. An app that registered its own {@code STREAM} behaviour can hook
+     * this to reconnect the channels it is not already reading.
+     */
+    public SuiFxEventBus setActiveStreamHandler(Consumer<List<UiPage.ActiveStream>> handler) {
+        this.activeStreamHandler = handler == null ? streams -> { } : handler;
+        return this;
     }
 
     /** Shows a toast through the configured handler. */
@@ -559,10 +772,11 @@ public class SuiFxEventBus {
 
         registerBehavior(UiTrigger.Behavior.APPLY_RESPONSE.name(), ctx ->
                 sendAsync(ctx, HttpResponse.BodyHandlers.ofString())
-                        .thenAccept(body -> onFxThread(() -> applyResponse(body))));
+                        .thenAccept(body -> onFxThread(
+                                () -> applyResponse(body, ctx.trigger().getUrl()))));
 
         registerBehavior(UiTrigger.Behavior.OPEN_IN_TAB.name(), ctx -> {
-            linkOpener.accept(ctx.trigger().getUrl());
+            linkOpener.accept(renderer.resolve(ctx.trigger().getUrl()));
             return null;
         });
 
@@ -580,11 +794,188 @@ public class SuiFxEventBus {
 
         registerBehavior(UiTrigger.Behavior.UPLOAD.name(), this::uploadBehavior);
 
-        registerBehavior(UiTrigger.Behavior.STREAM.name(), ctx -> {
-            throw new UnsupportedOperationException(
-                    "STREAM is not implemented by the JavaFX renderer yet — "
-                            + "register your own behaviour to handle it");
+        registerBehavior(UiTrigger.Behavior.STREAM.name(), this::streamBehavior);
+    }
+
+    // ── streaming ─────────────────────────────────────────────────────────
+
+    /**
+     * Registers (or replaces) a handler for one SSE event name. Handlers run
+     * on the FX thread and may touch the scene graph.
+     */
+    public SuiFxEventBus onStreamEvent(String name, FxStreamEventHandler handler) {
+        if (name != null && handler != null) streamEventHandlers.put(name, handler);
+        return this;
+    }
+
+    /** The streams this bus is reading, running or finished. */
+    public Collection<FxStreamHandle> activeStreams() {
+        return java.util.Collections.unmodifiableCollection(streams.values());
+    }
+
+    /**
+     * Built-in {@code STREAM} behaviour: opens the trigger's url as an SSE
+     * stream and feeds each event to the handler registered under its name.
+     *
+     * <p>Fire-and-forget on purpose. The returned stage completes as soon as
+     * the response headers are in, not when the stream ends — a button that
+     * starts a five-minute agent run should stop spinning once the run has
+     * <em>started</em>, and the user must be free to navigate away meanwhile.
+     * The reader keeps going until the server closes it or
+     * {@link FxStreamHandle#abort()} is called.
+     */
+    private CompletionStage<?> streamBehavior(FxTriggerContext ctx) {
+        var trigger = ctx.trigger();
+        var builder = HttpRequest.newBuilder(URI.create(renderer.resolve(trigger.getUrl())))
+                .header("Accept", "text/event-stream");
+
+        // A stream is a POST by default: it usually carries the prompt or the
+        // form that starts the work. Same default the SPA uses.
+        var method = trigger.getMethod() == null ? "POST" : trigger.getMethod().toUpperCase();
+        if ("GET".equals(method) || "DELETE".equals(method)) {
+            builder.method(method, HttpRequest.BodyPublishers.noBody());
+        } else {
+            try {
+                builder.header("Content-Type", "application/json")
+                        .method(method, HttpRequest.BodyPublishers.ofString(
+                                mapper.writeValueAsString(ctx.payload())));
+            } catch (Exception e) {
+                return CompletableFuture.failedFuture(e);
+            }
+        }
+
+        return http.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofLines())
+                .thenAccept(response -> {
+                    if (response.statusCode() >= 400) {
+                        reportError(new IllegalStateException(
+                                "STREAM " + trigger.getUrl() + " failed: HTTP " + response.statusCode()));
+                        return;
+                    }
+                    consume(response, header(response, "Sui-Stream-Channel", null),
+                            header(response, "Sui-Stream-Label", "Agent"),
+                            header(response, "Sui-Stream-Return-Href", trigger.getUrl()));
+                })
+                .whenComplete((ok, err) -> {
+                    if (err != null) reportError(err);
+                });
+    }
+
+    /**
+     * Reads an SSE body off the IO pool and dispatches its events.
+     *
+     * <p>{@link HttpResponse.BodyHandlers#ofLines()} hands back a lazy stream
+     * of lines, so consuming it <em>is</em> reading the socket — which is why
+     * this runs on the IO executor and never on the FX thread.
+     */
+    private FxStreamHandle consume(HttpResponse<java.util.stream.Stream<String>> response,
+                                   String channelId, String label, String returnHref) {
+
+        var lines = response.body();
+        var id = channelId != null ? channelId : "sse-" + UUID.randomUUID();
+        var handle = new FxStreamHandle(id, label, returnHref, lines::close);
+        streams.put(id, handle);
+
+        io.execute(() -> {
+            try {
+                var block = new ArrayList<String>();
+                var iterator = lines.iterator();
+                while (iterator.hasNext()) {
+                    var line = iterator.next();
+                    // A blank line ends an event; anything before it belongs to it.
+                    if (line.isEmpty()) {
+                        dispatchSseBlock(block, handle);
+                        block.clear();
+                    } else {
+                        block.add(line);
+                    }
+                }
+                dispatchSseBlock(block, handle);   // a final event with no trailing blank
+                if (handle.state() == FxStreamHandle.State.RUNNING) {
+                    handle.state(FxStreamHandle.State.COMPLETED);
+                }
+            } catch (Exception e) {
+                // An abort closes the body mid-read and lands here; so does a
+                // dropped connection. Neither is worth an error dialog.
+                handle.state(FxStreamHandle.State.ERRORED);
+            } finally {
+                lines.close();
+            }
         });
+        return handle;
+    }
+
+    /** Parses one {@code event:}/{@code data:}/{@code id:} block and routes it. */
+    private void dispatchSseBlock(List<String> block, FxStreamHandle handle) {
+        if (block.isEmpty()) return;
+
+        var event = "message";
+        var data = new StringBuilder();
+        for (String line : block) {
+            if (line.startsWith(":")) continue;                  // comment / keep-alive
+            if (line.startsWith("event:")) {
+                event = line.substring(6).trim();
+            } else if (line.startsWith("data:")) {
+                if (!data.isEmpty()) data.append('\n');
+                data.append(line.substring(5).stripLeading());
+            } else if (line.startsWith("id:")) {
+                try {
+                    // The server publishes the channel's monotonic seq here, so
+                    // tracking it is what lets a reconnect skip what we saw.
+                    handle.seen(Long.parseLong(line.substring(3).trim()));
+                } catch (NumberFormatException ignored) {
+                    // A non-numeric id is not ours to interpret.
+                }
+            }
+        }
+        var handler = streamEventHandlers.get(event);
+        if (handler == null) return;
+        var payload = data.toString();
+        onFxThread(() -> {
+            try {
+                handler.handle(payload, handle);
+            } catch (Exception e) {
+                reportError(e);
+            }
+        });
+    }
+
+    /**
+     * Re-attaches to the streams a page says are still running and this bus is
+     * not already reading — after a restart, or in a second window. The server
+     * replays from its ring buffer, so {@code lastSeq=0} asks for everything it
+     * still has.
+     *
+     * <p>Quiet on failure: a resume url that 404s means the stream finished
+     * between the page being rendered and this call, and the next page will
+     * simply not list it.
+     */
+    public void reconnectMissingStreams(List<UiPage.ActiveStream> entries) {
+        if (entries == null) return;
+        for (var entry : entries) {
+            if (entry.getChannelId() == null || entry.getResumeUrl() == null) continue;
+            if (streams.containsKey(entry.getChannelId())) continue;
+
+            var url = entry.getResumeUrl() + (entry.getResumeUrl().contains("?") ? "&" : "?") + "lastSeq=0";
+            var request = HttpRequest.newBuilder(URI.create(renderer.resolve(url)))
+                    .header("Accept", "text/event-stream")
+                    .GET()
+                    .build();
+            http.sendAsync(request, HttpResponse.BodyHandlers.ofLines())
+                    .thenAccept(response -> {
+                        if (response.statusCode() >= 400) {
+                            response.body().close();
+                            return;
+                        }
+                        consume(response, entry.getChannelId(),
+                                entry.getLabel() == null ? "Agent" : entry.getLabel(),
+                                entry.getReturnHref());
+                    })
+                    .exceptionally(err -> null);
+        }
+    }
+
+    private static String header(HttpResponse<?> response, String name, String fallback) {
+        return response.headers().firstValue(name).orElse(fallback);
     }
 
     /**
@@ -613,14 +1004,15 @@ public class SuiFxEventBus {
             return CompletableFuture.failedFuture(e);
         }
 
-        var request = HttpRequest.newBuilder(URI.create(ctx.trigger().getUrl()))
+        var request = HttpRequest.newBuilder(URI.create(renderer.resolve(ctx.trigger().getUrl())))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .header("Accept", "application/json")
                 .method(method, HttpRequest.BodyPublishers.ofByteArray(body))
                 .build();
 
         return http.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenAccept(response -> onFxThread(() -> applyResponse(response.body())));
+                .thenAccept(response -> onFxThread(
+                        () -> applyResponse(response.body(), ctx.trigger().getUrl())));
     }
 
     /** The multipart field name for an upload source. */
@@ -658,11 +1050,19 @@ public class SuiFxEventBus {
      * Routes a JSON response body the way the SPA's default response handler
      * does: a {@code UiPatch} is applied, a full {@code UiNode} remounts.
      */
-    private void applyResponse(String body) {
+    private void applyResponse(String body, String sourceUrl) {
         if (body == null || body.isBlank()) return;
         try {
             var tree = mapper.readTree(body);
-            if (tree.has("patches") || tree.has("toasts")) {
+            // Type first: a UiPage carries toasts too, so testing for those
+            // ahead of the discriminator would read a whole page as a patch
+            // and drop its node on the floor.
+            if ("page".equals(tree.path("type").asText(null))) {
+                // Only a page moves the base, exactly as in a browser: a
+                // navigation changes document.baseURI, an in-place patch does
+                // not, or a POST to some endpoint would rebase the whole tree.
+                applyPage(mapper.treeToValue(tree, UiPage.class), sourceUrl);
+            } else if (tree.has("patches") || tree.has("toasts")) {
                 applyPatch(mapper.treeToValue(tree, UiPatch.class));
             } else if (tree.has("type")) {
                 var node = mapper.treeToValue(tree, UiNode.class);
@@ -685,7 +1085,7 @@ public class SuiFxEventBus {
             FxTriggerContext ctx, HttpResponse.BodyHandler<T> bodyHandler) {
 
         var trigger = ctx.trigger();
-        var builder = HttpRequest.newBuilder(URI.create(trigger.getUrl()));
+        var builder = HttpRequest.newBuilder(URI.create(renderer.resolve(trigger.getUrl())));
         var method = trigger.getMethod() == null ? "GET" : trigger.getMethod().toUpperCase();
 
         if ("GET".equals(method) || "DELETE".equals(method)) {

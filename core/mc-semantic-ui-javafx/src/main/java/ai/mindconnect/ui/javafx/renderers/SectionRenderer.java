@@ -2,6 +2,8 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiSection;
 import ai.mindconnect.ui.model.UiSectionEntry;
 import javafx.scene.Node;
@@ -9,6 +11,8 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TitledPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.VBox;
 
 /**
  * Paints {@link UiSection} as a {@link TabPane} — the tabs of the vocabulary.
@@ -28,12 +32,24 @@ public class SectionRenderer implements FxNodeRenderer<UiSection> {
 
     @Override
     public Node render(UiSection node, FxRenderContext ctx) {
+        if (isStack(node)) {
+            var stacked = stack(node, ctx);
+            if (SuiFxText.present(node.getCollapseSummary())) {
+                var titled = new TitledPane(node.getCollapseSummary(), stacked);
+                titled.setExpanded(node.isCollapseOpen());
+                return titled;
+            }
+            return stacked;
+        }
+
         var pane = new TabPane();
         pane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
         for (UiSectionEntry entry : node.getSections()) {
             var tab = new Tab(entry.getTitle() == null ? entry.getId() : entry.getTitle());
             tab.setId(entry.getId());
+            var icon = ctx.icon(entry.getIcon());
+            if (icon != null) tab.setGraphic(icon);
             if (entry.getContent() != null) {
                 tab.setContent(scrollable(ctx.render(entry.getContent())));
             }
@@ -49,7 +65,7 @@ public class SectionRenderer implements FxNodeRenderer<UiSection> {
 
         wireSelection(node, pane, ctx);
 
-        if (node.getCollapseSummary() != null) {
+        if (SuiFxText.present(node.getCollapseSummary())) {
             var titled = new TitledPane(node.getCollapseSummary(), pane);
             titled.setExpanded(node.isCollapseOpen());
             return titled;
@@ -58,6 +74,47 @@ public class SectionRenderer implements FxNodeRenderer<UiSection> {
     }
 
     /**
+     * Whether this section is a stack rather than a set of tabs: every entry
+     * unnamed and pointing nowhere.
+     *
+     * <p>The same rule the web renderer applies, and for the same reason. A
+     * chat page sends its message list and its input box as two entries of one
+     * section, neither named. As tabs that is a bar of blank buttons with only
+     * the first panel visible — which shows up as a chat you cannot type into.
+     * A section meant as tabs always names them.
+     */
+    private boolean isStack(UiSection node) {
+        var entries = node.getSections();
+        if (entries == null || entries.isEmpty()) return false;
+        return entries.stream().noneMatch(e ->
+                SuiFxText.present(e.getTitle()) || SuiFxText.present(e.getHref()));
+    }
+
+    /** Every panel visible, one under the other. */
+    private Node stack(UiSection node, FxRenderContext ctx) {
+        var box = new VBox(8);
+        box.getStyleClass().add("sui-section");
+
+        for (UiSectionEntry entry : node.getSections()) {
+            if (entry.getContent() == null) continue;
+            var panel = new VBox(ctx.render(entry.getContent()));
+            panel.getStyleClass().add("sui-panel");
+            panel.setMinHeight(0);
+            // The panel is a slot the server can patch by the entry's id, the
+            // way it patches the <div class="sui-panel" id="..."> on the web.
+            ctx.indexSlot(entry.getId(), panel);
+            box.getChildren().add(panel);
+        }
+        // The last panel is the one that gives way — a chat's input box keeps
+        // its height while the transcript above it takes the rest.
+        if (!box.getChildren().isEmpty()) {
+            VBox.setVgrow(box.getChildren().get(0), Priority.ALWAYS);
+        }
+        return box;
+    }
+
+    /**
+     * Puts a tab's panel in a {@link ScrollPane}.    /**
      * Puts a tab's panel in a {@link ScrollPane}.
      *
      * <p>Without this, a panel taller than the window is simply clipped and

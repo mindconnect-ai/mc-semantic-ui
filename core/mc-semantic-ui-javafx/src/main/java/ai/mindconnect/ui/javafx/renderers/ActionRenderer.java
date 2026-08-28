@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.javafx.SuiFxEventBus;
 import ai.mindconnect.ui.model.UiAction;
 import javafx.scene.Node;
@@ -22,7 +23,7 @@ public class ActionRenderer implements FxNodeRenderer<UiAction> {
 
     @Override
     public Node render(UiAction node, FxRenderContext ctx) {
-        var label = node.getLabel() != null ? node.getLabel() : node.getTitle();
+        var label = SuiFxText.first(node.getLabel(), node.getTitle());
         ButtonBase button = node.getAppearance() == UiAction.Appearance.LINK
                 ? new Hyperlink(label)
                 : new Button(label);
@@ -33,6 +34,10 @@ public class ActionRenderer implements FxNodeRenderer<UiAction> {
         if (node.getAppearance() != null) {
             button.getStyleClass().add("sui-action-" + node.getAppearance().name().toLowerCase());
         }
+
+        // Before the loading branch: a busy action swaps its icon for the
+        // spinner, exactly as the web does.
+        Icons.lead(button, node.getIcon(), ctx);
 
         button.setDisable(!node.isEnabled() || node.isLoading());
         if (node.isLoading()) {
