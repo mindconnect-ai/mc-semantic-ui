@@ -324,8 +324,10 @@
 .tab-pane .tab:selected {
     -fx-background-color: -sui-surface;
     /* top/right/left slate, bottom in the surface colour so the card opens
-       seamlessly into the panel — the same trick the web tabs use. */
-    -fx-border-color: -sui-border-strong -sui-border-strong -sui-surface -sui-border-strong;
+       seamlessly into the panel — the same trick the web tabs use. Same
+       -sui-border as the panel below, or the shared outline would change
+       shade at the seam where the two meet. */
+    -fx-border-color: -sui-border -sui-border -sui-surface -sui-border;
 }
 .tab-pane .tab .tab-label {
     -fx-text-fill: -sui-text-muted;
@@ -338,6 +340,18 @@
 .tab-pane:focused > .tab-header-area > .headers-region > .tab:selected .focus-indicator {
     -fx-border-color: transparent;
 }
+/* The panel carries the card chrome and closes the shape the tabs open: the
+   header area's bottom border is its top edge, so it paints none of its own.
+   Without the surface fill it fell through to the window background and the
+   selected tab's merged bottom edge had nothing to merge into. */
+.tab-pane > .tab-content-area {
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 0 0 12 12;
+    -fx-border-color: transparent -sui-border -sui-border -sui-border;
+    -fx-border-width: 0 1 1 1;
+    -fx-border-radius: 0 0 12 12;
+    -fx-padding: 18 20 18 20;
+}
 
 /* ── scroll panes ───────────────────────────────────────────────────────── */
 
@@ -346,7 +360,9 @@
     -fx-background-color: transparent;
 }
 .sui-section-scroll {
-    -fx-padding: 12 0 0 0;
+    /* The panel's own padding spaces the content now; a top inset here on top
+       of it would just push the first row down twice. */
+    -fx-padding: 0;
 }
 
 /* ── titled panes (collapsible lists) ───────────────────────────────────── */
