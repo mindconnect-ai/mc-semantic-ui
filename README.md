@@ -87,6 +87,7 @@ is a sweet spot, and where it explicitly isn't.
 |---------------------------------------|----------------------------------------------------------------------------|
 | `core/mc-semantic-ui-core`            | UiNode model + dual renderer (Handlebars SSR + TypeScript SPA bus + CSS)   |
 | `core/mc-semantic-ui-javafx`          | Third renderer: the same tree as a native JavaFX desktop client ([README](core/mc-semantic-ui-javafx/README.md)) |
+| `core/mc-semantic-ui-javafx-shell`    | `app-shell`, `header` and `iframe` for the JavaFX renderer; separate because `iframe` needs a WebView |
 | `ext/mc-semantic-ui-ext-json`         | `UiJsonViewer` — collapsible JSON view (browser-side, auto-config)         |
 | `ext/mc-semantic-ui-ext-markdown`     | `UiMarkdown` — Markdown → HTML (browser-side, auto-config)                 |
 | `ext/mc-semantic-ui-ext-diagram`      | Diagram extension (canvas-style graph nodes / edges)                       |
@@ -441,11 +442,13 @@ mc-semantic-ui/                            — repo root (the build reactor)
 │           ├── renderers/*.ts             — one file per UiNode
 │           ├── eventbus.ts                — SuiEventBus (SPA upgrade)
 │           └── sui-bootstrap.ts           — entry script for SPA mode
-│   └── mc-semantic-ui-javafx/             — the same tree as a desktop client
-│       ├── src/main/java/.../javafx/       — SuiFxRenderer + SuiFxEventBus
-│       ├── .../javafx/renderers/*.java     — one file per UiNode
-│       ├── .../javafx/demo/                — runnable DemoApplication
-│       └── src/main/resources/sui-fx/      — sui-fx.css (the FX design system)
+│   ├── mc-semantic-ui-javafx/             — the same tree as a desktop client
+│   │   ├── src/main/java/.../javafx/       — SuiFxRenderer + SuiFxEventBus
+│   │   ├── .../javafx/renderers/*.java     — one file per UiNode
+│   │   ├── .../javafx/icons/               — the sprite, rebuilt as FX shapes
+│   │   ├── .../javafx/demo/                — runnable DemoApplication
+│   │   └── src/main/resources/sui-fx/      — sui-fx.css (the FX design system)
+│   └── mc-semantic-ui-javafx-shell/       — app-shell, header, iframe (pulls in WebView)
 │
 ├── ext/                                   — optional modules; each adds node
 │   │                                        types the core can't draw itself

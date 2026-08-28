@@ -44,6 +44,9 @@ only the types it can draw itself — anything needing its own painter is an
 extension.
 
 - `core/mc-semantic-ui-core` — `UiNode` model + dual renderer (the heart)
+- `core/mc-semantic-ui-javafx` — third renderer, a JavaFX desktop client;
+  `core/mc-semantic-ui-javafx-shell` adds `app-shell`/`header`/`iframe`
+  (split off because `iframe` needs `javafx-web`'s per-platform WebKit)
 - `ext/mc-semantic-ui-ext-json` (`json-viewer`),
   `ext/mc-semantic-ui-ext-markdown` (`markdown`),
   `ext/mc-semantic-ui-ext-diagram` (`diagram`),

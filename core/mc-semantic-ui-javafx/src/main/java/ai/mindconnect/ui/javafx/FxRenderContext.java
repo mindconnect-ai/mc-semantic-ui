@@ -76,6 +76,22 @@ public class FxRenderContext {
         return id == null ? null : index.get(id);
     }
 
+    /**
+     * Indexes {@code node} under an id no model node owns — a slot.
+     *
+     * <p>{@code UiAppShell} is the case this exists for: it paints a content
+     * container of its own and gives it {@link ai.mindconnect.ui.model.UiAppShell#contentId()},
+     * so a patch can swap the page under a header and menu that stay put. The
+     * web renderer does the same with {@code data-sui-slot="content"}.
+     *
+     * <p>Renderers living outside this package have no other way in, and
+     * without it a slot would be invisible to {@link #byId} and so to every
+     * patch.
+     */
+    public void indexSlot(String id, Node node) {
+        index(id, node);
+    }
+
     void index(String id, Node node) {
         if (id != null && !id.isBlank()) index.put(id, node);
     }

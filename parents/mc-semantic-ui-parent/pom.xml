@@ -173,6 +173,11 @@
             </dependency>
             <dependency>
                 <groupId>ai.mindconnect</groupId>
+                <artifactId>mc-semantic-ui-javafx-shell</artifactId>
+                <version>0.1.4-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.mindconnect</groupId>
                 <artifactId>mc-semantic-ui-ext-json</artifactId>
                 <version>0.1.4-SNAPSHOT</version>
             </dependency>
@@ -212,6 +217,11 @@
             <dependency>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-controls</artifactId>
+                <version>${javafx.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-web</artifactId>
                 <version>${javafx.version}</version>
             </dependency>
         </dependencies>

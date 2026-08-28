@@ -27,6 +27,7 @@
         <!-- Third renderer: the same UiNode tree as a JavaFX rich client.
              Its tests skip themselves on a machine without a display. -->
         <module>core/mc-semantic-ui-javafx</module>
+        <module>core/mc-semantic-ui-javafx-shell</module>
         <module>ext/mc-semantic-ui-ext-json</module>
         <module>ext/mc-semantic-ui-ext-markdown</module>
         <module>ext/mc-semantic-ui-ext-diagram</module>

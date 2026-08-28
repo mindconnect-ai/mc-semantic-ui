@@ -143,8 +143,51 @@ the client replaces exactly that panel. The demo does this over a real socket.
 | Feedback | `UiText`, `UiIcon`, `UiDialog`, `UiSpinner`, `UiProgress`, toasts |
 
 Anything else paints a visible placeholder instead of throwing, so an unknown
-node degrades rather than taking the window down. Not painted yet: `UiAppShell`,
-`UiHeader`, `UiIFrame`, `UiPage`.
+node degrades rather than taking the window down. Not painted yet: `UiPage` —
+which is a response envelope rather than a visual node, and belongs to the
+event bus rather than to a renderer.
+
+`UiAppShell`, `UiHeader` and `UiIFrame` live in a second module — see
+[The shell module](#the-shell-module) below.
+
+### The shell module
+
+`mc-semantic-ui-javafx-shell` adds three more node types: `app-shell`, `header`
+and `iframe`.
+
+```xml
+<dependency>
+    <groupId>ai.mindconnect</groupId>
+    <artifactId>mc-semantic-ui-javafx-shell</artifactId>
+</dependency>
+```
+
+```java
+var renderer = SuiFxRenderer.createDefaultRenderer();
+SuiFxShell.install(renderer);
+SuiFxShell.style(scene.getRoot());
+```
+
+It is a separate artifact because of one of the three: `iframe` is a `WebView`,
+and `javafx-web` carries a WebKit build per platform — tens of megabytes. An
+app that wants an app-shell should not have to ship a browser engine it never
+opens.
+
+The shell puts the header on top, the menu and the page side by side beneath
+it, and the footer at the bottom. The page sits in a slot registered under
+`UiAppShell.contentId()`, so a patch can swap it while the header and menu stay
+put — the desktop counterpart of the web shell's `data-sui-slot="content"`.
+
+:::warning `sandbox` is not a security boundary here
+The attribute is a list of permissions the HTML spec defines for an `<iframe>`,
+and a `WebView` implements none of that vocabulary. The renderer honours the
+one distinction it can actually enforce — a `sandbox` without `allow-scripts`
+turns JavaScript off — and can do nothing about the rest. Point a `UiIFrame` at
+content you trust.
+
+`UiHeader.ExtrasOverflow.MENU` is not implemented either: the extras row wraps
+rather than collapsing into a dropdown.
+:::
 
 ### Icons
 
