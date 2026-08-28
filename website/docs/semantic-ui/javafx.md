@@ -143,12 +143,31 @@ the client replaces exactly that panel. The demo does this over a real socket.
 | Feedback | `UiText`, `UiIcon`, `UiDialog`, `UiSpinner`, `UiProgress`, toasts |
 
 Anything else paints a visible placeholder instead of throwing, so an unknown
-node degrades rather than taking the window down. Not painted yet: `UiPage` —
-which is a response envelope rather than a visual node, and belongs to the
-event bus rather than to a renderer.
+node degrades rather than taking the window down.
 
 `UiAppShell`, `UiHeader` and `UiIFrame` live in a second module — see
-[The shell module](#the-shell-module) below.
+[The shell module](#the-shell-module) below. `UiPage` is a response envelope
+rather than a visual node, and belongs to the event bus — see
+[Pages and navigation](#pages-and-navigation).
+
+### Pages and navigation
+
+`UiTrigger.go(href)` is an `APPLY_RESPONSE` GET, so navigating on the desktop
+means fetching a `UiPage` and applying it. `SuiFxEventBus.applyPage` remounts
+the tree, drops the previous page's dialogs before opening this page's own, and
+sends the toasts to the toast handler.
+
+Two fields of a page have no desktop counterpart, so instead of being acted on
+they are offered to a handler that does nothing by default:
+
+| Field | Why | Hook |
+|---|---|---|
+| `navigate` | a history push; a window has no address bar | `setNavigateHandler` |
+| `activeStreams` | asks the client to re-attach to SSE streams, and this bus reads none (its `STREAM` behaviour throws) | `setActiveStreamHandler` |
+
+```java
+bus.setNavigateHandler(href -> breadcrumb.setPath(href));
+```
 
 ### The shell module
 

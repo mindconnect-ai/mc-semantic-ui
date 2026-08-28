@@ -1,6 +1,7 @@
 package ai.mindconnect.ui.javafx;
 
 import ai.mindconnect.ui.model.UiDialog;
+import ai.mindconnect.ui.model.UiPage;
 import ai.mindconnect.ui.model.UiNode;
 import ai.mindconnect.ui.model.UiPatch;
 import ai.mindconnect.ui.model.UiRow;
@@ -32,6 +33,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -111,6 +113,12 @@ public class SuiFxEventBus {
             System.getLogger(SuiFxEventBus.class.getName())
                     .log(System.Logger.Level.ERROR, "SuiFxEventBus: trigger failed", err);
     private Consumer<String> linkOpener = SuiFxEventBus::browse;
+    /** No address bar on a desktop window, so a navigate hint goes nowhere by default. */
+    private Consumer<String> navigateHandler = href -> { };
+    /** No SSE reader here, so a page's resume list goes nowhere by default. */
+    private Consumer<List<UiPage.ActiveStream>> activeStreamHandler = streams -> { };
+    /** Dialogs this bus opened for the current page, so the next page can close them. */
+    private final List<Stage> pageDialogs = new ArrayList<>();
     private Consumer<File> downloadHandler = file ->
             System.getLogger(SuiFxEventBus.class.getName())
                     .log(System.Logger.Level.INFO, "SuiFxEventBus: downloaded to " + file);
@@ -451,6 +459,75 @@ public class SuiFxEventBus {
         });
     }
 
+    /**
+     * Applies a {@link UiPage} — the response envelope a full navigation comes
+     * back in, as opposed to the in-place {@link UiPatch}.
+     *
+     * <p>This is what makes {@code UiTrigger.go(href)} work on the desktop: it
+     * is an {@code APPLY_RESPONSE} GET, and the page it fetches arrives here.
+     *
+     * <p>A page is a fresh screen, so it remounts the tree and drops the
+     * previous page's dialogs before opening its own — the same reset the SPA
+     * performs on its dialog host.
+     *
+     * <p>Two fields have no desktop counterpart and are handed to a handler
+     * rather than acted on: {@code navigate} is an address-bar push, and a
+     * window has no address bar; {@code activeStreams} asks the client to
+     * re-attach to server-sent event streams, which this bus does not read
+     * (its {@code STREAM} behaviour throws). Both default to doing nothing.
+     * See {@link #setNavigateHandler} and {@link #setActiveStreamHandler}.
+     */
+    public void applyPage(UiPage page) {
+        if (page == null) return;
+        onFxThread(() -> {
+            if (page.getNode() != null) renderer.mount(page.getNode());
+
+            // The tree the old dialogs were anchored to is gone; close them
+            // before painting this page's own.
+            closePageDialogs();
+            if (page.getDialogs() != null) page.getDialogs().forEach(this::openPageDialog);
+
+            if (page.getToasts() != null) page.getToasts().forEach(toastHandler);
+            if (page.getNavigate() != null) navigateHandler.accept(page.getNavigate());
+            if (page.getActiveStreams() != null && !page.getActiveStreams().isEmpty()) {
+                activeStreamHandler.accept(page.getActiveStreams());
+            }
+        });
+    }
+
+    private void openPageDialog(UiDialog dialog) {
+        var stage = showDialog(dialog);
+        if (stage != null) pageDialogs.add(stage);
+    }
+
+    /** Closes the dialogs this bus opened for the outgoing page. */
+    private void closePageDialogs() {
+        pageDialogs.forEach(Stage::close);
+        pageDialogs.clear();
+    }
+
+    /**
+     * What to do with a page's {@code navigate} hint. On the web it is a
+     * history push; a desktop window has no address bar, so the default does
+     * nothing. Set it if the app keeps its own history, breadcrumb or
+     * back button.
+     */
+    public SuiFxEventBus setNavigateHandler(Consumer<String> handler) {
+        this.navigateHandler = handler == null ? href -> { } : handler;
+        return this;
+    }
+
+    /**
+     * What to do with the streams a page says are still running. This bus has
+     * no SSE reader — its {@code STREAM} behaviour throws — so the default does
+     * nothing. An app that registered its own {@code STREAM} behaviour can hook
+     * this to reconnect the channels it is not already reading.
+     */
+    public SuiFxEventBus setActiveStreamHandler(Consumer<List<UiPage.ActiveStream>> handler) {
+        this.activeStreamHandler = handler == null ? streams -> { } : handler;
+        return this;
+    }
+
     /** Shows a toast through the configured handler. */
     public void toast(UiToast toast) {
         if (toast != null) onFxThread(() -> toastHandler.accept(toast));
@@ -662,7 +739,12 @@ public class SuiFxEventBus {
         if (body == null || body.isBlank()) return;
         try {
             var tree = mapper.readTree(body);
-            if (tree.has("patches") || tree.has("toasts")) {
+            // Type first: a UiPage carries toasts too, so testing for those
+            // ahead of the discriminator would read a whole page as a patch
+            // and drop its node on the floor.
+            if ("page".equals(tree.path("type").asText(null))) {
+                applyPage(mapper.treeToValue(tree, UiPage.class));
+            } else if (tree.has("patches") || tree.has("toasts")) {
                 applyPatch(mapper.treeToValue(tree, UiPatch.class));
             } else if (tree.has("type")) {
                 var node = mapper.treeToValue(tree, UiNode.class);
