@@ -157,6 +157,29 @@ means fetching a `UiPage` and applying it. `SuiFxEventBus.applyPage` remounts
 the tree, drops the previous page's dialogs before opening this page's own, and
 sends the toasts to the toast handler.
 
+#### Relative urls
+
+A server writes its links relatively — `/admin/tools`, `/img/logo.svg`,
+`agents/42` — and a browser resolves them against the address of the page they
+arrived on. The desktop needs the same base, or most links on a real screen are
+simply unusable.
+
+`SuiFxEventBus` sets it whenever it applies a page, so an app navigating
+through the bus never has to think about it. Renderers reach it through
+`ctx.resolve(url)`; set it by hand with `renderer.setDocumentBase(url)` when
+mounting a tree you fetched yourself.
+
+Only a page moves the base, exactly as in a browser: a navigation changes it, an
+in-place patch does not.
+
+#### Extension node types
+
+The bus's default mapper calls `findAndRegisterModules()`, so `markdown`,
+`chart`, `diagram` and `json-viewer` parse as soon as their jars are on the
+classpath — without it a page containing one fails to parse at all. A type
+nothing on the classpath knows arrives as `null` and paints as nothing, rather
+than taking the whole page down; the SPA degrades the same way.
+
 `navigate` is the one field with no desktop counterpart — it is a history
 push, and a window has no address bar — so instead of being acted on it goes to
 a handler that does nothing by default:

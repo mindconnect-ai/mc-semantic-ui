@@ -8,6 +8,7 @@ import ai.mindconnect.ui.model.UiRow;
 import ai.mindconnect.ui.model.UiToast;
 import ai.mindconnect.ui.model.UiUpload;
 import ai.mindconnect.ui.model.UiTrigger;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -140,7 +141,30 @@ public class SuiFxEventBus {
      * }</pre>
      */
     public SuiFxEventBus(SuiFxRenderer renderer) {
-        this(renderer, new ObjectMapper());
+        this(renderer, defaultMapper());
+    }
+
+    /**
+     * The mapper a bus uses when it is given none.
+     *
+     * <p>Two things a plain {@code new ObjectMapper()} gets wrong here.
+     *
+     * <p>It finds no extension node types. {@code markdown}, {@code chart},
+     * {@code diagram} and {@code json-viewer} register themselves through
+     * Jackson's ServiceLoader, which is what {@code findAndRegisterModules()}
+     * reads — without it a page containing any of them fails to parse at all.
+     *
+     * <p>And it treats a type it has never heard of as fatal, losing the whole
+     * page over one node. The SPA renderer does not: an unknown node paints a
+     * placeholder and the rest of the screen comes up. Disabling
+     * {@code FAIL_ON_INVALID_SUBTYPE} gets the same outcome here — the unknown
+     * node arrives as {@code null} and paints as nothing, while everything
+     * around it survives.
+     */
+    public static ObjectMapper defaultMapper() {
+        return new ObjectMapper()
+                .findAndRegisterModules()
+                .disable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE);
     }
 
     public SuiFxEventBus(SuiFxRenderer renderer, ObjectMapper mapper) {
@@ -491,8 +515,25 @@ public class SuiFxEventBus {
      * See {@link #setNavigateHandler} and {@link #setActiveStreamHandler}.
      */
     public void applyPage(UiPage page) {
+        applyPage(page, null);
+    }
+
+    /**
+     * Applies a page fetched from {@code sourceUrl}, which becomes the base
+     * every relative url in it resolves against — see
+     * {@link SuiFxRenderer#setDocumentBase}. A page's own {@code navigate}
+     * refines it, the way a redirect does in a browser.
+     */
+    public void applyPage(UiPage page, String sourceUrl) {
         if (page == null) return;
         onFxThread(() -> {
+            // Before the mount: renderers paint asset urls (a brand logo, an
+            // iframe src) while the tree is being built, and they resolve
+            // against whatever the base is at that moment.
+            if (sourceUrl != null) renderer.setDocumentBase(renderer.resolve(sourceUrl));
+            if (page.getNavigate() != null) {
+                renderer.setDocumentBase(renderer.resolve(page.getNavigate()));
+            }
             if (page.getNode() != null) renderer.mount(page.getNode());
 
             // The tree the old dialogs were anchored to is gone; close them
@@ -501,7 +542,9 @@ public class SuiFxEventBus {
             if (page.getDialogs() != null) page.getDialogs().forEach(this::openPageDialog);
 
             if (page.getToasts() != null) page.getToasts().forEach(toastHandler);
-            if (page.getNavigate() != null) navigateHandler.accept(page.getNavigate());
+            if (page.getNavigate() != null) {
+                navigateHandler.accept(renderer.resolve(page.getNavigate()));
+            }
             if (page.getActiveStreams() != null && !page.getActiveStreams().isEmpty()) {
                 activeStreamHandler.accept(page.getActiveStreams());
             }
@@ -649,10 +692,11 @@ public class SuiFxEventBus {
 
         registerBehavior(UiTrigger.Behavior.APPLY_RESPONSE.name(), ctx ->
                 sendAsync(ctx, HttpResponse.BodyHandlers.ofString())
-                        .thenAccept(body -> onFxThread(() -> applyResponse(body))));
+                        .thenAccept(body -> onFxThread(
+                                () -> applyResponse(body, ctx.trigger().getUrl()))));
 
         registerBehavior(UiTrigger.Behavior.OPEN_IN_TAB.name(), ctx -> {
-            linkOpener.accept(ctx.trigger().getUrl());
+            linkOpener.accept(renderer.resolve(ctx.trigger().getUrl()));
             return null;
         });
 
@@ -702,7 +746,7 @@ public class SuiFxEventBus {
      */
     private CompletionStage<?> streamBehavior(FxTriggerContext ctx) {
         var trigger = ctx.trigger();
-        var builder = HttpRequest.newBuilder(URI.create(trigger.getUrl()))
+        var builder = HttpRequest.newBuilder(URI.create(renderer.resolve(trigger.getUrl())))
                 .header("Accept", "text/event-stream");
 
         // A stream is a POST by default: it usually carries the prompt or the
@@ -832,7 +876,7 @@ public class SuiFxEventBus {
             if (streams.containsKey(entry.getChannelId())) continue;
 
             var url = entry.getResumeUrl() + (entry.getResumeUrl().contains("?") ? "&" : "?") + "lastSeq=0";
-            var request = HttpRequest.newBuilder(URI.create(url))
+            var request = HttpRequest.newBuilder(URI.create(renderer.resolve(url)))
                     .header("Accept", "text/event-stream")
                     .GET()
                     .build();
@@ -880,14 +924,15 @@ public class SuiFxEventBus {
             return CompletableFuture.failedFuture(e);
         }
 
-        var request = HttpRequest.newBuilder(URI.create(ctx.trigger().getUrl()))
+        var request = HttpRequest.newBuilder(URI.create(renderer.resolve(ctx.trigger().getUrl())))
                 .header("Content-Type", "multipart/form-data; boundary=" + boundary)
                 .header("Accept", "application/json")
                 .method(method, HttpRequest.BodyPublishers.ofByteArray(body))
                 .build();
 
         return http.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenAccept(response -> onFxThread(() -> applyResponse(response.body())));
+                .thenAccept(response -> onFxThread(
+                        () -> applyResponse(response.body(), ctx.trigger().getUrl())));
     }
 
     /** The multipart field name for an upload source. */
@@ -925,7 +970,7 @@ public class SuiFxEventBus {
      * Routes a JSON response body the way the SPA's default response handler
      * does: a {@code UiPatch} is applied, a full {@code UiNode} remounts.
      */
-    private void applyResponse(String body) {
+    private void applyResponse(String body, String sourceUrl) {
         if (body == null || body.isBlank()) return;
         try {
             var tree = mapper.readTree(body);
@@ -933,7 +978,10 @@ public class SuiFxEventBus {
             // ahead of the discriminator would read a whole page as a patch
             // and drop its node on the floor.
             if ("page".equals(tree.path("type").asText(null))) {
-                applyPage(mapper.treeToValue(tree, UiPage.class));
+                // Only a page moves the base, exactly as in a browser: a
+                // navigation changes document.baseURI, an in-place patch does
+                // not, or a POST to some endpoint would rebase the whole tree.
+                applyPage(mapper.treeToValue(tree, UiPage.class), sourceUrl);
             } else if (tree.has("patches") || tree.has("toasts")) {
                 applyPatch(mapper.treeToValue(tree, UiPatch.class));
             } else if (tree.has("type")) {
@@ -957,7 +1005,7 @@ public class SuiFxEventBus {
             FxTriggerContext ctx, HttpResponse.BodyHandler<T> bodyHandler) {
 
         var trigger = ctx.trigger();
-        var builder = HttpRequest.newBuilder(URI.create(trigger.getUrl()));
+        var builder = HttpRequest.newBuilder(URI.create(renderer.resolve(trigger.getUrl())));
         var method = trigger.getMethod() == null ? "GET" : trigger.getMethod().toUpperCase();
 
         if ("GET".equals(method) || "DELETE".equals(method)) {

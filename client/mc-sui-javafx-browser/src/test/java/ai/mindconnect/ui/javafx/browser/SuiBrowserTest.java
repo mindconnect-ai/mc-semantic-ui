@@ -89,18 +89,20 @@ class SuiBrowserTest {
     }
 
     @Test
-    void aPagesNavigateHintUpdatesTheAddressBar() {
+    void aPagesNavigateHintReachesTheAddressBarAbsolute() {
         // The desktop's answer to a history push: the bus has no address bar of
         // its own, so the browser lends it this one.
         var page = pageSaying("moved");
-        page.setNavigate("/ui/orders/42");
+        page.setNavigate("/ui/orders/42");   // relative, as a real server writes it
         servePage("/ui", page);
 
         var browser = onFxThread(SuiBrowser::new);
         onFxThread(() -> { browser.go(baseUrl + "/ui"); return null; });
 
+        // Resolved against the page it came from: a relative entry would be
+        // meaningless the moment the user typed it back in.
         awaitFx("the address bar to follow", () ->
-                "/ui/orders/42".equals(browser.history().current()));
+                (baseUrl + "/ui/orders/42").equals(browser.history().current()));
     }
 
     @Test

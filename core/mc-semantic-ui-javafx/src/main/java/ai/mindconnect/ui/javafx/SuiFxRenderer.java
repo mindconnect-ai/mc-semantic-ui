@@ -10,6 +10,8 @@ import ai.mindconnect.ui.javafx.renderers.LinkRenderer;
 import ai.mindconnect.ui.javafx.renderers.ListRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuButtonRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuRenderer;
+import java.net.URI;
+
 import ai.mindconnect.ui.javafx.icons.FxIconResolver;
 import ai.mindconnect.ui.javafx.icons.SpriteIconResolver;
 import ai.mindconnect.ui.javafx.icons.SuiFxIcon;
@@ -100,6 +102,7 @@ public class SuiFxRenderer {
 
     private final Map<Class<?>, FxNodeRenderer<?>> renderers = new HashMap<>();
     private FxIconResolver iconResolver = new SpriteIconResolver();
+    private URI documentBase;
 
     /** Model class → the {@code type} discriminator, read off {@link UiNode}'s Jackson config. */
     private static final Map<Class<?>, String> TYPE_NAMES = readTypeNames();
@@ -214,6 +217,68 @@ public class SuiFxRenderer {
     /** The mutable child list of a node, when it has one. */
     private Optional<ObservableList<Node>> children(Node node) {
         return node instanceof Pane pane ? Optional.of(pane.getChildren()) : Optional.empty();
+    }
+
+    /**
+     * Where the current page came from — the desktop's stand-in for a
+     * document's base URI.
+     *
+     * <p>A server writes its own links relatively: {@code /admin/tools},
+     * {@code /img/logo.svg}, {@code agents/42}. A browser resolves those
+     * against the address of the page they arrived on, and without an
+     * equivalent here every such link is simply unusable — which is most of
+     * them, on any real server.
+     *
+     * <p>{@link SuiFxEventBus} sets this when it applies a page, so an app
+     * that navigates through the bus never has to think about it.
+     */
+    public SuiFxRenderer setDocumentBase(String url) {
+        this.documentBase = toUri(url);
+        return this;
+    }
+
+    public URI documentBase() {
+        return documentBase;
+    }
+
+    /**
+     * Makes {@code url} absolute against {@link #documentBase()}.
+     *
+     * <p>An absolute url is returned untouched, and so is a relative one when
+     * no base is known — better to let the caller fail on the original string
+     * than to invent a host for it.
+     */
+    public String resolve(String url) {
+        if (url == null || url.isBlank()) return url;
+        var base = documentBase;
+        if (base == null) return url;
+        var trimmed = url.trim();
+        // A scheme means it stands on its own. Note this also covers data: and
+        // file:, which must not be resolved against an http base.
+        if (trimmed.matches("^[a-zA-Z][a-zA-Z0-9+.-]*:.*")) return trimmed;
+        try {
+            // A query-only reference ("?page=2") keeps the base's path. Java's
+            // URI.resolve predates RFC 3986 and drops the last path segment
+            // instead, which would turn /admin/agents?page=2 into /admin/?page=2
+            // — so this one case is assembled by hand.
+            if (trimmed.startsWith("?")) {
+                var path = base.getRawPath() == null ? "" : base.getRawPath();
+                return URI.create(base.getScheme() + "://" + base.getRawAuthority() + path + trimmed)
+                        .toString();
+            }
+            return base.resolve(trimmed).toString();
+        } catch (IllegalArgumentException | NullPointerException notAUrl) {
+            return url;
+        }
+    }
+
+    private static URI toUri(String url) {
+        if (url == null || url.isBlank()) return null;
+        try {
+            return URI.create(url.trim());
+        } catch (IllegalArgumentException malformed) {
+            return null;
+        }
     }
 
     /**

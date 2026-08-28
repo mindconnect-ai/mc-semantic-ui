@@ -51,6 +51,9 @@ public class SuiBrowser extends BorderPane {
         // state there, so the overlay needs no wiring of its own.
         // A page that says where it now lives updates the address bar — the
         // desktop's stand-in for a history push.
+        // The bus hands this over already resolved against the page it came
+        // from, so what lands in the address bar is always absolute — a
+        // relative entry would be meaningless once typed back in.
         bus.setNavigateHandler(url -> {
             address.setText(url);
             history.visit(url);
@@ -85,6 +88,10 @@ public class SuiBrowser extends BorderPane {
         var target = normalize(url);
         if (target == null) return;
 
+        // A typed url is a fresh start, so it becomes the base immediately:
+        // the response's own links resolve against it, and a server that
+        // answers with a bare node rather than a page still gets a base.
+        renderer.setDocumentBase(target);
         address.setText(target);
         history.visit(target);
         bus.dispatch(UiTrigger.go(target), null, renderer.context());
@@ -135,6 +142,7 @@ public class SuiBrowser extends BorderPane {
 
     private void replay(String url) {
         if (url == null) return;
+        renderer.setDocumentBase(url);
         address.setText(url);
         bus.dispatch(UiTrigger.go(url), null, renderer.context());
     }

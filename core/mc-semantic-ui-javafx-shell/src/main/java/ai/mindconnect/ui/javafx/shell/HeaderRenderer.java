@@ -87,10 +87,13 @@ public class HeaderRenderer implements FxNodeRenderer<UiHeader> {
                 : new Label(node.getBrand());
         brand.getStyleClass().add("sui-header-brand");
 
-        var logo = logo(node.getBrandLogo());
+        // A brand logo is nearly always written relatively (/img/logo.svg).
+        var logo = logo(ctx.resolve(node.getBrandLogo()));
         if (logo != null) brand.setGraphic(logo);
 
         if (node.getBrandHref() != null) {
+            // The bus resolves trigger urls itself; this one goes through
+            // UiTrigger.go, so it lands on the same path as any other link.
             brand.setOnMouseClicked(e ->
                     ctx.bus().dispatch(ai.mindconnect.ui.model.UiTrigger.go(node.getBrandHref()), node, ctx));
         }

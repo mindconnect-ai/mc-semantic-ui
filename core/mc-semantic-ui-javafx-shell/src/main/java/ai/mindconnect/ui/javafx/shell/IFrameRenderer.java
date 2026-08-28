@@ -41,7 +41,9 @@ public class IFrameRenderer implements FxNodeRenderer<UiIFrame> {
             view.getEngine().setJavaScriptEnabled(false);
         }
         if (node.getSrc() != null && !node.getSrc().isBlank()) {
-            view.getEngine().load(node.getSrc());
+            // A WebView needs an absolute url; a server writing /docs/intro
+            // means it relative to the page it sent.
+            view.getEngine().load(ctx.resolve(node.getSrc()));
         }
         if (node.getTitle() != null) {
             view.setAccessibleText(node.getTitle());

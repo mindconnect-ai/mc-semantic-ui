@@ -30,6 +30,30 @@
             <artifactId>mc-semantic-ui-javafx-shell</artifactId>
         </dependency>
 
+        <!--
+            The extension node types. A browser has no say in what a server
+            sends, and a real one sends markdown and charts; these put the
+            types on the classpath so a page carrying them parses. They bring
+            no JavaFX painters, so such a node comes up blank rather than
+            taking the page down with it.
+        -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-ext-markdown</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-ext-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-ext-diagram</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-ext-chart</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

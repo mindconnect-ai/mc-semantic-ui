@@ -66,6 +66,16 @@ public class FxRenderContext {
         return renderer.icon(name);
     }
 
+    /**
+     * Makes a url from the model absolute against the page's base — see
+     * {@link SuiFxRenderer#setDocumentBase}. Every renderer that paints a url
+     * an app will later fetch, open or display should put it through here, or
+     * the relative links a real server writes will not work.
+     */
+    public String resolve(String url) {
+        return renderer.resolve(url);
+    }
+
     /** The enclosing form, or {@code null} outside of one. */
     public FxFormScope form() {
         return form;
