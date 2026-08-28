@@ -1,0 +1,36 @@
+/*
+ * The browser's own chrome — toolbar and address bar. Everything below the
+ * toolbar is painted by the renderer and styled by sui-fx.css, which the
+ * overlay loads itself.
+ *
+ * The -sui-* colours are looked-up colours declared on .root by sui-fx.css, so
+ * a host that redefines them restyles this chrome too.
+ */
+
+.sui-browser-toolbar {
+    -fx-background-color: -sui-surface;
+    -fx-border-color: transparent transparent -sui-border transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-padding: 8 12 8 12;
+}
+
+.sui-browser-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: -sui-text-muted;
+    -fx-background-radius: 8;
+    -fx-min-width: 32;
+    -fx-padding: 5 9 5 9;
+}
+.sui-browser-btn:hover {
+    -fx-background-color: -sui-border-soft;
+}
+/* A disabled back button should read as unavailable, not as missing. */
+.sui-browser-btn:disabled {
+    -fx-opacity: 0.35;
+}
+
+.sui-browser-address {
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 7 12 7 12;
+}

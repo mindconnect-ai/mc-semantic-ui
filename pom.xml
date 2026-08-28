@@ -38,6 +38,7 @@
              build first. -->
         <module>editor/mc-sui-editor-standalone-app</module>
         <module>editor/mc-sui-editor-app</module>
+        <module>client/mc-sui-javafx-browser</module>
         <module>demo/mc-sui-shop-demo</module>
         <module>demo/mc-sui-widget-demo</module>
         <module>demo/mc-sui-shop-client-demo</module>

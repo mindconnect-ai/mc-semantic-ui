@@ -47,6 +47,9 @@ extension.
 - `core/mc-semantic-ui-javafx` — third renderer, a JavaFX desktop client;
   `core/mc-semantic-ui-javafx-shell` adds `app-shell`/`header`/`iframe`
   (split off because `iframe` needs `javafx-web`'s per-platform WebKit)
+- `client/mc-sui-javafx-browser` — a browser for `UiNode` servers; knows no
+  endpoints, just fetches a url and renders the tree. Handy for checking that
+  a screen the SPA drives comes up the same on the desktop
 - `ext/mc-semantic-ui-ext-json` (`json-viewer`),
   `ext/mc-semantic-ui-ext-markdown` (`markdown`),
   `ext/mc-semantic-ui-ext-diagram` (`diagram`),

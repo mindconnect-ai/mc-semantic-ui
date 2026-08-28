@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ai.mindconnect</groupId>
+        <artifactId>mc-semantic-ui-parent</artifactId>
+        <version>0.1.4-SNAPSHOT</version>
+        <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mc-sui-javafx-browser</artifactId>
+    <packaging>jar</packaging>
+    <name>Semantic UI :: JavaFX browser</name>
+    <description>A browser for UiNode servers: type a URL, render whatever the server sends</description>
+
+    <!-- An application, not a library: nothing to publish. -->
+
+    <dependencies>
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-javafx</artifactId>
+        </dependency>
+        <!-- For app-shell, header and iframe: a real server's page is usually
+             a shell, and without this one it would paint as a placeholder. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-javafx-shell</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>${javafx-maven-plugin.version}</version>
+                <configuration>
+                    <mainClass>ai.mindconnect.ui.javafx.browser.SuiBrowserLauncher</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
