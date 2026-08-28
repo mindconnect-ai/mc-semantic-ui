@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.javafx.SuiFxEventBus;
 import ai.mindconnect.ui.model.UiMenuButton;
 import ai.mindconnect.ui.model.UiMenuItem;
@@ -30,7 +31,7 @@ public class MenuButtonRenderer implements FxNodeRenderer<UiMenuButton> {
 
     @Override
     public Node render(UiMenuButton node, FxRenderContext ctx) {
-        var label = node.getLabel() != null ? node.getLabel() : node.getTitle();
+        var label = SuiFxText.first(node.getLabel(), node.getTitle());
         var glyph = ctx.icon(node.getIcon());
         // The ICON variant carries no label on the web either — it is the glyph.
         // The ellipsis is the last resort, for a button with neither.
@@ -51,7 +52,7 @@ public class MenuButtonRenderer implements FxNodeRenderer<UiMenuButton> {
     static MenuItem menuItem(UiMenuItem item, FxRenderContext ctx) {
         if (item.isDivider()) return new SeparatorMenuItem();
 
-        var label = item.getLabel() != null ? item.getLabel() : item.getTitle();
+        var label = SuiFxText.first(item.getLabel(), item.getTitle());
 
         if (item.getChildren() != null && !item.getChildren().isEmpty()) {
             var submenu = new Menu(label);

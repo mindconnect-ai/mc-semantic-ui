@@ -3,6 +3,7 @@ package ai.mindconnect.ui.javafx.browser;
 import ai.mindconnect.ui.javafx.SuiFxEventBus;
 import ai.mindconnect.ui.javafx.SuiFxOverlay;
 import ai.mindconnect.ui.javafx.SuiFxRenderer;
+import ai.mindconnect.ui.javafx.SuiFxStyles;
 import ai.mindconnect.ui.javafx.shell.SuiFxShell;
 import ai.mindconnect.ui.model.UiTrigger;
 import javafx.geometry.Pos;
@@ -44,6 +45,10 @@ public class SuiBrowser extends BorderPane {
 
     public SuiBrowser() {
         SuiFxShell.install(renderer);
+        // The overlay carries sui-fx.css for its own subtree, but the toolbar
+        // sits outside it and is written in the same -sui-* palette — so the
+        // window root needs the stylesheet as well.
+        SuiFxStyles.install(this);
         SuiFxShell.style(this);
         style(this);
 

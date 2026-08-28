@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiField;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
@@ -55,7 +56,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
     public Node render(UiField node, FxRenderContext ctx) {
         var box = new VBox(4);
 
-        var labelText = node.getLabel() != null ? node.getLabel() : node.getTitle();
+        var labelText = SuiFxText.first(node.getLabel(), node.getTitle());
         if (labelText != null) {
             var label = new Label(node.isRequired() ? labelText + " *" : labelText);
             label.getStyleClass().add("sui-field-label");
@@ -89,7 +90,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
             error.getStyleClass().add("sui-field-error");
             error.setWrapText(true);
             box.getChildren().add(error);
-        } else if (node.getHint() != null) {
+        } else if (SuiFxText.present(node.getHint())) {
             var hint = new Label(node.getHint());
             hint.getStyleClass().add("sui-field-hint");
             hint.setWrapText(true);
@@ -317,7 +318,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
     }
 
     private static String optionLabel(UiField.Option option) {
-        return option.getLabel() != null ? option.getLabel() : option.getValue();
+        return SuiFxText.first(option.getLabel(), option.getValue());
     }
 
     private static StringConverter<UiField.Option> optionConverter() {

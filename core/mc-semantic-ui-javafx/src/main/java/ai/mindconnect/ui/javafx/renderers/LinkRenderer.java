@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.javafx.SuiFxEventBus;
 import ai.mindconnect.ui.model.UiLink;
 import ai.mindconnect.ui.model.UiTrigger;
@@ -21,7 +22,7 @@ public class LinkRenderer implements FxNodeRenderer<UiLink> {
 
     @Override
     public Node render(UiLink node, FxRenderContext ctx) {
-        var label = node.getLabel() != null ? node.getLabel() : node.getTitle();
+        var label = SuiFxText.first(node.getLabel(), node.getTitle());
         var link = new Hyperlink(label != null ? label : node.getHref());
 
         Icons.lead(link, node.getIcon(), ctx);

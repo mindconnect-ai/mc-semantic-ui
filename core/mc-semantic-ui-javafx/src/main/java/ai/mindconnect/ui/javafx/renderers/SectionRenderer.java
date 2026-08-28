@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiSection;
 import ai.mindconnect.ui.model.UiSectionEntry;
 import javafx.scene.Node;
@@ -51,7 +52,7 @@ public class SectionRenderer implements FxNodeRenderer<UiSection> {
 
         wireSelection(node, pane, ctx);
 
-        if (node.getCollapseSummary() != null) {
+        if (SuiFxText.present(node.getCollapseSummary())) {
             var titled = new TitledPane(node.getCollapseSummary(), pane);
             titled.setExpanded(node.isCollapseOpen());
             return titled;

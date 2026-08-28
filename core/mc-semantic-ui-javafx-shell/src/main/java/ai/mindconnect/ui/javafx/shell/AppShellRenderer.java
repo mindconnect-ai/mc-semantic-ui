@@ -9,6 +9,7 @@ import javafx.scene.Node;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
@@ -66,16 +67,34 @@ public class AppShellRenderer implements FxNodeRenderer<UiAppShell> {
         return shell;
     }
 
-    /** The swappable page, under the id {@link UiAppShell#contentId()} names. */
+    /**
+     * The swappable page, under the id {@link UiAppShell#contentId()} names,
+     * behind a scrollbar.
+     *
+     * <p>A web page scrolls by default; a JavaFX window does not, and a form
+     * taller than the window is simply clipped with nothing to hint that the
+     * fields below are still there. The same reasoning — and the same fix — as
+     * a tab's panel in {@code SectionRenderer}.
+     */
     private Node content(UiAppShell node, FxRenderContext ctx) {
         var slot = new StackPane();
         slot.getStyleClass().add("sui-shell-content");
         if (node.getContent() != null) slot.getChildren().add(ctx.render(node.getContent()));
-
-        HBox.setHgrow(slot, Priority.ALWAYS);
-        slot.setMinWidth(0);   // the menu keeps its width; the content gives way
         ctx.indexSlot(node.contentId(), slot);
-        return slot;
+
+        // The slot sits inside a holder rather than being the ScrollPane's
+        // content directly: replacing a node needs a parent with a child list,
+        // and a ScrollPane exposes none — a patch swapping the page would fail
+        // on "its parent is not a Pane".
+        var holder = new VBox(slot);
+        VBox.setVgrow(slot, Priority.ALWAYS);
+
+        var scroll = new ScrollPane(holder);
+        scroll.setFitToWidth(true);
+        scroll.getStyleClass().add("sui-shell-scroll");
+        HBox.setHgrow(scroll, Priority.ALWAYS);
+        scroll.setMinWidth(0);   // the menu keeps its width; the content gives way
+        return scroll;
     }
 
     /**

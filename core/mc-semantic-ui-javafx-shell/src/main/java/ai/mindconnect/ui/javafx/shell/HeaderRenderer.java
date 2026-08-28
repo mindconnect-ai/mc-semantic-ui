@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx.shell;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiHeader;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -80,7 +81,7 @@ public class HeaderRenderer implements FxNodeRenderer<UiHeader> {
     }
 
     private Node brand(UiHeader node, FxRenderContext ctx) {
-        if (node.getBrand() == null && node.getBrandLogo() == null) return null;
+        if (!SuiFxText.present(node.getBrand()) && !SuiFxText.present(node.getBrandLogo())) return null;
 
         Labeled brand = node.getBrandHref() != null
                 ? new Hyperlink(node.getBrand())

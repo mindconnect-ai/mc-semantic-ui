@@ -94,6 +94,13 @@ public class SuiFxEventBus {
     /** Style class put on the clicked control while its trigger is in flight. */
     public static final String LOADING_CLASS = "is-loading";
 
+    /**
+     * The id the server appends dialogs to. The SPA creates a real container
+     * under it; here it names no node at all, and is recognised purely so the
+     * operations aimed at it can be turned into windows.
+     */
+    public static final String DIALOG_HOST_ID = "sui-dialogs";
+
     private final SuiFxRenderer renderer;
     private final ObjectMapper mapper;
     private final Map<String, FxBehaviorHandler> behaviors = new ConcurrentHashMap<>();
@@ -119,8 +126,8 @@ public class SuiFxEventBus {
     private Consumer<String> navigateHandler = href -> { };
     /** A page's resume list reconnects by default, now that this bus reads SSE. */
     private Consumer<List<UiPage.ActiveStream>> activeStreamHandler = this::reconnectMissingStreams;
-    /** Dialogs this bus opened for the current page, so the next page can close them. */
-    private final List<Stage> pageDialogs = new ArrayList<>();
+    /** Open dialog windows by node id, so a patch can close the one it names. */
+    private final java.util.Map<String, Stage> openDialogs = new java.util.LinkedHashMap<>();
     /** Live SSE streams by channel id. A stream outlives the tree it started from. */
     private final Map<String, FxStreamHandle> streams = new ConcurrentHashMap<>();
     private final Map<String, FxStreamEventHandler> streamEventHandlers = new ConcurrentHashMap<>();
@@ -489,11 +496,71 @@ public class SuiFxEventBus {
     public void applyPatch(UiPatch patch) {
         if (patch == null) return;
         onFxThread(() -> {
+            // Dialogs are windows here, not scene-graph children, so the
+            // operations aimed at the dialog host never reach the renderer.
+            var forRenderer = UiPatch.of();
+            for (var op : patch.getPatches()) {
+                if (!applyDialogOperation(op)) forRenderer.patch(op);
+            }
             // Node operations are the renderer's job (it owns the id index);
             // toasts are the bus's, since only it knows the toast handler.
-            renderer.applyPatch(patch);
+            if (!forRenderer.getPatches().isEmpty()) renderer.applyPatch(forRenderer);
             if (patch.getToasts() != null) patch.getToasts().forEach(toastHandler);
         });
+    }
+
+    /**
+     * Handles the operations that address dialogs rather than the tree.
+     *
+     * <p>The SPA keeps a body-level {@code #sui-dialogs} host and opens a
+     * dialog by appending it there, closes it by removing it by id. A desktop
+     * has no such container — a dialog is a window — so those operations are
+     * intercepted here and turned into windows. Without this the server's
+     * "open a dialog" patch finds no target and the button appears to do
+     * nothing at all, which is what it did.
+     *
+     * @return {@code true} when the operation was handled and must not go on
+     *         to the renderer
+     */
+    private boolean applyDialogOperation(UiPatch.Operation op) {
+        if (op == null || op.getOp() == null) return false;
+        var target = op.getTargetId();
+
+        if (DIALOG_HOST_ID.equals(target)) {
+            switch (op.getOp()) {
+                case APPEND -> openDialog(op.getNode());
+                case REPLACE -> {
+                    closeAllDialogs();
+                    openDialog(op.getNode());
+                }
+                case CLEAR -> closeAllDialogs();
+                default -> { }
+            }
+            return true;
+        }
+
+        var stage = openDialogs.get(target);
+        if (stage != null) {
+            switch (op.getOp()) {
+                case REMOVE -> closeDialog(target);
+                case REPLACE -> {
+                    closeDialog(target);
+                    openDialog(op.getNode());
+                }
+                // Anything else names a node inside the dialog's own tree,
+                // which the renderer indexed when it painted it.
+                default -> {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // "Make sure this dialog is gone" for one that is not open. The SPA
+        // removes nothing and carries on; the renderer would report a missing
+        // target, so swallow it here.
+        return op.getOp() == UiPatch.Op.REMOVE
+                && (renderer.context() == null || renderer.context().byId(target) == null);
     }
 
     /**
@@ -538,8 +605,8 @@ public class SuiFxEventBus {
 
             // The tree the old dialogs were anchored to is gone; close them
             // before painting this page's own.
-            closePageDialogs();
-            if (page.getDialogs() != null) page.getDialogs().forEach(this::openPageDialog);
+            closeAllDialogs();
+            if (page.getDialogs() != null) page.getDialogs().forEach(this::openDialog);
 
             if (page.getToasts() != null) page.getToasts().forEach(toastHandler);
             if (page.getNavigate() != null) {
@@ -551,15 +618,28 @@ public class SuiFxEventBus {
         });
     }
 
-    private void openPageDialog(UiDialog dialog) {
+    /** Opens a dialog node as a window and remembers it under its id. */
+    private void openDialog(UiNode node) {
+        if (!(node instanceof UiDialog dialog)) return;
         var stage = showDialog(dialog);
-        if (stage != null) pageDialogs.add(stage);
+        if (stage == null) return;
+
+        var id = dialog.getId() == null ? "sui-dialog-" + UUID.randomUUID() : dialog.getId();
+        openDialogs.put(id, stage);
+        // The user can close the window themselves; drop it either way, or a
+        // later patch would try to close a stage that is already gone.
+        stage.setOnHidden(e -> openDialogs.remove(id, stage));
     }
 
-    /** Closes the dialogs this bus opened for the outgoing page. */
-    private void closePageDialogs() {
-        pageDialogs.forEach(Stage::close);
-        pageDialogs.clear();
+    private void closeDialog(String id) {
+        var stage = openDialogs.remove(id);
+        if (stage != null) stage.close();
+    }
+
+    /** Closes every dialog this bus has open. */
+    private void closeAllDialogs() {
+        List.copyOf(openDialogs.values()).forEach(Stage::close);
+        openDialogs.clear();
     }
 
     /**

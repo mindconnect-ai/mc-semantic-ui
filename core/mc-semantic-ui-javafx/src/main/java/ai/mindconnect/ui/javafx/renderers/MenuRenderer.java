@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiMenu;
 import ai.mindconnect.ui.model.UiMenuItem;
 import javafx.geometry.Insets;
@@ -63,7 +64,7 @@ public class MenuRenderer implements FxNodeRenderer<UiMenu> {
         // can stay visible when the rest is gone — otherwise collapsing would
         // take the toggle with it and the menu could never be reopened.
         var body = new VBox(2);
-        if (node.getTitle() != null) {
+        if (SuiFxText.present(node.getTitle())) {
             var title = new Label(node.getTitle());
             title.getStyleClass().add("sui-menu-title");
             body.getChildren().add(title);
@@ -179,6 +180,6 @@ public class MenuRenderer implements FxNodeRenderer<UiMenu> {
     }
 
     private String label(UiMenuItem item) {
-        return item.getLabel() != null ? item.getLabel() : item.getTitle();
+        return SuiFxText.first(item.getLabel(), item.getTitle());
     }
 }

@@ -26,7 +26,7 @@ class SuiFxIconTest {
         var unbuildable = names.stream()
                 .filter(n -> {
                     var icon = resolver.resolve(n);
-                    return icon == null || icon.getChildrenUnmodifiable().isEmpty();
+                    return icon == null || icon.shapes().isEmpty();
                 })
                 .toList();
 
@@ -41,18 +41,18 @@ class SuiFxIconTest {
         var icon = resolver.resolve("brain");
 
         assertThat(icon).isNotNull();
-        assertThat(icon.getChildrenUnmodifiable()).isNotEmpty();
-        assertThat(icon.getChildrenUnmodifiable()).allMatch(n -> n instanceof SVGPath);
+        assertThat(icon.shapes()).isNotEmpty();
+        assertThat(icon.shapes()).allMatch(n -> n instanceof SVGPath);
     }
 
     @Test
     void theOtherSvgPrimitivesMapOntoTheirJavaFxCounterparts() {
         // alarm-clock draws its face with <circle>, and <line> hands.
-        assertThat(resolver.resolve("alarm-clock").getChildrenUnmodifiable())
+        assertThat(resolver.resolve("alarm-clock").shapes())
                 .anyMatch(n -> n instanceof Circle);
         // A rounded <rect> carries rx; JavaFX wants the diameter, not the radius.
         var square = resolver.resolve("square");
-        var rect = (Rectangle) square.getChildrenUnmodifiable().stream()
+        var rect = (Rectangle) square.shapes().stream()
                 .filter(n -> n instanceof Rectangle).findFirst().orElseThrow();
         assertThat(rect.getArcWidth()).isEqualTo(rect.getArcHeight());
         assertThat(rect.getWidth()).isPositive();
@@ -63,9 +63,8 @@ class SuiFxIconTest {
         var icon = resolver.resolve("trash-2");
 
         // Lucide is a stroked set — a filled glyph would come out as a blob.
-        assertThat(icon.getChildrenUnmodifiable()).allMatch(n ->
-                ((javafx.scene.shape.Shape) n).getFill() == null
-                        && ((javafx.scene.shape.Shape) n).getStrokeWidth() == SuiFxIcon.STROKE_WIDTH);
+        assertThat(icon.shapes()).allMatch(n ->
+                n.getFill() == null && n.getStrokeWidth() == SuiFxIcon.STROKE_WIDTH);
     }
 
     @Test
@@ -73,8 +72,8 @@ class SuiFxIconTest {
         var icon = resolver.resolve("brain");
         icon.setColor(javafx.scene.paint.Color.RED);
 
-        assertThat(icon.getChildrenUnmodifiable()).allMatch(n ->
-                javafx.scene.paint.Color.RED.equals(((javafx.scene.shape.Shape) n).getStroke()));
+        assertThat(icon.shapes()).allMatch(n ->
+                javafx.scene.paint.Color.RED.equals(n.getStroke()));
     }
 
     @Test
@@ -83,7 +82,7 @@ class SuiFxIconTest {
         icon.setSize(48);
 
         // Every symbol is drawn on a 24×24 grid, so 48px is exactly 2×.
-        assertThat(icon.getTransforms()).singleElement()
+        assertThat(((javafx.scene.Group) icon.getChildrenUnmodifiable().get(0)).getTransforms()).singleElement()
                 .satisfies(t -> assertThat(((javafx.scene.transform.Scale) t).getX()).isEqualTo(2.0));
     }
 

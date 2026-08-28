@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
+import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiTree;
 import ai.mindconnect.ui.model.UiTreeNode;
 import javafx.scene.Node;
@@ -87,7 +88,7 @@ public class TreeRenderer implements FxNodeRenderer<UiTree> {
                 setText(null);
                 setGraphic(ctx.render(item.getLabelNode()));
             } else {
-                setText(item.getLabel() != null ? item.getLabel() : item.getTitle());
+                setText(SuiFxText.first(item.getLabel(), item.getTitle()));
                 // A recycled cell may still be showing the last row's glyph, so
                 // this assigns unconditionally — null included.
                 var icon = ctx.icon(item.getIcon());

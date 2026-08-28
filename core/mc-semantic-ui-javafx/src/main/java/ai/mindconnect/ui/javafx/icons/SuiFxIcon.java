@@ -59,12 +59,27 @@ public final class SuiFxIcon extends Group {
             shape.setStrokeLineJoin(StrokeLineJoin.ROUND);
             shape.strokeProperty().bind(color);
         }
-        getChildren().addAll(this.shapes);
+        // The scale goes on an inner group, not on this one. A Group's
+        // layoutBounds ignores its own transforms, so scaling here would leave
+        // every parent laying the icon out at the full 24x24 of the viewBox
+        // while it painted at 1em — a button half again too tall, with its
+        // glyph sitting off-centre in the space reserved for it.
+        var scaled = new Group();
+        scaled.getChildren().addAll(this.shapes);
+        scaled.getTransforms().add(scale);
+        getChildren().add(scaled);
 
         scale.xProperty().bind(size.divide(VIEWBOX));
         scale.yProperty().bind(size.divide(VIEWBOX));
-        getTransforms().add(scale);
         setMouseTransparent(true);
+    }
+
+    /**
+     * The shapes this glyph is drawn from. They sit one group down, where the
+     * scale lives, so this is the way to reach them.
+     */
+    public List<Shape> shapes() {
+        return shapes;
     }
 
     /** The stroke colour — the stand-in for {@code currentColor}. */

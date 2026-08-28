@@ -10,9 +10,19 @@
  *
  * Loaded automatically by SuiFxOverlay; override by adding your own stylesheet
  * after it, or by redefining the -sui-* looked-up colors on .root.
+ * An app whose scene root is not the overlay should also install this on
+ * that root — see SuiFxStyles.install(Parent).
  */
 
-.root {
+/* Both selectors on purpose. The palette below is a set of looked-up colours,
+   and a looked-up colour is only visible to a node if it is defined on that
+   node or an ancestor. JavaFX puts the "root" style class on the scene's root
+   node and nowhere else — so with .root alone, an overlay embedded in a larger
+   window (a toolbar above it, say) sits below the only node that could define
+   these, every -sui-* resolves to nothing, and every colour in this file falls
+   back to the literal name. Defining them on the overlay too means it carries
+   its own palette wherever it is mounted. */
+.root, .sui-overlay {
     /* Palette — the same cool slate scale as sui.css :root. */
     -sui-bg:             #f8fafc;
     -sui-surface:        #ffffff;

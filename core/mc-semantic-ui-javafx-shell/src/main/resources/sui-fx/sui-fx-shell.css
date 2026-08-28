@@ -22,6 +22,14 @@
     -fx-background-color: transparent;
     -fx-padding: 20;
 }
+/* The page scrolls when it outgrows the window; the base stylesheet already
+   makes .scroll-pane and its viewport transparent, so the shell colour shows
+   through. */
+.sui-shell-scroll {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
 .sui-shell-footer {
     -fx-background-color: -sui-surface;
     -fx-border-color: -sui-border transparent transparent transparent;

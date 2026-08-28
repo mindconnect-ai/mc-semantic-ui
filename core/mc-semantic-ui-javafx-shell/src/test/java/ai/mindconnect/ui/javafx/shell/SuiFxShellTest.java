@@ -97,7 +97,10 @@ class SuiFxShellTest {
         var painted = (VBox) onFxThread(() -> bus().mount(shell));
         var body = (HBox) painted.getChildren().get(0);
 
-        assertThat(body.getChildren().get(0).getStyleClass()).contains("sui-shell-content");
+        // The page comes first, the menu after it. It is behind its scrollbar,
+        // so the ordering is asserted on the wrapper the shell actually adds.
+        assertThat(body.getChildren().get(0).getStyleClass()).contains("sui-shell-scroll");
+        assertThat(body.getChildren().get(1).getStyleClass()).contains("sui-menu");
     }
 
     @Test
