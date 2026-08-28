@@ -32,6 +32,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -401,10 +402,11 @@ class SuiFxRendererTest {
         assertThat(button.getStyleClass()).contains(SuiFxEventBus.LOADING_CLASS);
 
         release.countDown();
-        // Two hops: the handler completes onto the FX thread, then the busy
-        // state clears there.
-        onFxThread(() -> null);
-        onFxThread(() -> null);
+        // The handler completes onto the FX thread and the busy state clears
+        // in that same tick — but the background thread decides when it gets
+        // there, so wait for the state itself. A fixed number of hops is a bet
+        // on how fast that thread is scheduled, and it loses often enough.
+        awaitOnFxThread("the busy state to clear", () -> !button.isDisable());
 
         assertThat(button.isDisable()).isFalse();
         assertThat(button.getStyleClass()).doesNotContain(SuiFxEventBus.LOADING_CLASS);
@@ -745,6 +747,26 @@ class SuiFxRendererTest {
     // ── harness ───────────────────────────────────────────────────────────
 
     /** Runs {@code work} on the JavaFX application thread and returns its result. */
+    /**
+     * Polls {@code condition} on the FX thread until it holds, or fails the
+     * test. Use this whenever a background thread decides when the scene graph
+     * changes — draining a couple of {@code runLater} hops only tests whether
+     * that thread happened to win the race.
+     */
+    private static void awaitOnFxThread(String what, BooleanSupplier condition) {
+        var deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        do {
+            if (onFxThread(condition::getAsBoolean)) return;
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError(e);
+            }
+        } while (System.nanoTime() < deadline);
+        throw new AssertionError("timed out waiting for " + what);
+    }
+
     private static <T> T onFxThread(Supplier<T> work) {
         var result = new AtomicReference<T>();
         var error = new AtomicReference<Throwable>();
