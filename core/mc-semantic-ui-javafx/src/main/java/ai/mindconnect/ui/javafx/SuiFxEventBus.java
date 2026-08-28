@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -115,10 +116,13 @@ public class SuiFxEventBus {
     private Consumer<String> linkOpener = SuiFxEventBus::browse;
     /** No address bar on a desktop window, so a navigate hint goes nowhere by default. */
     private Consumer<String> navigateHandler = href -> { };
-    /** No SSE reader here, so a page's resume list goes nowhere by default. */
-    private Consumer<List<UiPage.ActiveStream>> activeStreamHandler = streams -> { };
+    /** A page's resume list reconnects by default, now that this bus reads SSE. */
+    private Consumer<List<UiPage.ActiveStream>> activeStreamHandler = this::reconnectMissingStreams;
     /** Dialogs this bus opened for the current page, so the next page can close them. */
     private final List<Stage> pageDialogs = new ArrayList<>();
+    /** Live SSE streams by channel id. A stream outlives the tree it started from. */
+    private final Map<String, FxStreamHandle> streams = new ConcurrentHashMap<>();
+    private final Map<String, FxStreamEventHandler> streamEventHandlers = new ConcurrentHashMap<>();
     private Consumer<File> downloadHandler = file ->
             System.getLogger(SuiFxEventBus.class.getName())
                     .log(System.Logger.Level.INFO, "SuiFxEventBus: downloaded to " + file);
@@ -144,6 +148,15 @@ public class SuiFxEventBus {
         this.mapper = mapper;
         renderer.setBus(this);
         installDefaultBehaviors();
+        // A patch event is universal enough to be built in; an app can replace
+        // it by registering another handler under the same name.
+        onStreamEvent("patch", (data, handle) -> {
+            try {
+                applyPatch(mapper.readValue(data, UiPatch.class));
+            } catch (Exception e) {
+                reportError(e);
+            }
+        });
         // The overlay is both the host and the toast/busy surface, so if the
         // renderer is already attached to one, wire it up with no extra call.
         if (renderer.host() != null) setOverlay(renderer.host());
@@ -657,11 +670,188 @@ public class SuiFxEventBus {
 
         registerBehavior(UiTrigger.Behavior.UPLOAD.name(), this::uploadBehavior);
 
-        registerBehavior(UiTrigger.Behavior.STREAM.name(), ctx -> {
-            throw new UnsupportedOperationException(
-                    "STREAM is not implemented by the JavaFX renderer yet — "
-                            + "register your own behaviour to handle it");
+        registerBehavior(UiTrigger.Behavior.STREAM.name(), this::streamBehavior);
+    }
+
+    // ── streaming ─────────────────────────────────────────────────────────
+
+    /**
+     * Registers (or replaces) a handler for one SSE event name. Handlers run
+     * on the FX thread and may touch the scene graph.
+     */
+    public SuiFxEventBus onStreamEvent(String name, FxStreamEventHandler handler) {
+        if (name != null && handler != null) streamEventHandlers.put(name, handler);
+        return this;
+    }
+
+    /** The streams this bus is reading, running or finished. */
+    public Collection<FxStreamHandle> activeStreams() {
+        return java.util.Collections.unmodifiableCollection(streams.values());
+    }
+
+    /**
+     * Built-in {@code STREAM} behaviour: opens the trigger's url as an SSE
+     * stream and feeds each event to the handler registered under its name.
+     *
+     * <p>Fire-and-forget on purpose. The returned stage completes as soon as
+     * the response headers are in, not when the stream ends — a button that
+     * starts a five-minute agent run should stop spinning once the run has
+     * <em>started</em>, and the user must be free to navigate away meanwhile.
+     * The reader keeps going until the server closes it or
+     * {@link FxStreamHandle#abort()} is called.
+     */
+    private CompletionStage<?> streamBehavior(FxTriggerContext ctx) {
+        var trigger = ctx.trigger();
+        var builder = HttpRequest.newBuilder(URI.create(trigger.getUrl()))
+                .header("Accept", "text/event-stream");
+
+        // A stream is a POST by default: it usually carries the prompt or the
+        // form that starts the work. Same default the SPA uses.
+        var method = trigger.getMethod() == null ? "POST" : trigger.getMethod().toUpperCase();
+        if ("GET".equals(method) || "DELETE".equals(method)) {
+            builder.method(method, HttpRequest.BodyPublishers.noBody());
+        } else {
+            try {
+                builder.header("Content-Type", "application/json")
+                        .method(method, HttpRequest.BodyPublishers.ofString(
+                                mapper.writeValueAsString(ctx.payload())));
+            } catch (Exception e) {
+                return CompletableFuture.failedFuture(e);
+            }
+        }
+
+        return http.sendAsync(builder.build(), HttpResponse.BodyHandlers.ofLines())
+                .thenAccept(response -> {
+                    if (response.statusCode() >= 400) {
+                        reportError(new IllegalStateException(
+                                "STREAM " + trigger.getUrl() + " failed: HTTP " + response.statusCode()));
+                        return;
+                    }
+                    consume(response, header(response, "Sui-Stream-Channel", null),
+                            header(response, "Sui-Stream-Label", "Agent"),
+                            header(response, "Sui-Stream-Return-Href", trigger.getUrl()));
+                })
+                .whenComplete((ok, err) -> {
+                    if (err != null) reportError(err);
+                });
+    }
+
+    /**
+     * Reads an SSE body off the IO pool and dispatches its events.
+     *
+     * <p>{@link HttpResponse.BodyHandlers#ofLines()} hands back a lazy stream
+     * of lines, so consuming it <em>is</em> reading the socket — which is why
+     * this runs on the IO executor and never on the FX thread.
+     */
+    private FxStreamHandle consume(HttpResponse<java.util.stream.Stream<String>> response,
+                                   String channelId, String label, String returnHref) {
+
+        var lines = response.body();
+        var id = channelId != null ? channelId : "sse-" + UUID.randomUUID();
+        var handle = new FxStreamHandle(id, label, returnHref, lines::close);
+        streams.put(id, handle);
+
+        io.execute(() -> {
+            try {
+                var block = new ArrayList<String>();
+                var iterator = lines.iterator();
+                while (iterator.hasNext()) {
+                    var line = iterator.next();
+                    // A blank line ends an event; anything before it belongs to it.
+                    if (line.isEmpty()) {
+                        dispatchSseBlock(block, handle);
+                        block.clear();
+                    } else {
+                        block.add(line);
+                    }
+                }
+                dispatchSseBlock(block, handle);   // a final event with no trailing blank
+                if (handle.state() == FxStreamHandle.State.RUNNING) {
+                    handle.state(FxStreamHandle.State.COMPLETED);
+                }
+            } catch (Exception e) {
+                // An abort closes the body mid-read and lands here; so does a
+                // dropped connection. Neither is worth an error dialog.
+                handle.state(FxStreamHandle.State.ERRORED);
+            } finally {
+                lines.close();
+            }
         });
+        return handle;
+    }
+
+    /** Parses one {@code event:}/{@code data:}/{@code id:} block and routes it. */
+    private void dispatchSseBlock(List<String> block, FxStreamHandle handle) {
+        if (block.isEmpty()) return;
+
+        var event = "message";
+        var data = new StringBuilder();
+        for (String line : block) {
+            if (line.startsWith(":")) continue;                  // comment / keep-alive
+            if (line.startsWith("event:")) {
+                event = line.substring(6).trim();
+            } else if (line.startsWith("data:")) {
+                if (!data.isEmpty()) data.append('\n');
+                data.append(line.substring(5).stripLeading());
+            } else if (line.startsWith("id:")) {
+                try {
+                    // The server publishes the channel's monotonic seq here, so
+                    // tracking it is what lets a reconnect skip what we saw.
+                    handle.seen(Long.parseLong(line.substring(3).trim()));
+                } catch (NumberFormatException ignored) {
+                    // A non-numeric id is not ours to interpret.
+                }
+            }
+        }
+        var handler = streamEventHandlers.get(event);
+        if (handler == null) return;
+        var payload = data.toString();
+        onFxThread(() -> {
+            try {
+                handler.handle(payload, handle);
+            } catch (Exception e) {
+                reportError(e);
+            }
+        });
+    }
+
+    /**
+     * Re-attaches to the streams a page says are still running and this bus is
+     * not already reading — after a restart, or in a second window. The server
+     * replays from its ring buffer, so {@code lastSeq=0} asks for everything it
+     * still has.
+     *
+     * <p>Quiet on failure: a resume url that 404s means the stream finished
+     * between the page being rendered and this call, and the next page will
+     * simply not list it.
+     */
+    public void reconnectMissingStreams(List<UiPage.ActiveStream> entries) {
+        if (entries == null) return;
+        for (var entry : entries) {
+            if (entry.getChannelId() == null || entry.getResumeUrl() == null) continue;
+            if (streams.containsKey(entry.getChannelId())) continue;
+
+            var url = entry.getResumeUrl() + (entry.getResumeUrl().contains("?") ? "&" : "?") + "lastSeq=0";
+            var request = HttpRequest.newBuilder(URI.create(url))
+                    .header("Accept", "text/event-stream")
+                    .GET()
+                    .build();
+            http.sendAsync(request, HttpResponse.BodyHandlers.ofLines())
+                    .thenAccept(response -> {
+                        if (response.statusCode() >= 400) {
+                            response.body().close();
+                            return;
+                        }
+                        consume(response, entry.getChannelId(),
+                                entry.getLabel() == null ? "Agent" : entry.getLabel(),
+                                entry.getReturnHref());
+                    })
+                    .exceptionally(err -> null);
+        }
+    }
+
+    private static String header(HttpResponse<?> response, String name, String fallback) {
+        return response.headers().firstValue(name).orElse(fallback);
     }
 
     /**

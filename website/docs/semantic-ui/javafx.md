@@ -157,17 +157,39 @@ means fetching a `UiPage` and applying it. `SuiFxEventBus.applyPage` remounts
 the tree, drops the previous page's dialogs before opening this page's own, and
 sends the toasts to the toast handler.
 
-Two fields of a page have no desktop counterpart, so instead of being acted on
-they are offered to a handler that does nothing by default:
-
-| Field | Why | Hook |
-|---|---|---|
-| `navigate` | a history push; a window has no address bar | `setNavigateHandler` |
-| `activeStreams` | asks the client to re-attach to SSE streams, and this bus reads none (its `STREAM` behaviour throws) | `setActiveStreamHandler` |
+`navigate` is the one field with no desktop counterpart — it is a history
+push, and a window has no address bar — so instead of being acted on it goes to
+a handler that does nothing by default:
 
 ```java
 bus.setNavigateHandler(href -> breadcrumb.setPath(href));
 ```
+
+A page's `activeStreams` **are** acted on; see below.
+
+### Streaming
+
+`STREAM` opens its url as Server-Sent Events and feeds each event to the
+handler registered for its name. `patch` is built in — the universal case, an
+agent writing patches as it thinks — and an app registers whatever else its
+protocol speaks:
+
+```java
+bus.onStreamEvent("token", (data, handle) -> transcript.append(data));
+bus.onStreamEvent("done",  (data, handle) -> input.setDisable(false));
+```
+
+The dispatch returns as soon as the response headers are in, not when the
+stream ends: a button that starts a five-minute run should stop spinning once
+the run has *started*, and the user must stay free to navigate away. The reader
+keeps going until the server closes it or `FxStreamHandle.abort()` is called,
+so a stream outlives the tree it started from.
+
+The server's `Sui-Stream-Channel` header names the channel and its SSE event
+ids carry the channel's sequence, which is what makes resume work: when a page
+lists `activeStreams` this bus is not already reading — after a restart, or in
+a second window — it reconnects to their resume urls on its own.
+`bus.activeStreams()` lists what it is reading.
 
 ### The shell module
 
