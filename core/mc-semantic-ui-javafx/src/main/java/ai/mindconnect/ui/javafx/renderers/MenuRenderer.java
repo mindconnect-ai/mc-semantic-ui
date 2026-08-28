@@ -147,6 +147,7 @@ public class MenuRenderer implements FxNodeRenderer<UiMenu> {
 
         var button = new Button(label(item));
         button.getStyleClass().add("sui-menu-item");
+        Icons.lead(button, item.getIcon(), ctx);
         if (item.isSelected()) button.getStyleClass().add("sui-menu-item-selected");
         if (item.isDanger()) button.getStyleClass().add("sui-menu-item-danger");
         button.setDisable(!item.isEnabled());

@@ -132,7 +132,7 @@ the client replaces exactly that panel. The demo does this over a real socket.
 
 ## What is supported
 
-19 node types render today:
+20 node types render today:
 
 | | |
 |---|---|
@@ -140,11 +140,35 @@ the client replaces exactly that panel. The demo does this over a real socket.
 | Data | `UiTable` (sorting, row actions, pagination), `UiTree`, `UiDetail`, `UiList` |
 | Input | `UiForm`, `UiField` (text, textarea, number, boolean, date, select, multiselect, file), `UiUpload` |
 | Action | `UiAction`, `UiLink`, `UiMenu`, `UiMenuButton` |
-| Feedback | `UiText`, `UiDialog`, `UiSpinner`, `UiProgress`, toasts |
+| Feedback | `UiText`, `UiIcon`, `UiDialog`, `UiSpinner`, `UiProgress`, toasts |
 
 Anything else paints a visible placeholder instead of throwing, so an unknown
 node degrades rather than taking the window down. Not painted yet: `UiAppShell`,
-`UiHeader`, `UiIcon`, `UiPage`.
+`UiHeader`, `UiIFrame`, `UiPage`.
+
+### Icons
+
+Icons come from the same `icons.svg` sprite the browser loads: the resolver
+rebuilds a symbol's shapes as JavaFX geometry, so an icon token means the same
+glyph in all three renderers and adding one to the sprite lights it up
+everywhere at once. All 2037 Lucide symbols are covered.
+
+The web icon is `1em` in `currentColor`. JavaFX has no such inheritance, so a
+glyph attached to a control binds to that control's font and text fill instead
+— it tracks the label through hover, disable and theme changes. Every model
+type that carries an icon token renders it: `UiAction`, `UiField`, `UiLink`,
+`UiList`, `UiMenuButton`, `UiMenuItem`, `UiSectionEntry`, `UiTable`,
+`UiTreeNode`, plus the standalone `UiIcon`.
+
+Point it somewhere else — a different sprite, an icon font, your own drawings —
+the same way the browser does, with `setIconResolver`:
+
+```java
+renderer.setIconResolver(token -> myOwnGlyphFor(token));
+```
+
+An unknown token paints nothing rather than failing: a typo costs a glyph, not
+the window.
 
 :::warning One place where the same model looks different
 `UiMenu.State.RAIL` **collapses** the menu here instead of narrowing it to an

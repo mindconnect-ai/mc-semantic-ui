@@ -36,6 +36,7 @@ public class ListRenderer implements FxNodeRenderer<UiList> {
         if (node.getTitle() != null) {
             var title = new Label(node.getTitle());
             title.getStyleClass().add("sui-list-title");
+            Icons.lead(title, node.getIcon(), ctx);
             box.getChildren().add(title);
         }
 
@@ -101,7 +102,12 @@ public class ListRenderer implements FxNodeRenderer<UiList> {
         Node label = item.getLabelNode() != null
                 ? ctx.render(item.getLabelNode())
                 : new Label(item.getLabel() == null ? "" : item.getLabel());
-        if (label instanceof Label text) text.getStyleClass().add("sui-list-label");
+        if (label instanceof Label text) {
+            text.getStyleClass().add("sui-list-label");
+            // Only the plain label carries the glyph: a labelNode is the
+            // caller's own layout and stays untouched.
+            Icons.lead(text, item.getIcon(), ctx);
+        }
         row.getChildren().add(label);
 
         if (item.getActions().isEmpty()) return row;

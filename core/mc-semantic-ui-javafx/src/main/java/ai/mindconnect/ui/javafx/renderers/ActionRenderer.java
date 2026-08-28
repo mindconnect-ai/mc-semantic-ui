@@ -34,6 +34,10 @@ public class ActionRenderer implements FxNodeRenderer<UiAction> {
             button.getStyleClass().add("sui-action-" + node.getAppearance().name().toLowerCase());
         }
 
+        // Before the loading branch: a busy action swaps its icon for the
+        // spinner, exactly as the web does.
+        Icons.lead(button, node.getIcon(), ctx);
+
         button.setDisable(!node.isEnabled() || node.isLoading());
         if (node.isLoading()) {
             // The declarative busy state: the model says this action is already

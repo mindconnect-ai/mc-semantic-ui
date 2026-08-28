@@ -87,8 +87,11 @@ public class TreeRenderer implements FxNodeRenderer<UiTree> {
                 setText(null);
                 setGraphic(ctx.render(item.getLabelNode()));
             } else {
-                setGraphic(null);
                 setText(item.getLabel() != null ? item.getLabel() : item.getTitle());
+                // A recycled cell may still be showing the last row's glyph, so
+                // this assigns unconditionally — null included.
+                var icon = ctx.icon(item.getIcon());
+                setGraphic(icon == null ? null : icon.inherit(this));
             }
         }
     }

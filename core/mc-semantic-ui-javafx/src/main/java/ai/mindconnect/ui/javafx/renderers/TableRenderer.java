@@ -42,6 +42,7 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
         if (node.getTitle() != null) {
             var title = new Label(node.getTitle());
             title.getStyleClass().add("sui-table-title");
+            Icons.lead(title, node.getIcon(), ctx);
             box.getChildren().add(title);
         }
 

@@ -34,6 +34,8 @@ public class SectionRenderer implements FxNodeRenderer<UiSection> {
         for (UiSectionEntry entry : node.getSections()) {
             var tab = new Tab(entry.getTitle() == null ? entry.getId() : entry.getTitle());
             tab.setId(entry.getId());
+            var icon = ctx.icon(entry.getIcon());
+            if (icon != null) tab.setGraphic(icon);
             if (entry.getContent() != null) {
                 tab.setContent(scrollable(ctx.render(entry.getContent())));
             }

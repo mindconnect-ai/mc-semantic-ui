@@ -24,6 +24,7 @@ public class LinkRenderer implements FxNodeRenderer<UiLink> {
         var label = node.getLabel() != null ? node.getLabel() : node.getTitle();
         var link = new Hyperlink(label != null ? label : node.getHref());
 
+        Icons.lead(link, node.getIcon(), ctx);
         link.setOnAction(e -> ctx.bus().dispatch(triggerFor(node), node, ctx));
         link.getProperties().put(SuiFxEventBus.CLICK_HANDLED_KEY, Boolean.TRUE);
         return link;

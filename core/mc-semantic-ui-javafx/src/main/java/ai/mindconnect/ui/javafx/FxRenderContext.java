@@ -1,5 +1,6 @@
 package ai.mindconnect.ui.javafx;
 
+import ai.mindconnect.ui.javafx.icons.SuiFxIcon;
 import ai.mindconnect.ui.model.UiNode;
 import javafx.scene.Node;
 
@@ -54,6 +55,15 @@ public class FxRenderContext {
 
     public SuiFxRenderer renderer() {
         return renderer;
+    }
+
+    /**
+     * Paints an icon token through the renderer's resolver, or {@code null}
+     * when it resolves to nothing. Renderers hang the result off their own
+     * control as a graphic — see {@link SuiFxIcon#inherit}.
+     */
+    public SuiFxIcon icon(String name) {
+        return renderer.icon(name);
     }
 
     /** The enclosing form, or {@code null} outside of one. */

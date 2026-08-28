@@ -133,6 +133,12 @@
 .text-area {
     -fx-padding: 0;
 }
+
+/* A field with a leading icon: room on the left for the glyph the renderer
+   overlays there, mirroring .sui-input-icon on the web. */
+.text-field.sui-input--with-icon {
+    -fx-padding: 6 10 6 32;
+}
 .text-area .content {
     -fx-background-color: -sui-surface;
     -fx-background-radius: 7;

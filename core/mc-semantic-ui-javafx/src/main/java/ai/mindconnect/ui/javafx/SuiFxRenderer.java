@@ -10,6 +10,10 @@ import ai.mindconnect.ui.javafx.renderers.LinkRenderer;
 import ai.mindconnect.ui.javafx.renderers.ListRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuButtonRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuRenderer;
+import ai.mindconnect.ui.javafx.icons.FxIconResolver;
+import ai.mindconnect.ui.javafx.icons.SpriteIconResolver;
+import ai.mindconnect.ui.javafx.icons.SuiFxIcon;
+import ai.mindconnect.ui.javafx.renderers.IconRenderer;
 import ai.mindconnect.ui.javafx.renderers.ProgressRenderer;
 import ai.mindconnect.ui.javafx.renderers.ScrollPaneRenderer;
 import ai.mindconnect.ui.javafx.renderers.SectionRenderer;
@@ -29,6 +33,7 @@ import ai.mindconnect.ui.model.UiLink;
 import ai.mindconnect.ui.model.UiList;
 import ai.mindconnect.ui.model.UiMenu;
 import ai.mindconnect.ui.model.UiMenuButton;
+import ai.mindconnect.ui.model.UiIcon;
 import ai.mindconnect.ui.model.UiProgress;
 import ai.mindconnect.ui.model.UiNode;
 import ai.mindconnect.ui.model.UiScrollPane;
@@ -65,7 +70,7 @@ import java.util.Optional;
  *
  * <p><b>Covered types:</b> {@code form}, {@code field}, {@code fieldgroup},
  * {@code text}, {@code table}, {@code section} (tabs), {@code stack},
- * {@code scrollpane}, {@code action}, {@code tree}, {@code dialog},
+ * {@code scrollpane}, {@code icon}, {@code action}, {@code tree}, {@code dialog},
  * {@code spinner}, {@code progress}, {@code link}, {@code menu},
  * {@code menu-button}, {@code detail}, {@code list} and {@code upload}.
  * Anything else paints as a
@@ -94,6 +99,7 @@ import java.util.Optional;
 public class SuiFxRenderer {
 
     private final Map<Class<?>, FxNodeRenderer<?>> renderers = new HashMap<>();
+    private FxIconResolver iconResolver = new SpriteIconResolver();
 
     /** Model class → the {@code type} discriminator, read off {@link UiNode}'s Jackson config. */
     private static final Map<Class<?>, String> TYPE_NAMES = readTypeNames();
@@ -211,6 +217,30 @@ public class SuiFxRenderer {
     }
 
     /**
+     * Turns an icon token into a glyph. Swap it to point at a different
+     * sprite, an icon font, or your own drawings — the JavaFX twin of
+     * {@code setIconResolver()} in {@code renderers/icon.ts}, and the reason
+     * no renderer here knows what an icon library is.
+     */
+    public SuiFxRenderer setIconResolver(FxIconResolver resolver) {
+        this.iconResolver = resolver == null ? new SpriteIconResolver() : resolver;
+        return this;
+    }
+
+    public FxIconResolver iconResolver() {
+        return iconResolver;
+    }
+
+    /**
+     * Paints an icon token, or {@code null} when it resolves to nothing —
+     * an absent name, an unknown token, an unreadable sprite. Callers treat
+     * that as "no icon" and carry on.
+     */
+    public SuiFxIcon icon(String name) {
+        return name == null || name.isBlank() ? null : iconResolver.resolve(name);
+    }
+
+    /**
      * Registers the built-in renderers. The JavaFX twin of
      * {@code installDefaultHandlers()} in {@code renderer.ts}.
      */
@@ -222,6 +252,7 @@ public class SuiFxRenderer {
         register(UiTable.class,      new TableRenderer());
         register(UiSection.class,    new SectionRenderer());
         register(UiScrollPane.class, new ScrollPaneRenderer());
+        register(UiIcon.class,       new IconRenderer());
         register(UiStack.class,      new StackRenderer());
         register(UiAction.class,     new ActionRenderer());
         register(UiTree.class,       new TreeRenderer());

@@ -14,6 +14,7 @@ import ai.mindconnect.ui.model.UiTable;
 import ai.mindconnect.ui.model.UiText;
 import ai.mindconnect.ui.model.UiToast;
 import ai.mindconnect.ui.model.UiTrigger;
+import ai.mindconnect.ui.javafx.icons.SuiFxIcon;
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -614,6 +615,72 @@ class SuiFxRendererTest {
         // grow hint gives it whatever the parent column has left.
         assertThat(scroll.getMaxHeight()).isEqualTo(javafx.scene.layout.Region.USE_COMPUTED_SIZE);
         assertThat(VBox.getVgrow(scroll)).isEqualTo(javafx.scene.layout.Priority.ALWAYS);
+    }
+
+    @Test
+    void aStandaloneIconNodePaintsTheSpriteGlyph() {
+        Node painted = onFxThread(() -> new SuiFxEventBus()
+                .mount(ai.mindconnect.ui.model.UiIcon.of("mark", "brain").labelled("AI")));
+
+        var label = (Label) painted;
+        assertThat(label.getGraphic()).isInstanceOf(SuiFxIcon.class);
+        assertThat(label.getAccessibleText()).isEqualTo("AI");
+    }
+
+    @Test
+    void anUnknownIconTokenLeavesTheNodeEmptyRatherThanFailing() {
+        Node painted = onFxThread(() -> new SuiFxEventBus()
+                .mount(ai.mindconnect.ui.model.UiIcon.of("no-such-token-at-all")));
+
+        assertThat(((Label) painted).getGraphic()).isNull();
+    }
+
+    @Test
+    void anActionWearsItsIconAndSizesItToTheLabel() {
+        var action = UiAction.primary("save", "Save").icon("check");
+
+        var button = (javafx.scene.control.Button) onFxThread(() -> new SuiFxEventBus().mount(action));
+
+        var icon = (SuiFxIcon) button.getGraphic();
+        assertThat(icon).isNotNull();
+        // 1em and currentColor, expressed the way JavaFX can: the glyph tracks
+        // the button's own font and text fill.
+        assertThat(icon.getSize()).isEqualTo(button.getFont().getSize());
+        assertThat(icon.getColor()).isEqualTo(button.getTextFill());
+    }
+
+    @Test
+    void aLoadingActionShowsTheSpinnerRatherThanItsIcon() {
+        var action = UiAction.primary("save", "Save").icon("check");
+        action.setLoading(true);
+
+        var button = (javafx.scene.control.Button) onFxThread(() -> new SuiFxEventBus().mount(action));
+
+        // The web swaps the glyph for the spinner; so does this.
+        assertThat(button.getGraphic()).isInstanceOf(ProgressIndicator.class);
+    }
+
+    @Test
+    void aTabCarriesTheEntrysIcon() {
+        var section = UiSection.of("tabs", null).section("one", "One", UiText.of("a"));
+        section.getSections().get(0).icon("house");
+
+        var pane = (TabPane) onFxThread(() -> new SuiFxEventBus().mount(section));
+
+        assertThat(pane.getTabs().get(0).getGraphic()).isInstanceOf(SuiFxIcon.class);
+    }
+
+    @Test
+    void aSwappedResolverTakesOverEveryIcon() {
+        var renderer = SuiFxRenderer.createDefaultRenderer();
+        // The icon library is not baked in: point the resolver somewhere with
+        // nothing in it and every glyph quietly disappears.
+        renderer.setIconResolver(name -> null);
+
+        var button = (javafx.scene.control.Button) onFxThread(() ->
+                new SuiFxEventBus(renderer).mount(UiAction.primary("save", "Save").icon("check")));
+
+        assertThat(button.getGraphic()).isNull();
     }
 
     @Test
