@@ -5,6 +5,7 @@ import { renderIcon } from "./renderers/icon.js";
 import { wireOverflow } from "./renderers/overflow.js";
 import { wireMenuButtons } from "./renderers/menu-button.js";
 import { wireAutoScroll } from "./renderers/autoscroll.js";
+import { t } from "./i18n.js";
 
 /**
  * Context handed to every {@link BehaviorHandler}. Captures the trigger
@@ -566,8 +567,8 @@ export class SuiEventBus {
         const showRunning = running.length > 0;
         const focus = showRunning ? running[0] : completed[0];
         const label = showRunning
-            ? `${focus.label} running…`
-            : `${focus.label}: answer ready`;
+            ? t("stream.running", { label: focus.label })
+            : t("stream.answerReady", { label: focus.label });
 
         let toast = this.statusToastId ? document.getElementById(this.statusToastId) : null;
         if (!toast) {
@@ -587,7 +588,7 @@ export class SuiEventBus {
         const link = document.createElement("button");
         link.type = "button";
         link.className = "sui-toast-link";
-        link.textContent = "Open chat";
+        link.textContent = t("stream.openChat");
         link.addEventListener("click", () => { void this.doNavigate(focus.returnHref); });
         toast.appendChild(link);
 
@@ -807,23 +808,23 @@ export class SuiEventBus {
      * Default {@link ErrorHandler}: renders a red, sticky-ish error toast via
      * the same body-level toast container the server-driven toasts use, so a
      * failed fetch is visible without any app wiring. Network failures and
-     * HTTP errors get distinct, human-readable copy; apps needing other
-     * locales/UX replace this via
-     * {@link #setOnError}.
+     * HTTP errors get distinct, human-readable copy from the
+     * {@code suiI18n} catalog (see {@code i18n.ts} — register or activate a
+     * locale bundle there); apps needing a different UX altogether replace
+     * this via {@link #setOnError}.
      */
     showErrorToast(error: SuiFetchError): void {
         const toast: UiToast = error.kind === "network"
             ? {
                 level: "ERROR",
-                title: "Connection error",
-                message: "The backend is unreachable. Please check the "
-                    + "connection and try again.",
+                title: t("error.network.title"),
+                message: t("error.network.message"),
                 durationMs: 8000,
             }
             : {
                 level: "ERROR",
-                title: "Error",
-                message: `The request failed (HTTP ${error.response?.status}).`,
+                title: t("error.http.title"),
+                message: t("error.http.message", { status: String(error.response?.status) }),
                 durationMs: 8000,
             };
         showToasts([toast]);
