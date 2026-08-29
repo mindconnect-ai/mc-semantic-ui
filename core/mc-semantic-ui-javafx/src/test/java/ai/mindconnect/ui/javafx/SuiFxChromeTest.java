@@ -155,6 +155,46 @@ class SuiFxChromeTest {
                 .isEqualTo(javafx.scene.layout.Priority.ALWAYS);
     }
 
+    // ── visibility ────────────────────────────────────────────────────────
+
+    @Test
+    void hiddenTakesTheNodeOutOfTheLayout() {
+        // The state has been on UiNode since v0.1.3 and this renderer never
+        // honoured it: the web folds it into a css class, JavaFX cannot style
+        // visible or managed, so the class went on and nothing read it.
+        var text = UiText.of("filters", "Filters");
+        text.setDisplay(ai.mindconnect.ui.model.UiNode.Display.HIDDEN);
+
+        var painted = (Label) onFxThread(() ->
+                SuiFxRenderer.createDefaultRenderer().mount(UiStack.of(text)).lookup("#filters"));
+
+        assertThat(painted.isVisible()).isFalse();
+        assertThat(painted.isManaged()).as("HIDDEN is display:none — out of the layout").isFalse();
+    }
+
+    @Test
+    void blankHidesTheNodeButKeepsItsSpace() {
+        var text = UiText.of("filters", "Filters");
+        text.setDisplay(ai.mindconnect.ui.model.UiNode.Display.BLANK);
+
+        var painted = (Label) onFxThread(() ->
+                SuiFxRenderer.createDefaultRenderer().mount(UiStack.of(text)).lookup("#filters"));
+
+        // The whole reason there are two ways to hide: BLANK leaves the gap so
+        // nothing around it jumps. Nothing tested the difference before.
+        assertThat(painted.isVisible()).isFalse();
+        assertThat(painted.isManaged()).as("BLANK is visibility:hidden — the space stays").isTrue();
+    }
+
+    @Test
+    void aNodeWithNoDisplayStateIsVisible() {
+        var painted = (Label) onFxThread(() -> SuiFxRenderer.createDefaultRenderer()
+                .mount(UiStack.of(UiText.of("filters", "Filters"))).lookup("#filters"));
+
+        assertThat(painted.isVisible()).isTrue();
+        assertThat(painted.isManaged()).isTrue();
+    }
+
     // ── dialogs are windows ───────────────────────────────────────────────
 
     @Test

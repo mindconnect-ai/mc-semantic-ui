@@ -72,6 +72,19 @@ fresh empty one, so nothing has to be moved by hand at release time.
   than squeezing its row actions off-screen; `headerExtra` is drawn, without
   which a page offered no way to filter; and the detail grid keeps its term
   column, which had collapsed so far that every field name read `...`.
+- **A JavaFX repaint no longer throws away what the user was doing.** Focus, a
+  text control's caret and selection, scroll offsets, the open tab and expanded
+  panes now survive a patch. The browser gets this from its morphing library;
+  the desktop rebuilds and swaps, so typing in a field while a stream patched
+  the page above it used to cost the cursor mid-word.
+- **`display` works on JavaFX.** The state has been on `UiNode` since v0.1.3,
+  folded into a style class that this renderer never read — a `HIDDEN` node
+  stayed on screen. `HIDDEN` now takes the node out of the layout and `BLANK`
+  leaves its space behind, matching `display:none` and `visibility:hidden`.
+- **Table cell templates are applied on JavaFX.** A column can paint its cells
+  as nodes rather than text, with `{dataKey}` placeholders filled per row.
+  Without it a column meant to be a link showed the raw value and there was no
+  way in.
 
 ## [0.1.3] - 2026-08-17
 

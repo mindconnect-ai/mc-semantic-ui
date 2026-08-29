@@ -207,6 +207,12 @@ public class SuiFxRenderer {
     }
 
     private void replace(Node target, Node replacement) {
+        // The browser morphs a patch into the DOM and never touches what did
+        // not change. Here the subtree is rebuilt and swapped, so anything the
+        // user had going in it — a caret mid-word, a scroll position, an open
+        // pane — is on the old controls, and this is the only chance to move
+        // it across.
+        var state = FxViewState.of(target);
         var siblings = children(target.getParent());
         if (siblings.isEmpty()) {
             if (bus != null) bus.reportError(new IllegalStateException(
@@ -217,6 +223,7 @@ public class SuiFxRenderer {
         int index = list.indexOf(target);
         if (index < 0) return;
         list.set(index, replacement);
+        state.restoreInto(replacement);
     }
 
     /** The mutable child list of a node, when it has one. */
@@ -397,6 +404,17 @@ public class SuiFxRenderer {
                 if (!token.isEmpty()) fx.getStyleClass().add(token);
             }
         }
+        // The web folds this into a css class and lets the stylesheet do the
+        // rest. JavaFX cannot: visible and managed are not styleable, so the
+        // class went on and nothing ever read it — a HIDDEN node stayed on
+        // screen. The two states map exactly onto the pair of properties.
+        if (node.getDisplay() == UiNode.Display.HIDDEN) {
+            fx.setVisible(false);
+            fx.setManaged(false);      // out of the layout, like display:none
+        } else if (node.getDisplay() == UiNode.Display.BLANK) {
+            fx.setVisible(false);      // keeps its space, like visibility:hidden
+        }
+
         if (node.getId() != null && !node.getId().isBlank()) {
             fx.setId(node.getId());
             ctx.index(node.getId(), fx);

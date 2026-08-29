@@ -1,10 +1,18 @@
 package ai.mindconnect.ui.javafx.renderers;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.TextNode;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
 import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiAction;
 import ai.mindconnect.ui.model.UiColumn;
+import ai.mindconnect.ui.model.UiNode;
 import ai.mindconnect.ui.model.UiRow;
 import ai.mindconnect.ui.model.UiTrigger;
 import ai.mindconnect.ui.model.UiTable;
@@ -31,11 +39,16 @@ import javafx.scene.layout.VBox;
  * the trigger instead of reordering locally. Without one, the TableView sorts
  * itself.
  *
- * <p>First draft: {@link UiColumn#getCellTemplate()} is not applied — cells
+ * <p>{@link UiColumn#getCellTemplate()} paints a column's cells as nodes
+ * rather than text, with {@code {dataKey}} placeholders filled per row. Cells
  * render the raw value as text. Rich cells (a link, an inline action, an
  * editable field) come with the templating pass.
  */
 public class TableRenderer implements FxNodeRenderer<UiTable> {
+
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^{}]+)\\}");
+    /** Only ever used to clone and substitute cell templates. */
+    private static final ObjectMapper CELL_MAPPER = new ObjectMapper().findAndRegisterModules();
 
     @Override
     public Node render(UiTable node, FxRenderContext ctx) {
@@ -106,10 +119,105 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
             var value = cell.getValue().getData().get(column.getDataKey());
             return new SimpleStringProperty(value == null ? "" : value.toString());
         });
+        if (column.getCellTemplate() != null) applyCellTemplate(tc, column, ctx);
         return tc;
     }
 
     /** The trailing column of per-row buttons built from {@link UiTable#getRowActions()}. */
+    /**
+     * Paints a column's cells from its {@code cellTemplate} instead of as text.
+     *
+     * <p>A template is one node written once for the whole column, with
+     * {@code {dataKey}} placeholders standing in for the row: a link whose
+     * href is {@code /workflows/{id}} becomes a different link in every row.
+     * Without this the cell fell back to the raw value, so a column meant to
+     * be a link showed the id as text and there was no way in.
+     */
+    private void applyCellTemplate(TableColumn<UiRow, String> tc, UiColumn column, FxRenderContext ctx) {
+        tc.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                var row = getTableRow() == null ? null : getTableRow().getItem();
+                if (empty || row == null) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+                var node = forRow(column.getCellTemplate(), row);
+                setText(null);
+                // Through the renderer, so link, action and text handlers take
+                // over and the cell behaves like the node it is.
+                setGraphic(node == null ? null : ctx.render(node));
+            }
+        });
+    }
+
+    /**
+     * The row's own copy of a cell template.
+     *
+     * <p>Every string in it is substituted against the row's data plus its id;
+     * an unknown placeholder is left as written, so a mistyped key shows up on
+     * screen rather than turning into a blank. Ids are suffixed with the row
+     * instead of substituted — the same node is painted once per row, and two
+     * of them under one id would collide in the render index.
+     */
+    static UiNode forRow(UiNode template, UiRow row) {
+        if (template == null) return null;
+        var values = new LinkedHashMap<String, Object>();
+        if (row.getData() != null) values.putAll(row.getData());
+
+        var rowId = row.getId() != null ? row.getId()
+                : row.getData() == null ? null : row.getData().get("id");
+        if (rowId != null) values.put("id", rowId);
+        var suffix = rowId == null ? "" : String.valueOf(rowId);
+
+        try {
+            return CELL_MAPPER.treeToValue(
+                    substitute(CELL_MAPPER.valueToTree(template), values, suffix), UiNode.class);
+        } catch (Exception e) {
+            // A template that cannot be rebuilt is better skipped than fatal:
+            // the rest of the table still comes up.
+            return null;
+        }
+    }
+
+    private static JsonNode substitute(JsonNode node, Map<String, Object> values, String suffix) {
+        if (node.isTextual()) return TextNode.valueOf(fill(node.asText(), values));
+        if (node.isArray()) {
+            var out = CELL_MAPPER.createArrayNode();
+            node.forEach(child -> out.add(substitute(child, values, suffix)));
+            return out;
+        }
+        if (!node.isObject()) return node;
+
+        var out = CELL_MAPPER.createObjectNode();
+        node.fields().forEachRemaining(field -> {
+            var value = field.getValue();
+            if ("id".equals(field.getKey()) && value.isTextual() && !suffix.isEmpty()) {
+                out.put("id", value.asText() + "__" + suffix);
+            } else {
+                out.set(field.getKey(), substitute(value, values, suffix));
+            }
+        });
+        return out;
+    }
+
+    /** {@code {key}} from {@code values}; unknown keys stay, null becomes empty. */
+    private static String fill(String text, Map<String, Object> values) {
+        var matcher = PLACEHOLDER.matcher(text);
+        var out = new StringBuilder();
+        while (matcher.find()) {
+            var key = matcher.group(1);
+            var replacement = values.containsKey(key)
+                    ? (values.get(key) == null ? "" : String.valueOf(values.get(key)))
+                    : matcher.group();   // leave a bad key visible rather than blank
+            matcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(out);
+        return out.toString();
+    }
+
     private TableColumn<UiRow, Void> rowActionColumn(UiTable node, FxRenderContext ctx) {
         var tc = new TableColumn<UiRow, Void>("");
         tc.setSortable(false);
