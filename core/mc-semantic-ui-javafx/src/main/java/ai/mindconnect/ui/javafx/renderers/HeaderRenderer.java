@@ -105,9 +105,23 @@ public class HeaderRenderer implements FxNodeRenderer<UiHeader> {
      * The brand logo, loaded in the background so a slow or unreachable URL
      * never blocks the window coming up. A logo that fails to load is simply
      * absent — the brand text carries the header on its own.
+     *
+     * <p><b>SVG is not supported.</b> JavaFX's image loader handles raster
+     * formats only, and a logo is the one place an SVG is near-universal — so
+     * this is worth saying out loud rather than leaving as a picture that never
+     * appears. The icon sprite gets away with rebuilding SVG as shapes because
+     * it is a curated set of single-colour strokes; a brand mark with fills,
+     * gradients and text is not that. Serve a PNG for the desktop.
      */
     private ImageView logo(String url) {
-        if (url == null || url.isBlank()) return null;
+        if (!SuiFxText.present(url)) return null;
+        if (url.trim().toLowerCase().endsWith(".svg")) {
+            // Not attempted rather than attempted and swallowed: a background
+            // load that always fails is a slow way to reach the same nothing.
+            System.getLogger(HeaderRenderer.class.getName()).log(System.Logger.Level.INFO,
+                    "Brand logo {0} is an SVG, which JavaFX cannot draw — showing the brand text only", url);
+            return null;
+        }
         try {
             var view = new ImageView(new Image(url, true));
             view.getStyleClass().add("sui-header-logo");

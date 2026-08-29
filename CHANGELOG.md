@@ -85,6 +85,22 @@ fresh empty one, so nothing has to be moved by hand at release time.
   as nodes rather than text, with `{dataKey}` placeholders filled per row.
   Without it a column meant to be a link showed the raw value and there was no
   way in.
+- **A JavaFX dialog scrolls instead of growing off the screen.** A window sizes
+  itself to its content, and a long form grew past the bottom with the Close
+  button somewhere below the taskbar. The body scrolls now and the window stops
+  at four fifths of the screen's visual bounds.
+- **A field's trailing action is drawn on JavaFX.** A path field's "Browse…"
+  button was simply absent, leaving the path to be typed from memory.
+- **Paging worked off by one on JavaFX.** `page` is one-based, as the SPA has
+  always read it, and both the list and the table pager assumed zero. On a
+  16-item list of pages of 10 the first page was labelled "2 / 2", Previous was
+  enabled there, and pressing it asked the server for page 0.
+- **The JavaFX header is the dark band the web draws.** It was painted in the
+  surface colour with dark text — the same header in name only. The
+  `--sui-header-*` tokens now exist on the desktop too, so brand, navigation
+  and the user widget read against the band, and a host can relight it the same
+  way. An SVG brand logo is skipped with a note rather than silently never
+  appearing: JavaFX draws raster formats only.
 
 ## [0.1.3] - 2026-08-17
 

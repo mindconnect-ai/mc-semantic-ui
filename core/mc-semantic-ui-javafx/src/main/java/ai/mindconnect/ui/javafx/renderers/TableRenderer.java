@@ -327,14 +327,14 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
         var page = node.getPagination();
         if (page == null) return java.util.Optional.empty();
 
-        int lastPage = page.getSize() <= 0 ? 0 : (int) ((page.getTotal() - 1) / page.getSize());
-        var status = new Label("Page " + (page.getPage() + 1) + " / " + (lastPage + 1)
-                + "  (" + page.getTotal() + " rows)");
+        // page is one-based, as the SPA has always read it.
+        var status = new Label("Page " + Pagers.label(
+                page.getPage(), page.getSize(), page.getTotal(), "rows"));
 
         var previous = new Button("‹ Previous");
         var next = new Button("Next ›");
-        previous.setDisable(page.getPage() <= 0);
-        next.setDisable(page.getPage() >= lastPage);
+        previous.setDisable(Pagers.isFirst(page.getPage()));
+        next.setDisable(Pagers.isLast(page.getPage(), page.getSize(), page.getTotal()));
 
         // The target page goes into the trigger's {page}, which is exactly the
         // place UiTable.Pagination#pageTrigger documents for it.

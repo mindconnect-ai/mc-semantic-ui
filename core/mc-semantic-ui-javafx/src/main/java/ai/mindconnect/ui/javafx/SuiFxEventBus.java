@@ -20,6 +20,9 @@ import javafx.scene.control.Button;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.Priority;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 
@@ -100,6 +103,9 @@ public class SuiFxEventBus {
      * operations aimed at it can be turned into windows.
      */
     public static final String DIALOG_HOST_ID = "sui-dialogs";
+
+    /** How much of the screen a dialog may take before its content scrolls. */
+    static final double DIALOG_MAX_SCREEN_FRACTION = 0.8;
 
     private final SuiFxRenderer renderer;
     private final ObjectMapper mapper;
@@ -709,8 +715,25 @@ public class SuiFxEventBus {
         footer.setAlignment(Pos.CENTER_RIGHT);
         footer.setPadding(new Insets(0, 16, 16, 16));
 
-        var root = new VBox(content, footer);
+        // A window sizes itself to its content, and content has no idea how big
+        // the screen is: a long form grew the dialog straight off the bottom,
+        // with the Close button somewhere below the taskbar. It scrolls
+        // instead, and stops at a size that still fits where it is shown.
+        var scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        scroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+        scroll.getStyleClass().add("sui-dialog-scroll");
+        VBox.setVgrow(scroll, Priority.ALWAYS);
+
+        var root = new VBox(scroll, footer);
         root.getStyleClass().add("sui-dialog");
+
+        // Visual bounds, not the raw resolution: it excludes the menu bar and
+        // the taskbar, which are exactly what a maximum-height window would
+        // otherwise hide itself behind.
+        var bounds = Screen.getPrimary().getVisualBounds();
+        root.setMaxHeight(bounds.getHeight() * DIALOG_MAX_SCREEN_FRACTION);
+        root.setMaxWidth(bounds.getWidth() * DIALOG_MAX_SCREEN_FRACTION);
 
         // Whichever way it closes — the button, the window's own close box —
         // the model's closeHref fires exactly once.

@@ -12,6 +12,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
@@ -195,6 +196,43 @@ class SuiFxChromeTest {
         assertThat(painted.isManaged()).isTrue();
     }
 
+    // ── a field's trailing action ─────────────────────────────────────────
+
+    @Test
+    void aTrailingActionSharesTheControlsRow() {
+        // What a workflow's run form sends: a path field with a Browse… beside
+        // it. Without this the button was simply absent and the path had to be
+        // typed from memory.
+        var field = ai.mindconnect.ui.model.UiField.text("templateFile", "Template", "")
+                .asEditable();
+        field.setTrailing(UiAction.secondary("browse", "Browse…"));
+
+        var painted = (javafx.scene.layout.VBox) onFxThread(() ->
+                SuiFxRenderer.createDefaultRenderer().mount(field));
+
+        var row = (HBox) painted.getChildren().stream()
+                .filter(n -> n.getStyleClass().contains("sui-field-row"))
+                .findFirst().orElseThrow();
+        assertThat(row.getChildren()).hasSize(2);
+        // The control takes the room; the button keeps its own width.
+        assertThat(HBox.getHgrow(row.getChildren().get(0))).isEqualTo(javafx.scene.layout.Priority.ALWAYS);
+        assertThat(((javafx.scene.control.Button) row.getChildren().get(1)).getText())
+                .isEqualTo("Browse…");
+    }
+
+    @Test
+    void aReadOnlyFieldGetsNoTrailingAction() {
+        // Nothing to browse for on a value the user cannot change — the model
+        // says editable only, and the web renderer agrees.
+        var field = ai.mindconnect.ui.model.UiField.text("templateFile", "Template", "/tmp/x");
+        field.setTrailing(UiAction.secondary("browse", "Browse…"));
+
+        var painted = (javafx.scene.layout.VBox) onFxThread(() ->
+                SuiFxRenderer.createDefaultRenderer().mount(field));
+
+        assertThat(painted.getChildren()).noneMatch(n -> n.getStyleClass().contains("sui-field-row"));
+    }
+
     // ── dialogs are windows ───────────────────────────────────────────────
 
     @Test
@@ -285,6 +323,38 @@ class SuiFxChromeTest {
     }
 
     /** UiDialog.of takes (title, closeHref, node); the id is what a patch names it by. */
+    @Test
+    void aTallDialogScrollsInsteadOfGrowingPastTheScreen() {
+        var many = new UiStack();
+        for (int i = 0; i < 200; i++) {
+            many.getChildren().add(UiText.of("line-" + i, "line " + i));
+        }
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("body", "page"))));
+
+        var stage = onFxThread(() -> bus.showDialog(dialog("tall", "Tall", many)));
+
+        // A window sizes itself to its content, and 200 rows are taller than
+        // any screen — the Close button ended up below the taskbar.
+        var limit = javafx.stage.Screen.getPrimary().getVisualBounds().getHeight();
+        assertThat(stage.getHeight()).isLessThanOrEqualTo(limit);
+        assertThat(stage.getScene().getRoot().lookup(".sui-dialog-scroll"))
+                .as("the body scrolls").isNotNull();
+    }
+
+    @Test
+    void aShortDialogIsNotStretchedToTheCap() {
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("body", "page"))));
+
+        var stage = onFxThread(() -> bus.showDialog(dialog("small", "Small", UiText.of("m", "hello"))));
+
+        // The cap is a ceiling, not a size: a one-line dialog stays small.
+        var limit = javafx.stage.Screen.getPrimary().getVisualBounds().getHeight()
+                * SuiFxEventBus.DIALOG_MAX_SCREEN_FRACTION;
+        assertThat(stage.getHeight()).isLessThan(limit);
+    }
+
     private static UiDialog dialog(String id, String title, ai.mindconnect.ui.model.UiNode body) {
         var d = UiDialog.of(title, null, body);
         d.setId(id);

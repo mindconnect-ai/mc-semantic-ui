@@ -21,6 +21,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -79,7 +80,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
             value = built.value();
         }
         control.getStyleClass().add("sui-field-control");
-        box.getChildren().add(withLeadingIcon(control, node, ctx));
+        box.getChildren().add(withTrailing(withLeadingIcon(control, node, ctx), node, ctx));
 
         if (node.getId() != null && ctx.form() != null) {
             ctx.form().register(node.getId(), value);
@@ -123,6 +124,25 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
         stack.setAlignment(Pos.CENTER_LEFT);
         StackPane.setMargin(icon, new Insets(0, 0, 0, 10));
         return stack;
+    }
+
+    /**
+     * Puts the field's trailing action on the control's row — a "Browse…"
+     * beside a path field, say.
+     *
+     * <p>Editable only, as the model says: there is nothing to browse for on a
+     * value the user cannot change. The control takes the room and the action
+     * keeps its own width, which is what the web's flex row amounts to here.
+     */
+    private Node withTrailing(Node control, UiField node, FxRenderContext ctx) {
+        if (node.getTrailing() == null || !node.isEditable()) return control;
+
+        var row = new HBox(8, control, ctx.render(node.getTrailing()));
+        row.setAlignment(Pos.CENTER_LEFT);
+        row.getStyleClass().add("sui-field-row");
+        HBox.setHgrow(control, Priority.ALWAYS);
+        if (control instanceof javafx.scene.layout.Region region) region.setMinWidth(0);
+        return row;
     }
 
     private record Bound(Node control, Supplier<Object> value) { }
