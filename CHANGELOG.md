@@ -11,7 +11,22 @@ The format is [Keep a Changelog][keepachangelog]; this project follows
 [semantic versioning][semver], with the caveat that it is pre-1.0 and breaking
 changes may land in a minor.
 
-**Adding an entry:** put it under `## [Unreleased]`, in the section that fits.
+**Adding an entry:** put it under `## [Unreleased]
+
+### Fixed
+
+- **List rows line up.** A row's height follows its description, and the
+  actions were centred in it — so the buttons sat 11, 21 or 31px below the
+  title depending on how long that description happened to be, next to a
+  badge that was top-aligned and therefore disagreed with them. They are
+  aligned to the start now, which puts the action group's centre exactly on
+  the title's centre in every row: measured across a ten-row list, the spread
+  goes from 20px to 0. The row also gained a 24px gutter, because the
+  description used to run to within 2px of the first button — not an overlap,
+  but close enough to read as one — and the actions no longer shrink when the
+  text is long.
+
+`, in the section that fits.
 The release workflow renames that heading to the version being cut and opens a
 fresh empty one, so nothing has to be moved by hand at release time.
 

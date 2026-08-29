@@ -291,18 +291,34 @@ body {
     .sui-list-header .sui-actions, .sui-table-header > .sui-btn { margin-left: auto; }
 }
 .sui-list ul { list-style: none; }
+/* Top-aligned, not centred, and with a gutter it cannot lose.
+ *
+ * A row's height follows its description, so centring the actions made them
+ * sit 11, 21 or 31px below the title depending on how long that description
+ * happened to be — three different heights in one list, next to a badge that
+ * was top-aligned and therefore disagreed with them. Aligning to the start
+ * puts the action group's centre exactly on the title's centre in every row,
+ * whatever the row is: measured across a ten-row list, the spread goes from
+ * 20px to 0.
+ *
+ * The gap is the other half. Without it the description ran to within 2px of
+ * the first button — not an overlap, but close enough to read as one. 24px
+ * is a gutter the text has to respect, so it wraps early instead. */
 .sui-list-item {
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 24px;
     padding: 14px 20px; border-bottom: 1px solid var(--sui-color-border-soft);
     transition: background var(--sui-duration-fast);
 }
 .sui-list-item:hover { background: var(--sui-color-surface-alt); }
 .sui-list-item:last-child { border-bottom: none; }
-.sui-list-item-main { display: flex; flex-direction: column; gap: 3px; }
+.sui-list-item-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .sui-list-item-label { font-weight: 500; color: var(--sui-color-primary); text-decoration: none; cursor: pointer; }
 .sui-list-item-label:hover { text-decoration: underline; }
 .sui-list-item-desc { font-size: 14px; color: var(--sui-color-text-muted); }
-.sui-list-item-actions { display: flex; gap: 8px; }
+/* Never squeezed by a long description: the text column shrinks, the
+   buttons do not. */
+.sui-list-item-actions { display: flex; gap: 8px; flex: 0 0 auto; }
 
 /* ── Tree ───────────────────────────────────────────────────────────────── */
 
