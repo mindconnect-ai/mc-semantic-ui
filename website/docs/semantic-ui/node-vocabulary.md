@@ -90,12 +90,35 @@ preview you can click.
 | [`progress`](./elements/progress.md) | Progress bar or ring |
 | [`icon`](./elements/icon.md) | Standalone icon from the swappable icon library |
 
-Beyond the core, two extensions add a node type each — the
-[chart extension](./chart-extension.md) adds `chart`, the
-[diagram extension](./diagram-extension.md) adds `diagram` — and
-`mc-semantic-ui-ext-markdown` adds `markdown` and `mc-semantic-ui-ext-json`
-adds `json-viewer`. All of them use
-the same registration mechanism you'd use for your own type.
+Beyond the core, four extensions add a node type each. All of them use the
+same registration mechanism you'd use for your own type — add the artifact and
+the node appears in the Java model, in Jackson, in the browser renderer and in
+SSR at once.
+
+| Node type | Artifact | |
+|---|---|---|
+| `chart` | `mc-semantic-ui-ext-chart` | [about](./chart-extension.md) |
+| `diagram` | `mc-semantic-ui-ext-diagram` | [about](./diagram-extension.md) |
+| `markdown` | `mc-semantic-ui-ext-markdown` | |
+| `json-viewer` | `mc-semantic-ui-ext-json` | |
+
+Take only the ones you use:
+
+```xml
+<dependency>
+  <groupId>ai.mindconnect</groupId>
+  <artifactId>mc-semantic-ui-ext-markdown</artifactId>
+  <version>0.1.3</version>
+</dependency>
+<dependency>
+  <groupId>ai.mindconnect</groupId>
+  <artifactId>mc-semantic-ui-ext-json</artifactId>
+  <version>0.1.3</version>
+</dependency>
+```
+
+`markdown` and `json-viewer` are also painted on the desktop, each by its own
+artifact — see [the JavaFX renderer](./javafx.md#the-extension-types).
 
 A node type and the ability to render it belong together: the core only owns
 types it can actually draw, which is why charts and diagrams live in modules.

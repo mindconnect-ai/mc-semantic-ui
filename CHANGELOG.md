@@ -34,6 +34,17 @@ fresh empty one, so nothing has to be moved by hand at release time.
   `mc-semantic-ui-javafx-markdown` and `mc-semantic-ui-javafx-json`. Markdown
   is walked into real controls rather than an embedded browser.
 
+- **`SuiFxEventBus` applies a `UiPage`** — which is what made
+  `UiTrigger.go(href)` work on the desktop at all.
+- **`STREAM` reads Server-Sent Events** on JavaFX, so an agent's patches paint
+  as they arrive. A page's `activeStreams` reconnect on their own.
+- **`mc-sui-javafx-browser`** — a browser for `UiNode` servers: type a url and
+  whatever comes back is painted. Useful for checking that a screen the SPA
+  drives comes up the same on the desktop. An application rather than a
+  library: it is in the repository, not on Maven Central.
+- **`suiI18n`**, a message catalog for the runtime's own chrome strings, with
+  English and German built in and the locale following `<html lang>`.
+
 ### Changed
 
 - **`app-shell` and `header` are part of `mc-semantic-ui-javafx`.** They are a
@@ -43,18 +54,12 @@ fresh empty one, so nothing has to be moved by hand at release time.
   that needs `javafx-web`, and the only reason a separate artifact was ever
   worth it. `SuiFxShell.install` becomes `SuiFxIFrame.install`. Nothing was
   published under the old name.
-- **`SuiFxEventBus` applies a `UiPage`** — which is what made
-  `UiTrigger.go(href)` work on the desktop at all.
-- **`STREAM` reads Server-Sent Events** on JavaFX, so an agent's patches paint
-  as they arrive. A page's `activeStreams` reconnect on their own.
-- **`mc-sui-javafx-browser`** — a browser for `UiNode` servers: type a url and
-  whatever comes back is painted. Useful for checking that a screen the SPA
-  drives comes up the same on the desktop.
-- **`suiI18n`**, a message catalog for the runtime's own chrome strings, with
-  English and German built in and the locale following `<html lang>`.
 
 ### Fixed
 
+- **The runtime's own strings are English.** A few German ones had survived in
+  the client's chrome; they are translated, and `suiI18n` is how a host
+  puts a language back.
 - **Relative urls resolve** against the page they arrived on. A server writes
   `/admin/tools` and `/img/logo.svg`; on the desktop every such link was dead.
 - **The JavaFX palette resolves when the overlay is not the scene root.** It
