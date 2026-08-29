@@ -174,6 +174,11 @@ body {
    that float (popovers, dialogs); a card in the flow is separated from the
    page by its surface, and that is enough. */
 
+:is(h1, h2, h3, h4) {
+    color: var(--sui-color-text-strong);
+    letter-spacing: -.011em;
+}
+
 /* ── Header ─────────────────────────────────────────────────────────────── */
 
 /* Page-level header: brand on the left, user widget on the right. A dark,
@@ -350,7 +355,9 @@ body {
     .sui-header-extra .sui-field input { width: 100%; flex: 1; }
     .sui-list-header .sui-actions, .sui-table-header > .sui-btn { margin-left: auto; }
 }
-.sui-list ul { list-style: none; }
+/* The list's own rows only — a markdown block nested inside a list item
+   keeps its bullets. (Every theme used to re-add them by hand.) */
+.sui-list > ul { list-style: none; }
 /* Top-aligned, not centred, and with a gutter it cannot lose.
  *
  * A row's height follows its description, so centring the actions made them
@@ -1475,7 +1482,7 @@ a[data-trigger].is-loading::before,
     position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%);
     background: var(--sui-color-text-strong); color: var(--sui-color-surface);
     padding: 4px 8px; border-radius: var(--sui-radius-sm); font-size: 12px;
-    white-space: nowrap; z-index: 60; pointer-events: none; box-shadow: var(--sui-shadow-card);
+    white-space: nowrap; z-index: 60; pointer-events: none; box-shadow: var(--sui-shadow-pop);
 }
 
 /* State: RAIL — icons only; submenus fly out on hover. */
@@ -1511,8 +1518,8 @@ a[data-trigger].is-loading::before,
 
 /* Trailing badge — a count / short status. `label { flex:1 }` pushes it right. */
 .sui-menu-badge {
-    background: var(--sui-color-primary-soft); color: var(--sui-color-primary);
-    font-size: var(--sui-text-xs); font-weight: 600; line-height: 1;
+    background: var(--sui-color-surface-alt); color: var(--sui-color-text-muted);
+    font-size: var(--sui-text-xs); font-weight: 500; line-height: 1;
     padding: 3px 7px; border-radius: 999px; white-space: nowrap;
 }
 .sui-menu-item.is-active > .sui-menu-link > .sui-menu-badge {
@@ -1664,7 +1671,7 @@ a[data-trigger].is-loading::before,
     border: 1px solid var(--sui-color-border);
     background: var(--sui-color-surface);
     color: var(--sui-color-text-body);
-    box-shadow: 0 4px 12px rgba(15, 23, 42, .18);
+    box-shadow: var(--sui-shadow-pop);
     cursor: pointer;
     opacity: 0; pointer-events: none;
     transition: opacity var(--sui-duration-fast);
@@ -1695,8 +1702,9 @@ a[data-trigger].is-loading::before,
 .sui-dialog {
     position: relative;
     background: var(--sui-color-surface);
+    border: 1px solid var(--sui-color-border);
     border-radius: var(--sui-radius-lg);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, .25);
+    box-shadow: var(--sui-shadow-pop);
     max-width: min(640px, calc(100vw - 32px));
     max-height: calc(100vh - 64px);
     display: flex; flex-direction: column;
@@ -1858,16 +1866,19 @@ a[data-trigger].is-loading::before,
 .sui-markdown h3 { font-size: 1.05em; }
 .sui-markdown p  { margin: 0 0 .75em; }
 .sui-markdown p:last-child { margin-bottom: 0; }
-.sui-markdown ul, .sui-markdown ol { margin: 0 0 .75em 1.4em; }
-.sui-markdown li { margin-bottom: .2em; }
+.sui-markdown ul { list-style: disc;    padding-inline-start: 1.35em; margin: 0 0 .75em; }
+.sui-markdown ol { list-style: decimal; padding-inline-start: 1.35em; margin: 0 0 .75em; }
+.sui-markdown li { margin-block: .25em; }
+.sui-markdown li::marker { color: var(--sui-color-text-subtle); }
 .sui-markdown code {
     font-family: var(--sui-font-mono);
-    font-size: .85em; background: var(--sui-color-border-soft);
-    padding: 1px 5px; border-radius: 3px;
+    font-size: .9em; background: var(--sui-color-surface-alt);
+    padding: .1em .35em; border-radius: 5px;
 }
 .sui-markdown pre {
     background: var(--sui-color-code-bg); color: var(--sui-color-code-fg);
-    padding: 12px 16px; border-radius: var(--sui-radius-md);
+    padding: 1rem 1.1rem; border-radius: var(--sui-radius-md);
+    line-height: 1.6;
     overflow-x: auto; margin: 0 0 .75em;
 }
 .sui-markdown pre code { background: none; padding: 0; color: inherit; font-size: .82em; }
