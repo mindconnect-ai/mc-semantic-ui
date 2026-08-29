@@ -92,6 +92,14 @@ fresh empty one, so nothing has to be moved by hand at release time.
   after the append had already claimed the id, and deleted the content it had
   just built. Patch operations run in sequence now, because a patch means what
   it means in order.
+- **SVG line art is drawn on JavaFX.** A brand logo written as SVG used to be
+  skipped: JavaFX has no SVG support, and the libraries that add it bring a
+  rendering engine. But the icon sprite was already being rebuilt as shapes,
+  and a logo is very often the same kind of drawing — so that machinery now
+  handles any document of the sort, groups and viewBoxes and stroke widths
+  included. A logo in `currentColor` takes the brand's own colour, so it lights
+  up on the dark band without a second asset. Gradients, text and masks are
+  still out of reach and come back as nothing rather than as something wrong.
 - **A JavaFX dialog scrolls instead of growing off the screen.** A window sizes
   itself to its content, and a long form grew past the bottom with the Close
   button somewhere below the taskbar. The body scrolls now and the window stops

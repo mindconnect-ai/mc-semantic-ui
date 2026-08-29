@@ -9,9 +9,8 @@ import javafx.scene.control.Labeled;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Shape;
-import javafx.scene.shape.StrokeLineCap;
-import javafx.scene.shape.StrokeLineJoin;
 import javafx.scene.transform.Scale;
+import javafx.scene.transform.Translate;
 
 import java.util.List;
 
@@ -28,10 +27,10 @@ import java.util.List;
  */
 public final class SuiFxIcon extends Group {
 
-    /** Every Lucide symbol is drawn on this grid, so scaling is a single divisor. */
+    /** The grid every Lucide symbol is drawn on. Other documents bring their own. */
     public static final double VIEWBOX = 24;
 
-    /** Stroke width in viewBox units, straight from the sprite's symbols. */
+    /** Stroke width the sprite's symbols declare, in viewBox units. */
     public static final double STROKE_WIDTH = 2;
 
     private static final double DEFAULT_SIZE = 16;
@@ -44,19 +43,15 @@ public final class SuiFxIcon extends Group {
     private final DoubleProperty size = new SimpleDoubleProperty(this, "size", DEFAULT_SIZE);
     private final Scale scale = new Scale();
 
-    SuiFxIcon(String name, List<Shape> shapes) {
-        this.shapes = List.copyOf(shapes);
+    SuiFxIcon(String name, SvgDocument document) {
+        this.shapes = List.copyOf(document.shapes());
         getStyleClass().add("sui-icon");
         getProperties().put("sui.icon", name);
 
         for (Shape shape : this.shapes) {
-            // Lucide is a stroked set: no fills, round caps and joins. The
-            // sprite says so on every symbol; say it once here instead of
-            // parsing it back off each element.
-            shape.setFill(null);
-            shape.setStrokeWidth(STROKE_WIDTH);
-            shape.setStrokeLineCap(StrokeLineCap.ROUND);
-            shape.setStrokeLineJoin(StrokeLineJoin.ROUND);
+            // Stroke width, caps, joins and any fill of its own came off the
+            // document; what is left is the colour, which is the caller's —
+            // currentColor, resolved here.
             shape.strokeProperty().bind(color);
         }
         // The scale goes on an inner group, not on this one. A Group's
@@ -66,11 +61,16 @@ public final class SuiFxIcon extends Group {
         // glyph sitting off-centre in the space reserved for it.
         var scaled = new Group();
         scaled.getChildren().addAll(this.shapes);
-        scaled.getTransforms().add(scale);
+        // Offset first, then scale: a document whose box does not start at the
+        // origin — a logo's often does not — would otherwise be drawn off to
+        // one side and look like a parsing failure.
+        scaled.getTransforms().addAll(scale,
+                new Translate(-document.minX(), -document.minY()));
         getChildren().add(scaled);
 
-        scale.xProperty().bind(size.divide(VIEWBOX));
-        scale.yProperty().bind(size.divide(VIEWBOX));
+        var extent = Math.max(document.width(), document.height());
+        scale.xProperty().bind(size.divide(extent));
+        scale.yProperty().bind(size.divide(extent));
         setMouseTransparent(true);
     }
 

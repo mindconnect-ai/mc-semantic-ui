@@ -174,10 +174,11 @@ class SuiFxAppShellTest {
     }
 
     @Test
-    void anSvgLogoIsSkippedRatherThanLeftLoadingForever() {
-        // JavaFX draws raster formats only, and a logo is the one place an SVG
-        // is near-universal. The brand text carries the header without it.
-        var header = UiHeader.of("Acme").brandLogo("/img/logo.svg");
+    void anSvgLogoThatCannotBeFetchedLeavesTheBrandTextAlone() {
+        // Line-art SVG is drawn now, but a logo that cannot be had at all —
+        // unreachable, or using gradients this cannot draw — must not take the
+        // header with it. The brand text carries it.
+        var header = UiHeader.of("Acme").brandLogo("http://127.0.0.1:1/nope.svg");
 
         var bar = (HBox) onFxThread(() -> bus().mount(header));
 
