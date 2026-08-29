@@ -234,6 +234,7 @@ One node type, one module:
 <dependency>
     <groupId>ai.mindconnect</groupId>
     <artifactId>mc-semantic-ui-javafx-iframe</artifactId>
+<version>0.1.3</version>
 </dependency>
 ```
 
@@ -261,6 +262,67 @@ content you trust.
 `UiHeader.ExtrasOverflow.MENU` is not implemented either: the extras row wraps
 rather than collapsing into a dropdown.
 :::
+
+### The extension types
+
+Two of the four extension node types are painted on the desktop, each in its
+own artifact so an app pays only for what it shows.
+
+**`markdown`** — walked into real controls rather than an embedded browser:
+
+```xml
+<dependency>
+  <groupId>ai.mindconnect</groupId>
+  <artifactId>mc-semantic-ui-javafx-markdown</artifactId>
+  <version>0.1.3</version>
+</dependency>
+```
+
+```java
+SuiFxMarkdown.install(renderer);
+SuiFxMarkdown.style(scene.getRoot());
+```
+
+Headings, paragraphs, lists, quotes, rules and code blocks; inline bold,
+italic, code and links. Emphasis accumulates, so bold inside italic arrives as
+both. A link dispatches through the bus, so a relative one resolves against the
+page the document came on. Images show their alt text rather than blocking the
+window on a slow fetch.
+
+The obvious shortcut — render to HTML, hand it to a `WebView` — would drag a
+WebKit build onto every app that shows a paragraph of text, and the result
+would sit in the window as a foreign object with its own fonts, its own
+selection and its own scrollbars, deaf to the palette around it.
+
+**`json-viewer`** — pretty-printed, in a read-only text area:
+
+```xml
+<dependency>
+  <groupId>ai.mindconnect</groupId>
+  <artifactId>mc-semantic-ui-javafx-json</artifactId>
+  <version>0.1.3</version>
+</dependency>
+```
+
+```java
+SuiFxJson.install(renderer);
+SuiFxJson.style(scene.getRoot());
+```
+
+The web node is backed by a component with IDE-style folding; there is no
+desktop equivalent and building one would be a tree widget's worth of work for
+a node whose job is to let someone read a payload. A text area rather than a
+label, because the reason a payload is on screen is usually that someone wants
+a value out of it — and it scrolls on its own when the payload is large, which
+is the case the node exists for. Malformed JSON is shown verbatim: that is
+exactly what the reader is looking for.
+
+`expandLevel` and `theme` are the web component's own knobs and are ignored
+rather than approximated.
+
+`diagram` and `chart` have no JavaFX painter yet. Their types parse — the bus
+registers every extension module on the classpath — so a page carrying one
+comes up with that node blank rather than failing.
 
 ### Icons
 

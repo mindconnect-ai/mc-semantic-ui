@@ -6,6 +6,7 @@ One node type: `iframe`, painted as a `WebView`.
 <dependency>
     <groupId>ai.mindconnect</groupId>
     <artifactId>mc-semantic-ui-javafx-iframe</artifactId>
+<version>0.1.3</version>
 </dependency>
 ```
 
