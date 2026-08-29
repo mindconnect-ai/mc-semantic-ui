@@ -264,6 +264,31 @@ export declare class SuiRenderer {
      * what they would have seen anyway.
      */
     private shouldAnimate;
+    /** Shared by every animation here: is motion wanted, and would it run? */
+    private motionAllowed;
+    /**
+     * Whether a whole-view swap should go through the View Transition API.
+     * On where the browser supports it; set to {@code false} to opt out.
+     *
+     * <p>Used for navigation only — {@link #mount} and a REPLACE that fills a
+     * slot, which is what an app shell's content area is. Not for the other
+     * operations: APPEND and REMOVE bring their own animation, and REPLACE on
+     * anything else is the streaming path, where a full-page snapshot per
+     * token would be a disaster.
+     */
+    viewTransitions: boolean;
+    private shouldViewTransition;
+    /**
+     * Runs a whole-view swap inside a view transition where one is available,
+     * and plainly where it is not.
+     *
+     * <p>The callback is deliberately allowed to run later than the call: the
+     * API captures the old frame first and only then applies the change.
+     * Nothing here depends on the DOM having changed by the time this
+     * returns — the event bus re-runs its enhancers from a MutationObserver,
+     * so they fire whenever the mutation actually lands.
+     */
+    private withViewTransition;
     /**
      * Marks freshly appended elements so the stylesheet can animate them in,
      * and takes the class back off once it has played.

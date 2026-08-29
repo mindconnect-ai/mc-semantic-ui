@@ -1739,6 +1739,28 @@ a[data-trigger].is-loading::before,
 }
 
 
+/* ── View transitions ────────────────────────────────────────────────────
+   The renderer wraps the two navigation-sized swaps — mounting a page, and
+   filling a slot — in `document.startViewTransition` where the browser has
+   it. The browser's own default is already the right idea (a cross-fade of
+   everything that changed); all this does is put it on the same clock as the
+   rest of the sheet, so a theme that slows the app down slows this down too.
+
+   Nothing else animates through this API. APPEND and REMOVE have their own
+   classes above, and a REPLACE that is not a slot is very often a component
+   redrawing itself once per streaming token — a full-page snapshot at that
+   rate would be a disaster.
+
+   To go further, name a region: give an element `view-transition-name` and
+   it is captured and animated as its own pair, which is how a header stays
+   put while the content under it changes, or how a row grows into a detail
+   view. The names have to be unique per document. */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: var(--sui-duration-base);
+    animation-timing-function: var(--sui-ease-standard);
+}
+
 /* ── Reduced motion ──────────────────────────────────────────────────────
    One block, because every state change in this file is timed by the three
    duration variables. Setting them to almost nothing turns off transitions,
@@ -1760,4 +1782,9 @@ a[data-trigger].is-loading::before,
     /* The two patch animations have nothing to interpolate at 1ms, and an
        element still ought to arrive and leave — it just does so at once. */
     .sui-enter { animation: none; }
+
+    /* The renderer already skips view transitions under reduced motion; this
+       is for the case where an app turned them on for itself. */
+    ::view-transition-old(root),
+    ::view-transition-new(root) { animation: none; }
 }

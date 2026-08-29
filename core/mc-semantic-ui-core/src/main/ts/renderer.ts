@@ -275,7 +275,9 @@ export class SuiRenderer {
         if (!this.rootElement) {
             throw new Error("SuiRenderer.mount(): no host element attached");
         }
-        this.morph(this.rootElement, this.render(node), "innerHTML");
+        const html = this.render(node);
+        const host = this.rootElement;
+        this.withViewTransition(() => this.morph(host, html, "innerHTML"));
         return this;
     }
 
@@ -396,9 +398,13 @@ export class SuiRenderer {
                 // streaming token-by-token message and the message gets
                 // taller. Sample the scroller around either op so the
                 // tail-chase fires for both.
-                this.withTailChase(target, () => {
+                // A slot is the app shell's content area, so filling one is a
+                // navigation: it gets the cross-fade. Everything else is a
+                // component redrawing itself, very possibly once per token.
+                const swap = () => this.withTailChase(target, () => {
                     this.morph(target, this.render(op.node!), isSlot ? "innerHTML" : "outerHTML");
                 });
+                if (isSlot) this.withViewTransition(swap); else swap();
                 break;
             }
             case "APPEND": {
@@ -511,10 +517,56 @@ export class SuiRenderer {
      * what they would have seen anyway.
      */
     private shouldAnimate(): boolean {
-        if (!this.animatePatches) return false;
+        return this.animatePatches && this.motionAllowed();
+    }
+
+    /** Shared by every animation here: is motion wanted, and would it run? */
+    private motionAllowed(): boolean {
         if (typeof document !== "undefined" && document.hidden) return false;
         return !(typeof window.matchMedia === "function"
             && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    }
+
+    /**
+     * Whether a whole-view swap should go through the View Transition API.
+     * On where the browser supports it; set to {@code false} to opt out.
+     *
+     * <p>Used for navigation only — {@link #mount} and a REPLACE that fills a
+     * slot, which is what an app shell's content area is. Not for the other
+     * operations: APPEND and REMOVE bring their own animation, and REPLACE on
+     * anything else is the streaming path, where a full-page snapshot per
+     * token would be a disaster.
+     */
+    viewTransitions = true;
+
+    private shouldViewTransition(): boolean {
+        return this.viewTransitions
+            && typeof document !== "undefined"
+            && typeof document.startViewTransition === "function"
+            && this.motionAllowed();
+    }
+
+    /**
+     * Runs a whole-view swap inside a view transition where one is available,
+     * and plainly where it is not.
+     *
+     * <p>The callback is deliberately allowed to run later than the call: the
+     * API captures the old frame first and only then applies the change.
+     * Nothing here depends on the DOM having changed by the time this
+     * returns — the event bus re-runs its enhancers from a MutationObserver,
+     * so they fire whenever the mutation actually lands.
+     */
+    private withViewTransition(mutate: () => void): void {
+        if (!this.shouldViewTransition()) {
+            mutate();
+            return;
+        }
+        try {
+            document.startViewTransition(mutate);
+        } catch {
+            // Nothing about a transition is worth losing the update over.
+            mutate();
+        }
     }
 
     /**

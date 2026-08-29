@@ -26,6 +26,16 @@ changes may land in a minor.
   `REPLACE` and `MERGE` deliberately do **not** animate: they are the
   streaming path, and a chat turn replaces the same node once per token.
 
+- **Navigation cross-fades where the browser supports it.** Mounting a page
+  and filling a slot — an app shell's content area — go through the View
+  Transition API, so a screen change is a fade rather than a jump. Nothing
+  else does: `APPEND` and `REMOVE` have their own animation, and a `REPLACE`
+  that is not a slot is very often a component redrawing itself once per
+  streaming token. Turn it off with `renderer.viewTransitions = false`;
+  browsers without the API are unaffected. Name a region with
+  `view-transition-name` to animate it as its own pair — that is how a header
+  stays put while the content under it changes.
+
 - **Motion is themable.** Durations and easings are custom properties now
   (`--sui-duration-fast|base|slow`, `--sui-ease-standard|decelerate`) and every
   transition in `sui.css` is timed by them, so a theme can set a tempo the way
