@@ -1194,7 +1194,7 @@ cd demo/mc-sui-shop-demo
 <dependency>
   <groupId>ai.mindconnect</groupId>
   <artifactId>mc-semantic-ui-core</artifactId>
-  <version>0.1.4</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 

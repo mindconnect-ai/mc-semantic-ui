@@ -73,7 +73,7 @@ app:
 <dependency>
   <groupId>ai.mindconnect</groupId>
   <artifactId>mc-sui-editor</artifactId>
-  <version>0.1.4</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
