@@ -3,7 +3,6 @@ package ai.mindconnect.ui.javafx.renderers;
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
 import ai.mindconnect.ui.javafx.SuiFxText;
-import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiSection;
 import ai.mindconnect.ui.model.UiSectionEntry;
 import javafx.scene.Node;
@@ -114,7 +113,6 @@ public class SectionRenderer implements FxNodeRenderer<UiSection> {
     }
 
     /**
-     * Puts a tab's panel in a {@link ScrollPane}.    /**
      * Puts a tab's panel in a {@link ScrollPane}.
      *
      * <p>Without this, a panel taller than the window is simply clipped and

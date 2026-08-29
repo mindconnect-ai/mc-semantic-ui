@@ -21,6 +21,22 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Fixed
+
+- **JavaFX: a patch inside a tab or a scroll pane no longer collapses the
+  page.** Deleting a row, or anything else that patched a node sitting in a
+  JavaFX *control* rather than a pane, swapped the node inside the control's
+  private skin container and left the control itself still pointing at the
+  node that had been taken out. The replacement got none of what the control
+  does for its content — a `ScrollPane` stretches only the node its `content`
+  property names — so the panel shrank to its bare minimum and every label in
+  it turned into an ellipsis. Patches now find the slot a node actually
+  occupies: a tab's panel, a scroll pane's content, a collapsible's body, or a
+  pane's child list.
+- **JavaFX: `APPEND` and `CLEAR` reach through a `scrollpane`.** Appending to
+  one means appending to what it scrolls, which is how a chat adds a message
+  to its transcript; before, the operation was silently dropped.
+
 ## [0.1.4] - 2026-08-29
 
 ### Added

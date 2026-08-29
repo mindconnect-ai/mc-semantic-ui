@@ -56,6 +56,10 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TitledPane;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.Pane;
 
@@ -200,7 +204,7 @@ public class SuiFxRenderer {
         }
         switch (op.getOp()) {
             case REPLACE -> replace(target, context.render(op.getNode()));
-            case REMOVE -> children(target.getParent()).ifPresent(c -> c.remove(target));
+            case REMOVE -> slotOf(target).ifPresent(Slot::clear);
             case APPEND -> children(target).ifPresent(c -> c.add(context.render(op.getNode())));
             case CLEAR -> children(target).ifPresent(ObservableList::clear);
         }
@@ -213,21 +217,99 @@ public class SuiFxRenderer {
         // pane — is on the old controls, and this is the only chance to move
         // it across.
         var state = FxViewState.of(target);
-        var siblings = children(target.getParent());
-        if (siblings.isEmpty()) {
+        var slot = slotOf(target);
+        if (slot.isEmpty()) {
             if (bus != null) bus.reportError(new IllegalStateException(
-                    "Cannot replace '" + target.getId() + "': its parent is not a Pane"));
+                    "Cannot replace '" + target.getId() + "': nothing on screen holds it"));
             return;
         }
-        var list = siblings.get();
-        int index = list.indexOf(target);
-        if (index < 0) return;
-        list.set(index, replacement);
+        slot.get().set(replacement);
         state.restoreInto(replacement);
     }
 
-    /** The mutable child list of a node, when it has one. */
+    /**
+     * How whatever a node sits in holds on to it — the one place that knows a
+     * pane keeps its children in a list while a control keeps its one child in
+     * a property.
+     */
+    private interface Slot {
+        /** Puts {@code replacement} where the node was. */
+        void set(Node replacement);
+        /** Takes the node out and puts nothing back. */
+        void clear();
+    }
+
+    /**
+     * Finds the slot {@code target} occupies on screen.
+     *
+     * <p>Not simply its parent. Half the vocabulary paints as a JavaFX
+     * <em>control</em> — a tab's panel, a scroll pane's content, a
+     * collapsible's body — and a control keeps its child in a property while
+     * its skin parks it in a private container. So {@code getParent()} is that
+     * container, and swapping the child there leaves the control still
+     * pointing at the node that was taken out: the newcomer is on screen but
+     * gets none of what the control does for its content. A {@code ScrollPane}
+     * stretches only the node its {@code content} property names, which is why
+     * the symptom was a panel that shrank to a column of ellipses the moment
+     * anything on it was patched.
+     *
+     * <p>The enclosing controls are therefore asked first, all the way up, and
+     * only then the nearest pane. Identity settles it — at most one control
+     * can name a given node as its content.
+     */
+    private Optional<Slot> slotOf(Node target) {
+        for (Node p = target.getParent(); p != null; p = p.getParent()) {
+            var held = heldBy(p, target);
+            if (held != null) return Optional.of(held);
+        }
+        for (Node p = target.getParent(); p != null; p = p.getParent()) {
+            if (p instanceof Pane pane && pane.getChildren().contains(target)) {
+                return Optional.of(new Slot() {
+                    @Override public void set(Node replacement) {
+                        pane.getChildren().set(pane.getChildren().indexOf(target), replacement);
+                    }
+                    @Override public void clear() {
+                        pane.getChildren().remove(target);
+                    }
+                });
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** The content property of {@code candidate}, when it is the one holding {@code target}. */
+    private Slot heldBy(Node candidate, Node target) {
+        if (candidate instanceof ScrollPane scroll && scroll.getContent() == target) {
+            return slot(scroll::setContent);
+        }
+        if (candidate instanceof TitledPane titled && titled.getContent() == target) {
+            return slot(titled::setContent);
+        }
+        if (candidate instanceof TabPane tabs) {
+            for (Tab tab : tabs.getTabs()) {
+                if (tab.getContent() == target) return slot(tab::setContent);
+            }
+        }
+        return null;
+    }
+
+    private Slot slot(java.util.function.Consumer<Node> setter) {
+        return new Slot() {
+            @Override public void set(Node replacement) { setter.accept(replacement); }
+            @Override public void clear() { setter.accept(null); }
+        };
+    }
+
+    /**
+     * The mutable child list of a node, when it has one.
+     *
+     * <p>A control that wraps a single child is looked through rather than
+     * refused: appending to a {@code UiScrollPane} means appending to the
+     * stack it scrolls, which is how a chat adds a message to its transcript.
+     */
     private Optional<ObservableList<Node>> children(Node node) {
+        if (node instanceof ScrollPane scroll) return children(scroll.getContent());
+        if (node instanceof TitledPane titled) return children(titled.getContent());
         return node instanceof Pane pane ? Optional.of(pane.getChildren()) : Optional.empty();
     }
 
