@@ -732,7 +732,10 @@ a.sui-tree-label:hover { text-decoration: underline; }
    surface, separated by the same hairline as every row, and the outer cells
    carry the card's corners. */
 .sui-table thead th {
-    padding: var(--sui-space-md) var(--sui-space-xl); text-align: left;
+    /* Tighter above and below than a data row: a heading is one line of
+       small type, and giving it a row's worth of air opened a visible band
+       between the labels and the data they label. */
+    padding: var(--sui-space-sm) var(--sui-space-xl); text-align: left;
     /* The same size as the cells under it. It was two steps smaller, which
        is backwards: a column heading labels the column, and a label printed
        smaller than the thing it labels reads as a footnote. What separates
