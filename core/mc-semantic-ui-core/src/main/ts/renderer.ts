@@ -113,6 +113,17 @@ export class SuiRenderer {
     private readonly handlers = new Map<string, NodeHandler<any>>();
     private itemHandler: ItemHandler = defaultRenderItem;
     private rootElement: HTMLElement | null = null;
+    /**
+     * The model each rendered id came from, for {@link #applyPatch}'s MERGE.
+     *
+     * <p>Only what this renderer has drawn is in here. A page delivered as
+     * server-rendered HTML was never drawn by the client, so a merge against
+     * one of its nodes has nothing to merge into until something re-renders
+     * that subtree — navigating, or any other patch. That is a deliberate
+     * limit: the alternative is the server writing every node's model into the
+     * HTML, which doubles the size of every page to serve the rare merge.
+     */
+    private readonly models = new Map<string, UiNode>();
     private loadingDepth = 0;
     private loadingIndicator: LoadingIndicator = defaultLoadingIndicator;
     private morpher: Morpher = innerHtmlMorpher;
@@ -217,6 +228,12 @@ export class SuiRenderer {
      */
     render(node: { type: string } | null | undefined): string {
         if (node == null) return "";
+        // Remember what each id was built from. MERGE changes a few fields of
+        // a node and leaves the rest alone, which means the client has to know
+        // what the rest were — and this is the one place every node passes
+        // through, so it is the cheapest place to find out.
+        const id = (node as { id?: string }).id;
+        if (id) this.models.set(id, node as UiNode);
         const handler = this.handlers.get(node.type);
         if (!handler) {
             console.warn("SuiRenderer: no handler for node type", node.type);
@@ -252,6 +269,9 @@ export class SuiRenderer {
      * when no host has been provided.
      */
     mount(node: { type: string } | null | undefined): this {
+        // A new page: whatever the old one's ids meant, they do not mean it
+        // any more. The render below refills this for the tree it draws.
+        this.models.clear();
         if (!this.rootElement) {
             throw new Error("SuiRenderer.mount(): no host element attached");
         }
@@ -277,6 +297,39 @@ export class SuiRenderer {
      */
     renderInto(element: HTMLElement, node: { type: string } | null | undefined): void {
         this.morph(element, this.render(node), "innerHTML");
+    }
+
+    /**
+     * Seeds the model index from a tree this renderer did not draw.
+     *
+     * <p>A hybrid page arrives as finished HTML with its model parked in a
+     * `<script type="application/json">`; walking it here is what lets a MERGE
+     * work on the very first patch, before anything has been re-rendered.
+     *
+     * <p>Additive: it fills in what it walks and disturbs nothing else, so
+     * calling it on an already-live page is harmless.
+     */
+    seedModels(node: { type: string } | null | undefined): this {
+        this.indexModel(node);
+        return this;
+    }
+
+    /** Walks a tree, remembering every node that has an id. */
+    private indexModel(node: unknown): void {
+        if (node == null || typeof node !== "object") return;
+        if (Array.isArray(node)) {
+            for (const child of node) this.indexModel(child);
+            return;
+        }
+        const record = node as Record<string, unknown>;
+        // Only nodes: a UiNode always says what type it is, and this keeps the
+        // walk out of the data maps a table's rows carry.
+        if (typeof record.type === "string" && typeof record.id === "string" && record.id) {
+            this.models.set(record.id, record as unknown as UiNode);
+        }
+        for (const value of Object.values(record)) {
+            if (value != null && typeof value === "object") this.indexModel(value);
+        }
     }
 
     /** Renders one list item. Exposed so list handlers can delegate. */
@@ -370,6 +423,18 @@ export class SuiRenderer {
                 });
                 break;
             }
+            case "MERGE": {
+                const merged = this.mergeModel(op);
+                if (!merged) return;
+                // Straight back through REPLACE's path: the node is a whole
+                // node again by now, and morphing it in is what keeps focus
+                // and scroll on the parts that did not change.
+                this.withTailChase(target, () => {
+                    const isSlot = target.hasAttribute("data-sui-slot");
+                    this.morph(target, this.render(merged), isSlot ? "innerHTML" : "outerHTML");
+                });
+                break;
+            }
             case "CLEAR":
                 this.morph(target, "", "innerHTML");
                 break;
@@ -379,6 +444,10 @@ export class SuiRenderer {
                 // don't leave behind an empty list row.
                 const li = target.closest("li");
                 (li ?? target).remove();
+                // And forget what it was: the id is free again, and a later
+                // merge against it should say so rather than resurrect a
+                // model for something no longer on the page.
+                this.models.delete(op.targetId);
                 break;
             }
         }
@@ -434,6 +503,31 @@ export class SuiRenderer {
      * Anything else (e.g. patching a cell-template subtree, whose suffixed
      * ids never match model entries) falls back to the generic DOM path.
      */
+    /**
+     * The target with {@code op.attributes} written over it.
+     *
+     * <p>A shallow merge on purpose: naming a field replaces it whole, so
+     * {@code items} or {@code fields} can be swapped without the server
+     * describing how to reconcile a list. Deep-merging arrays is a much bigger
+     * promise than this operation is making.
+     *
+     * @return {@code null} when the target was never rendered here, which is
+     *         also logged — a merge that quietly does nothing is worse than
+     *         one that says why
+     */
+    private mergeModel(op: UiPatchOperation): UiNode | null {
+        const current = this.models.get(op.targetId);
+        if (!current) {
+            console.warn("SuiRenderer: MERGE target has no known model", op.targetId);
+            return null;
+        }
+        // Object.assign, not a spread of undefineds: an explicit null in
+        // attributes has to land, or a state could be set but never cleared.
+        const merged = Object.assign({}, current, op.attributes ?? {}) as UiNode;
+        this.models.set(op.targetId, merged);
+        return merged;
+    }
+
     private applyTablePatch(op: UiPatchOperation, target: HTMLElement): boolean {
         const wrapper = target.closest<HTMLElement>('[data-sui="table"][data-node]');
         if (!wrapper) return false;

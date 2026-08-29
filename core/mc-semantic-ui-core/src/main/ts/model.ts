@@ -868,13 +868,20 @@ export interface UiPageActiveStream {
 
 // ── Patches (mirrors UiPatch.java) ──────────────────────────────────────────
 
-export type PatchOp = "REPLACE" | "APPEND" | "CLEAR" | "REMOVE";
+export type PatchOp = "REPLACE" | "APPEND" | "CLEAR" | "REMOVE" | "MERGE";
 
 export interface UiPatchOperation {
     op: PatchOp;
     targetId: string;
-    /** Required for REPLACE and APPEND, omitted for CLEAR and REMOVE. */
+    /** Required for REPLACE and APPEND, omitted for CLEAR, REMOVE and MERGE. */
     node?: UiNode | { type: string; [k: string]: unknown };
+    /**
+     * The fields to change, for MERGE. Everything the target carries and this
+     * map does not name is left exactly as it was, and an explicit `null`
+     * clears a field rather than being ignored — so a state can be turned off
+     * as well as on.
+     */
+    attributes?: Record<string, unknown>;
 }
 
 export interface UiPatch {

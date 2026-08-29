@@ -13,6 +13,8 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
 import java.io.IOException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -59,6 +61,9 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
      */
     public static final String EXTRA_HEAD_ATTRIBUTE = "mindconnect.sui.extra.head";
 
+    /** Element the hybrid document parks its model in, for the SPA to seed from. */
+    public static final String MODEL_ELEMENT_ID = "sui-model";
+
     /**
      * Request attribute selecting which theme stylesheet to load. Value is
      * a {@link String} matching one of the built-in theme names: {@code "light"}
@@ -83,6 +88,12 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
     private static final String THEME_SBB   = "sbb";
 
     private final SuiServerRenderer renderer;
+    /**
+     * Serialises the model for {@link #renderModel}. Extension node types
+     * register through Jackson's ServiceLoader, so a page carrying a chart or
+     * a markdown block seeds as readily as one that does not.
+     */
+    private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     public UiPageHtmlMessageConverter(SuiServerRenderer renderer) {
         super(StandardCharsets.UTF_8, MediaType.TEXT_HTML);
@@ -118,6 +129,7 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
         String scriptTag = bootstrapUrl == null
                 ? SSR_AUTO_WIRING_SCRIPT
                 : "<script type=\"module\" src=\"" + escapeAttr(bootstrapUrl) + "\"></script>";
+        String model = bootstrapUrl == null ? "" : renderModel(page);
 
         String document = "<!DOCTYPE html>\n<html class=\"sui-theme-" + theme + "\"><head><meta charset=\"UTF-8\">"
                 + themeStylesheets(theme)
@@ -126,12 +138,45 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
                 + body
                 + dialogs
                 + toasts
+                + model
                 + scriptTag
                 + "</body></html>";
         outputMessage.getBody().write(document.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
+     * Emits the page's own model as JSON, for the SPA to seed itself from.
+     *
+     * <p>A hybrid page arrives as finished HTML: the client never rendered it,
+     * so it knows what every element looks like and nothing about what any of
+     * them <em>are</em>. That is enough until a patch wants to change part of
+     * a node and leave the rest — {@code MERGE} — which needs the rest.
+     *
+     * <p>One blob at the end of the body rather than a model on every element:
+     * the tree is already being serialised on this request, and writing it
+     * once costs a fraction of writing each node's share of it into an
+     * attribute. Only hybrid pages carry it; a pure-SSR page has no client to
+     * read it.
+     *
+     * <p>It goes in a {@code <script type="application/json">}, where the only
+     * character that can end the block early is a literal {@code </script>} in
+     * the data — so that one sequence is escaped and nothing else has to be.
+     */
+    private String renderModel(UiPage page) {
+        try {
+            var json = mapper.writeValueAsString(page.getNode());
+            return "<script type=\"application/json\" id=\"" + MODEL_ELEMENT_ID + "\">"
+                    + json.replace("</", "<\\/")
+                    + "</script>";
+        } catch (Exception e) {
+            // A page that renders but cannot be serialised is still a page.
+            // Losing MERGE beats losing the screen.
+            return "";
+        }
+    }
+
+    /**
+     * Emits the body-level {@code #sui-dialogs} host    /**
      * Emits the body-level {@code #sui-dialogs} host and paints each open
      * dialog ({@link UiPage#getDialogs()}) into it via the node renderer. The
      * host is always present (even when empty) so the SPA EventBus can find it

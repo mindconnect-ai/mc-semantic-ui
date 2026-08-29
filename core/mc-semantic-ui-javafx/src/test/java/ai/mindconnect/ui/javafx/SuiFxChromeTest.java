@@ -155,6 +155,86 @@ class SuiFxChromeTest {
                 .isEqualTo(javafx.scene.layout.Priority.ALWAYS);
     }
 
+    // ── merging attributes ────────────────────────────────────────────────
+
+    @Test
+    void aMergeChangesOneFieldAndLeavesTheRest() {
+        var bus = new SuiFxEventBus();
+        var greeting = UiText.of("greeting", "hello");
+        greeting.setCssClass("shout");
+        onFxThread(() -> bus.renderer().mount(UiStack.of(greeting)));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(
+                    UiPatch.Operation.merge("greeting", java.util.Map.of("text", "goodbye"))));
+            return null;
+        });
+
+        var label = (Label) onFxThread(() -> bus.context().byId("greeting"));
+        assertThat(label.getText()).isEqualTo("goodbye");
+        // Never mentioned, so still there — the point of the operation.
+        assertThat(label.getStyleClass()).contains("shout");
+    }
+
+    @Test
+    void aMergeCanHideAndShowAgain() {
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("filters", "Filters"))));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(
+                    UiPatch.Operation.display("filters", ai.mindconnect.ui.model.UiNode.Display.HIDDEN)));
+            return null;
+        });
+        assertThat(((Label) onFxThread(() -> bus.context().byId("filters"))).getStyleClass())
+                .contains("sui-hidden");
+
+        // Being able to hide something is only half a feature: a null has to
+        // clear the field rather than be ignored.
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.display("filters", null)));
+            return null;
+        });
+        assertThat(((Label) onFxThread(() -> bus.context().byId("filters"))).getStyleClass())
+                .doesNotContain("sui-hidden");
+    }
+
+    @Test
+    void mergesAccumulate() {
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("t", "one"))));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of()
+                    .patch(UiPatch.Operation.merge("t", java.util.Map.of("text", "two")))
+                    .patch(UiPatch.Operation.merge("t", java.util.Map.of("cssClass", "loud"))));
+            return null;
+        });
+
+        // The second merge starts from the first one's result, not from the
+        // node as it first arrived.
+        var label = (Label) onFxThread(() -> bus.context().byId("t"));
+        assertThat(label.getText()).isEqualTo("two");
+        assertThat(label.getStyleClass()).contains("loud");
+    }
+
+    @Test
+    void aMergeOnAnUnknownTargetIsReported() {
+        var bus = new SuiFxEventBus();
+        var errors = new AtomicReference<Throwable>();
+        bus.setOnError(errors::set);
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("t", "one"))));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(
+                    UiPatch.Operation.merge("nowhere", java.util.Map.of("text", "x"))));
+            return null;
+        });
+
+        // Quietly doing nothing would leave the author hunting a server bug.
+        assertThat(errors.get()).isNotNull();
+    }
+
     // ── dialogs are windows ───────────────────────────────────────────────
 
     @Test

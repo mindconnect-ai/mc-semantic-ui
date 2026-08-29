@@ -245,6 +245,7 @@ export class SuiEventBus {
         this.installRootListeners();
         this.ensureDialogHost();
         this.registerDefaultBehaviors();
+        this.seedModelsFromDocument();
         this.installAutoEnhance();
         // A patch SSE event is so universal that we wire it as a built-in
         // stream handler; apps can override by registering another handler
@@ -613,6 +614,30 @@ export class SuiEventBus {
      * The host sits at body level so it overlays {@code #sui-root}; its own
      * listeners are needed because that subtree is outside the root.
      */
+    /**
+     * Hands the renderer the model of a hybrid page.
+     *
+     * <p>Such a page arrives as finished HTML, so the renderer has drawn none
+     * of it and knows what none of it is. The server parks the tree in a
+     * `<script type="application/json" id="sui-model">` for exactly this, and
+     * without it the first MERGE on a freshly loaded page would have nothing
+     * to merge into.
+     *
+     * <p>Absent on a pure-SSR page (no client to read it) and on a page this
+     * client rendered itself (it indexed as it drew) — neither is a problem,
+     * so a missing element is silent.
+     */
+    private seedModelsFromDocument(): void {
+        const element = document.getElementById("sui-model");
+        const json = element?.textContent;
+        if (!json) return;
+        try {
+            this.renderer.seedModels(JSON.parse(json));
+        } catch (err) {
+            console.warn("SuiEventBus: could not read the page model", err);
+        }
+    }
+
     private ensureDialogHost(): HTMLElement {
         let host = document.getElementById("sui-dialogs");
         if (!host) {

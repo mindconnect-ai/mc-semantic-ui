@@ -10,6 +10,9 @@ import ai.mindconnect.ui.javafx.renderers.LinkRenderer;
 import ai.mindconnect.ui.javafx.renderers.ListRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuButtonRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuRenderer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import java.net.URI;
 
 import ai.mindconnect.ui.javafx.icons.FxIconResolver;
@@ -101,6 +104,8 @@ import java.util.Optional;
 public class SuiFxRenderer {
 
     private final Map<Class<?>, FxNodeRenderer<?>> renderers = new HashMap<>();
+    /** Only ever used to merge attribute patches; the bus keeps its own for the wire. */
+    private static final ObjectMapper MERGE_MAPPER = new ObjectMapper().findAndRegisterModules();
     private FxIconResolver iconResolver = new SpriteIconResolver();
     private URI documentBase;
 
@@ -198,6 +203,49 @@ public class SuiFxRenderer {
             case REMOVE -> children(target.getParent()).ifPresent(c -> c.remove(target));
             case APPEND -> children(target).ifPresent(c -> c.add(context.render(op.getNode())));
             case CLEAR -> children(target).ifPresent(ObservableList::clear);
+            case MERGE -> merge(target, op);
+        }
+    }
+
+    /**
+     * Applies a {@link UiPatch.Op#MERGE}: the target's own model with the
+     * operation's fields written over it, repainted in place.
+     *
+     * <p>The model is on the painted node already — {@code applyCommon} puts
+     * it there — so nothing has to be kept in step on this side.
+     *
+     * <p>Merging is done through JSON rather than reflection: the field names
+     * in the operation are the wire names, which is what the server wrote and
+     * what the SPA merges against, and going through the mapper is the only
+     * way to be sure both renderers read them the same.
+     */
+    private void merge(Node target, UiPatch.Operation op) {
+        var current = target.getProperties().get(SuiFxEventBus.MODEL_KEY);
+        if (!(current instanceof UiNode model)) {
+            if (bus != null) bus.reportError(new IllegalStateException(
+                    "Patch target '" + op.getTargetId() + "' carries no model to merge into"));
+            return;
+        }
+        var merged = merged(model, op.getAttributes());
+        if (merged != null) replace(target, context.render(merged));
+    }
+
+    /** {@code model} with {@code attributes} written over it, or null if that failed. */
+    private UiNode merged(UiNode model, Map<String, Object> attributes) {
+        if (attributes == null || attributes.isEmpty()) return model;
+        try {
+            var tree = MERGE_MAPPER.valueToTree(model);
+            if (!(tree instanceof ObjectNode object)) return model;
+            attributes.forEach((field, value) ->
+                    // valueToTree(null) is NullNode, so clearing a field works
+                    // as well as setting one — which is the difference between
+                    // being able to hide something and being able to show it
+                    // again.
+                    object.set(field, MERGE_MAPPER.valueToTree(value)));
+            return MERGE_MAPPER.treeToValue(object, UiNode.class);
+        } catch (Exception e) {
+            if (bus != null) bus.reportError(e);
+            return null;
         }
     }
 
