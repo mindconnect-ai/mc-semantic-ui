@@ -10,6 +10,8 @@ import javafx.scene.Node;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -31,6 +33,12 @@ import org.commonmark.node.Paragraph;
 import org.commonmark.node.SoftLineBreak;
 import org.commonmark.node.StrongEmphasis;
 import org.commonmark.node.ThematicBreak;
+import org.commonmark.ext.gfm.tables.TableBlock;
+import org.commonmark.ext.gfm.tables.TableBody;
+import org.commonmark.ext.gfm.tables.TableCell;
+import org.commonmark.ext.gfm.tables.TableHead;
+import org.commonmark.ext.gfm.tables.TableRow;
+import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.parser.Parser;
 
 import java.util.ArrayList;
@@ -51,7 +59,13 @@ import java.util.List;
  */
 public class MarkdownRenderer implements FxNodeRenderer<UiMarkdown> {
 
-    private final Parser parser = Parser.builder().build();
+    // Tables are a GitHub extension rather than CommonMark. The browser gets
+    // them for free -- marked has GFM on by default -- so without this the
+    // desktop was the only one of the three renderers that showed a table as
+    // the row of pipes it is written as.
+    private final Parser parser = Parser.builder()
+            .extensions(List.of(TablesExtension.create()))
+            .build();
 
     @Override
     public Node render(UiMarkdown node, FxRenderContext ctx) {
@@ -100,6 +114,9 @@ public class MarkdownRenderer implements FxNodeRenderer<UiMarkdown> {
             }
             return box;
         }
+        if (node instanceof TableBlock table) {
+            return table(table, ctx);
+        }
         if (node instanceof ThematicBreak) {
             var rule = new Separator();
             rule.getStyleClass().add("sui-md-rule");
@@ -109,6 +126,64 @@ public class MarkdownRenderer implements FxNodeRenderer<UiMarkdown> {
         // nothing, which is the call the SPA's fallback makes too.
         var text = textOf(node);
         return SuiFxText.present(text) ? new Label(text) : null;
+    }
+
+    /**
+     * A GFM table as a {@link GridPane}.
+     *
+     * <p>Not a {@code TableView}: that is a scrolling, sortable, virtualised
+     * control for a data set, and this is a piece of prose. A grid sits in the
+     * flow of the document at exactly the height its rows need, which is what
+     * the {@code <table>} the other two renderers emit does.
+     */
+    private Node table(TableBlock table, FxRenderContext ctx) {
+        var grid = new GridPane();
+        grid.getStyleClass().add("sui-md-table");
+
+        int row = 0;
+        for (var section = table.getFirstChild(); section != null; section = section.getNext()) {
+            boolean head = section instanceof TableHead;
+            if (!head && !(section instanceof TableBody)) continue;
+
+            for (var line = section.getFirstChild(); line != null; line = line.getNext()) {
+                if (!(line instanceof TableRow)) continue;
+                int column = 0;
+                for (var cell = line.getFirstChild(); cell != null; cell = cell.getNext()) {
+                    if (!(cell instanceof TableCell tableCell)) continue;
+                    grid.add(cellOf(tableCell, ctx, head), column++, row);
+                }
+                row++;
+            }
+        }
+        // Every column shares the width evenly and its text wraps, so a table
+        // of prose does not run off the side of a window the way a fixed
+        // layout would.
+        int columns = grid.getChildren().stream()
+                .mapToInt(n -> GridPane.getColumnIndex(n) == null ? 0 : GridPane.getColumnIndex(n))
+                .max().orElse(0) + 1;
+        for (int i = 0; i < columns; i++) {
+            var constraint = new ColumnConstraints();
+            constraint.setHgrow(Priority.SOMETIMES);
+            constraint.setPercentWidth(100.0 / columns);
+            grid.getColumnConstraints().add(constraint);
+        }
+        return grid;
+    }
+
+    private Node cellOf(TableCell cell, FxRenderContext ctx, boolean head) {
+        var flow = flow(cell, ctx, head ? "sui-md-th" : "sui-md-td");
+        if (cell.getAlignment() == TableCell.Alignment.RIGHT) {
+            flow.setTextAlignment(javafx.scene.text.TextAlignment.RIGHT);
+        } else if (cell.getAlignment() == TableCell.Alignment.CENTER) {
+            flow.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        }
+        if (head) {
+            // A header cell is bold whatever the markdown says, the way a
+            // <th> is -- the alignment column of a GFM table carries no
+            // emphasis of its own.
+            flow.getChildren().forEach(n -> n.getStyleClass().add("sui-md-strong"));
+        }
+        return flow;
     }
 
     private Node codeBlock(String literal) {
