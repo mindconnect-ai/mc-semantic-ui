@@ -780,9 +780,13 @@ a.sui-tree-label:hover { text-decoration: underline; }
    to stay one line. */
 .sui-table thead th { white-space: nowrap; }
 
+/* Same ink as a list row. A table cell and a list row hold the same kind of
+   thing, and they were two different greys — `text-body` here, plain `text`
+   there — which is a difference you feel without being able to name it. */
 .sui-table tbody td {
-    padding: var(--sui-space-md) var(--sui-space-xl); font-size: var(--sui-text-lg); border-bottom: 1px solid var(--sui-color-border-soft);
-    color: var(--sui-color-text-body);
+    padding: var(--sui-space-md) var(--sui-space-xl); font-size: var(--sui-text-lg);
+    border-bottom: 1px solid var(--sui-color-border-soft);
+    color: var(--sui-color-text);
 }
 .sui-table tbody tr:last-child td { border-bottom: none; }
 .sui-table tbody tr:hover { background: var(--sui-color-surface-alt); }
