@@ -36,6 +36,18 @@ fresh empty one, so nothing has to be moved by hand at release time.
 - **JavaFX: `APPEND` and `CLEAR` reach through a `scrollpane`.** Appending to
   one means appending to what it scrolls, which is how a chat adds a message
   to its transcript; before, the operation was silently dropped.
+- **JavaFX: a dialog looks like the app it came out of.** A dialog is its own
+  scene, and a scene starts from the bare JavaFX theme; it inherited only what
+  the owner had put on its *scene*, which for an app that styles its root — the
+  documented way, and what `SuiFxOverlay` itself does — is nothing. Tabs and
+  buttons in a dialog came up unstyled. The palette is now installed outright,
+  and the owner's root stylesheets are adopted as well.
+- **JavaFX: `DOWNLOAD` saves a file you can find.** It wrote the bytes to a
+  randomly named temp file and logged the path, which from the clicking end is
+  indistinguishable from nothing happening. The name now comes from
+  `Content-Disposition`, or the url if the server said nothing — the same
+  two-step the browser renderer makes — and the default handler asks where to
+  put the file instead of logging. `setDownloadHandler` still overrides it.
 
 ## [0.1.4] - 2026-08-29
 
