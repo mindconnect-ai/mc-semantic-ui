@@ -72,6 +72,50 @@ fresh empty one, so nothing has to be moved by hand at release time.
   than squeezing its row actions off-screen; `headerExtra` is drawn, without
   which a page offered no way to filter; and the detail grid keeps its term
   column, which had collapsed so far that every field name read `...`.
+- **A JavaFX repaint no longer throws away what the user was doing.** Focus, a
+  text control's caret and selection, scroll offsets, the open tab and expanded
+  panes now survive a patch. The browser gets this from its morphing library;
+  the desktop rebuilds and swaps, so typing in a field while a stream patched
+  the page above it used to cost the cursor mid-word.
+- **`display` works on JavaFX.** The state has been on `UiNode` since v0.1.3,
+  folded into a style class that this renderer never read — a `HIDDEN` node
+  stayed on screen. `HIDDEN` now takes the node out of the layout and `BLANK`
+  leaves its space behind, matching `display:none` and `visibility:hidden`.
+- **Table cell templates are applied on JavaFX.** A column can paint its cells
+  as nodes rather than text, with `{dataKey}` placeholders filled per row.
+  Without it a column meant to be a link showed the raw value and there was no
+  way in.
+- **A second dialog under the same id came up empty on JavaFX.** A server
+  swaps one dialog for another by removing it and appending the replacement,
+  both in one patch. The operations were being reordered — the dialog ones
+  applied inline, the rest collected and run afterwards — so the remove landed
+  after the append had already claimed the id, and deleted the content it had
+  just built. Patch operations run in sequence now, because a patch means what
+  it means in order.
+- **SVG line art is drawn on JavaFX.** A brand logo written as SVG used to be
+  skipped: JavaFX has no SVG support, and the libraries that add it bring a
+  rendering engine. But the icon sprite was already being rebuilt as shapes,
+  and a logo is very often the same kind of drawing — so that machinery now
+  handles any document of the sort, groups and viewBoxes and stroke widths
+  included. A logo in `currentColor` takes the brand's own colour, so it lights
+  up on the dark band without a second asset. Gradients, text and masks are
+  still out of reach and come back as nothing rather than as something wrong.
+- **A JavaFX dialog scrolls instead of growing off the screen.** A window sizes
+  itself to its content, and a long form grew past the bottom with the Close
+  button somewhere below the taskbar. The body scrolls now and the window stops
+  at four fifths of the screen's visual bounds.
+- **A field's trailing action is drawn on JavaFX.** A path field's "Browse…"
+  button was simply absent, leaving the path to be typed from memory.
+- **Paging worked off by one on JavaFX.** `page` is one-based, as the SPA has
+  always read it, and both the list and the table pager assumed zero. On a
+  16-item list of pages of 10 the first page was labelled "2 / 2", Previous was
+  enabled there, and pressing it asked the server for page 0.
+- **The JavaFX header is the dark band the web draws.** It was painted in the
+  surface colour with dark text — the same header in name only. The
+  `--sui-header-*` tokens now exist on the desktop too, so brand, navigation
+  and the user widget read against the band, and a host can relight it the same
+  way. An SVG brand logo is skipped with a note rather than silently never
+  appearing: JavaFX draws raster formats only.
 
 ## [0.1.3] - 2026-08-17
 

@@ -3,6 +3,7 @@ package ai.mindconnect.ui.javafx.renderers;
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
 import ai.mindconnect.ui.javafx.SuiFxText;
+import ai.mindconnect.ui.javafx.icons.SvgImage;
 import ai.mindconnect.ui.model.UiHeader;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -31,6 +32,9 @@ import javafx.scene.layout.Region;
  * resized deliberately and rarely to widths where it would matter.
  */
 public class HeaderRenderer implements FxNodeRenderer<UiHeader> {
+
+    /** Matches .sui-header-logo on the web, which caps the logo at the band's height. */
+    private static final int LOGO_HEIGHT = 36;
 
     @Override
     public Node render(UiHeader node, FxRenderContext ctx) {
@@ -89,7 +93,7 @@ public class HeaderRenderer implements FxNodeRenderer<UiHeader> {
         brand.getStyleClass().add("sui-header-brand");
 
         // A brand logo is nearly always written relatively (/img/logo.svg).
-        var logo = logo(ctx.resolve(node.getBrandLogo()));
+        var logo = logo(ctx.resolve(node.getBrandLogo()), brand);
         if (logo != null) brand.setGraphic(logo);
 
         if (node.getBrandHref() != null) {
@@ -102,17 +106,39 @@ public class HeaderRenderer implements FxNodeRenderer<UiHeader> {
     }
 
     /**
-     * The brand logo, loaded in the background so a slow or unreachable URL
-     * never blocks the window coming up. A logo that fails to load is simply
-     * absent — the brand text carries the header on its own.
+     * The brand logo.
+     *
+     * <p>A raster logo is loaded in the background, so a slow or unreachable
+     * URL never blocks the window coming up. An <b>SVG</b> is drawn as shapes
+     * instead — JavaFX has no SVG support of its own, but a logo is very often
+     * line art, and line art is exactly what {@link SvgShapes} can rebuild.
+     * That also means a logo written in {@code currentColor} takes the brand's
+     * own colour, so it lights up correctly on the dark band without a second
+     * asset.
+     *
+     * <p>Fetching an SVG is synchronous, unlike the raster path: the shapes
+     * have to exist before the header can be laid out. It is a small file on
+     * the host's own server, with a five second ceiling.
+     *
+     * <p>A logo that cannot be drawn is simply absent — a gradient-heavy mark,
+     * an unreachable url — and the brand text carries the header on its own.
      */
-    private ImageView logo(String url) {
-        if (url == null || url.isBlank()) return null;
+    private Node logo(String url, Labeled brand) {
+        if (!SuiFxText.present(url)) return null;
+
+        if (url.trim().toLowerCase().endsWith(".svg")) {
+            var drawn = SvgImage.load(url, "brand");
+            if (drawn == null) return null;
+            drawn.setSize(LOGO_HEIGHT);
+            // currentColor, resolved against the brand it sits beside.
+            drawn.colorProperty().bind(brand.textFillProperty());
+            return drawn;
+        }
         try {
             var view = new ImageView(new Image(url, true));
             view.getStyleClass().add("sui-header-logo");
             view.setPreserveRatio(true);
-            view.setFitHeight(24);
+            view.setFitHeight(LOGO_HEIGHT);
             return view;
         } catch (Exception e) {
             return null;

@@ -77,13 +77,20 @@ class SuiFxIconTest {
     }
 
     @Test
-    void sizeScalesTheSharedViewBox() {
+    void sizeScalesTheViewBoxTheSymbolDeclares() {
         var icon = resolver.resolve("brain");
         icon.setSize(48);
 
-        // Every symbol is drawn on a 24×24 grid, so 48px is exactly 2×.
-        assertThat(((javafx.scene.Group) icon.getChildrenUnmodifiable().get(0)).getTransforms()).singleElement()
-                .satisfies(t -> assertThat(((javafx.scene.transform.Scale) t).getX()).isEqualTo(2.0));
+        var transforms = ((javafx.scene.Group) icon.getChildrenUnmodifiable().get(0)).getTransforms();
+        var scale = (javafx.scene.transform.Scale) transforms.get(0);
+        var offset = (javafx.scene.transform.Translate) transforms.get(1);
+
+        // Every sprite symbol declares 0 0 24 24, so 48px is exactly 2× and
+        // there is nothing to shift. A document whose box starts elsewhere —
+        // a logo's often does — is what the offset is there for.
+        assertThat(scale.getX()).isEqualTo(2.0);
+        assertThat(offset.getX()).isZero();
+        assertThat(offset.getY()).isZero();
     }
 
     @Test

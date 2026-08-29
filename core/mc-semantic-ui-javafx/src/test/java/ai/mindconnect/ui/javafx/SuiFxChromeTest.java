@@ -12,6 +12,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
@@ -155,6 +156,83 @@ class SuiFxChromeTest {
                 .isEqualTo(javafx.scene.layout.Priority.ALWAYS);
     }
 
+    // ── visibility ────────────────────────────────────────────────────────
+
+    @Test
+    void hiddenTakesTheNodeOutOfTheLayout() {
+        // The state has been on UiNode since v0.1.3 and this renderer never
+        // honoured it: the web folds it into a css class, JavaFX cannot style
+        // visible or managed, so the class went on and nothing read it.
+        var text = UiText.of("filters", "Filters");
+        text.setDisplay(ai.mindconnect.ui.model.UiNode.Display.HIDDEN);
+
+        var painted = (Label) onFxThread(() ->
+                SuiFxRenderer.createDefaultRenderer().mount(UiStack.of(text)).lookup("#filters"));
+
+        assertThat(painted.isVisible()).isFalse();
+        assertThat(painted.isManaged()).as("HIDDEN is display:none — out of the layout").isFalse();
+    }
+
+    @Test
+    void blankHidesTheNodeButKeepsItsSpace() {
+        var text = UiText.of("filters", "Filters");
+        text.setDisplay(ai.mindconnect.ui.model.UiNode.Display.BLANK);
+
+        var painted = (Label) onFxThread(() ->
+                SuiFxRenderer.createDefaultRenderer().mount(UiStack.of(text)).lookup("#filters"));
+
+        // The whole reason there are two ways to hide: BLANK leaves the gap so
+        // nothing around it jumps. Nothing tested the difference before.
+        assertThat(painted.isVisible()).isFalse();
+        assertThat(painted.isManaged()).as("BLANK is visibility:hidden — the space stays").isTrue();
+    }
+
+    @Test
+    void aNodeWithNoDisplayStateIsVisible() {
+        var painted = (Label) onFxThread(() -> SuiFxRenderer.createDefaultRenderer()
+                .mount(UiStack.of(UiText.of("filters", "Filters"))).lookup("#filters"));
+
+        assertThat(painted.isVisible()).isTrue();
+        assertThat(painted.isManaged()).isTrue();
+    }
+
+    // ── a field's trailing action ─────────────────────────────────────────
+
+    @Test
+    void aTrailingActionSharesTheControlsRow() {
+        // What a workflow's run form sends: a path field with a Browse… beside
+        // it. Without this the button was simply absent and the path had to be
+        // typed from memory.
+        var field = ai.mindconnect.ui.model.UiField.text("templateFile", "Template", "")
+                .asEditable();
+        field.setTrailing(UiAction.secondary("browse", "Browse…"));
+
+        var painted = (javafx.scene.layout.VBox) onFxThread(() ->
+                SuiFxRenderer.createDefaultRenderer().mount(field));
+
+        var row = (HBox) painted.getChildren().stream()
+                .filter(n -> n.getStyleClass().contains("sui-field-row"))
+                .findFirst().orElseThrow();
+        assertThat(row.getChildren()).hasSize(2);
+        // The control takes the room; the button keeps its own width.
+        assertThat(HBox.getHgrow(row.getChildren().get(0))).isEqualTo(javafx.scene.layout.Priority.ALWAYS);
+        assertThat(((javafx.scene.control.Button) row.getChildren().get(1)).getText())
+                .isEqualTo("Browse…");
+    }
+
+    @Test
+    void aReadOnlyFieldGetsNoTrailingAction() {
+        // Nothing to browse for on a value the user cannot change — the model
+        // says editable only, and the web renderer agrees.
+        var field = ai.mindconnect.ui.model.UiField.text("templateFile", "Template", "/tmp/x");
+        field.setTrailing(UiAction.secondary("browse", "Browse…"));
+
+        var painted = (javafx.scene.layout.VBox) onFxThread(() ->
+                SuiFxRenderer.createDefaultRenderer().mount(field));
+
+        assertThat(painted.getChildren()).noneMatch(n -> n.getStyleClass().contains("sui-field-row"));
+    }
+
     // ── dialogs are windows ───────────────────────────────────────────────
 
     @Test
@@ -244,7 +322,100 @@ class SuiFxChromeTest {
         assertThat(((Label) msg).getText()).isEqualTo("after");
     }
 
+    @Test
+    void swappingADialogUnderTheSameIdKeepsTheNewOnesContent() {
+        // How a server swaps one dialog for another: REMOVE it, APPEND the
+        // replacement, both under one id. The two are one patch and mean what
+        // they mean in sequence.
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("body", "page"))));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of()
+                    .patch(UiPatch.Operation.remove("wf-dialog"))
+                    .patch(UiPatch.Operation.append(SuiFxEventBus.DIALOG_HOST_ID,
+                            dialog("wf-dialog", "First", UiText.of("chooser", "one")))));
+            return null;
+        });
+        assertThat(onFxThread(() -> bus.context().byId("chooser"))).isNotNull();
+
+        // The user closes it and asks for another, which is the same patch again.
+        onFxThread(() -> {
+            List.copyOf(Window.getWindows()).forEach(w -> {
+                if (w instanceof Stage stage) stage.close();
+            });
+            bus.applyPatch(UiPatch.of()
+                    .patch(UiPatch.Operation.remove("wf-dialog"))
+                    .patch(UiPatch.Operation.append(SuiFxEventBus.DIALOG_HOST_ID,
+                            dialog("wf-dialog", "Second", UiText.of("chooser", "two")))));
+            return null;
+        });
+
+        // Asserted on what is in the window, not on what is in the render
+        // index: the index keeps a node that has been detached, so an
+        // index-only check passes against a dialog the user sees as blank.
+        assertThat(onFxThread(SuiFxChromeTest::stageTitles)).contains("Second");
+        assertThat(onFxThread(() -> textIn(openStage("Second"))))
+                .as("the second dialog's own window shows its content")
+                .contains("two");
+    }
+
+    /** The showing stage with this title, or null. */
+    private static Stage openStage(String title) {
+        for (Window w : Window.getWindows()) {
+            if (w instanceof Stage stage && title.equals(stage.getTitle())) return stage;
+        }
+        return null;
+    }
+
+    /** Every label's text inside a window — what the user can actually read. */
+    private static java.util.List<String> textIn(Stage stage) {
+        var out = new java.util.ArrayList<String>();
+        if (stage == null || stage.getScene() == null) return out;
+        collectText(stage.getScene().getRoot(), out);
+        return out;
+    }
+
+    private static void collectText(Node node, java.util.List<String> out) {
+        if (node instanceof Label label && label.getText() != null) out.add(label.getText());
+        if (node instanceof javafx.scene.Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) collectText(child, out);
+        }
+    }
+
     /** UiDialog.of takes (title, closeHref, node); the id is what a patch names it by. */
+    @Test
+    void aTallDialogScrollsInsteadOfGrowingPastTheScreen() {
+        var many = new UiStack();
+        for (int i = 0; i < 200; i++) {
+            many.getChildren().add(UiText.of("line-" + i, "line " + i));
+        }
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("body", "page"))));
+
+        var stage = onFxThread(() -> bus.showDialog(dialog("tall", "Tall", many)));
+
+        // A window sizes itself to its content, and 200 rows are taller than
+        // any screen — the Close button ended up below the taskbar.
+        var limit = javafx.stage.Screen.getPrimary().getVisualBounds().getHeight();
+        assertThat(stage.getHeight()).isLessThanOrEqualTo(limit);
+        assertThat(stage.getScene().getRoot().lookup(".sui-dialog-scroll"))
+                .as("the body scrolls").isNotNull();
+    }
+
+    @Test
+    void aShortDialogIsNotStretchedToTheCap() {
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("body", "page"))));
+
+        var stage = onFxThread(() -> bus.showDialog(dialog("small", "Small", UiText.of("m", "hello"))));
+
+        // The cap is a ceiling, not a size: a one-line dialog stays small.
+        var limit = javafx.stage.Screen.getPrimary().getVisualBounds().getHeight()
+                * SuiFxEventBus.DIALOG_MAX_SCREEN_FRACTION;
+        assertThat(stage.getHeight()).isLessThan(limit);
+    }
+
     private static UiDialog dialog(String id, String title, ai.mindconnect.ui.model.UiNode body) {
         var d = UiDialog.of(title, null, body);
         d.setId(id);

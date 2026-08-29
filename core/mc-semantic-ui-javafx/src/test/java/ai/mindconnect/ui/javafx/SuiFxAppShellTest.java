@@ -150,6 +150,43 @@ class SuiFxAppShellTest {
         assertThat(menuNode.isVisible()).isTrue();
     }
 
+    @Test
+    void theHeaderIsPaintedAsTheDarkBandTheWebDraws() {
+        var header = UiHeader.of("Acme").user(UiHeader.User.of("Ada", "AL", null));
+
+        var bar = (HBox) onFxThread(() -> {
+            var overlay = new ai.mindconnect.ui.javafx.SuiFxOverlay();
+            var renderer = SuiFxRenderer.createDefaultRenderer(overlay);
+            new javafx.scene.Scene(overlay, 900, 200);
+            var painted = renderer.mount(header);
+            overlay.applyCss();
+            overlay.layout();
+            return painted;
+        });
+
+        // The header is its own band and the library's default for it is dark.
+        // This renderer painted it in the surface colour with dark text, which
+        // is the same header in name only.
+        assertThat(bar.getBackground().getFills().get(0).getFill())
+                .isEqualTo(javafx.scene.paint.Color.web("#1e293b"));
+        var brand = (javafx.scene.control.Labeled) bar.lookup(".sui-header-brand");
+        assertThat(brand.getTextFill()).isEqualTo(javafx.scene.paint.Color.WHITE);
+    }
+
+    @Test
+    void anSvgLogoThatCannotBeFetchedLeavesTheBrandTextAlone() {
+        // Line-art SVG is drawn now, but a logo that cannot be had at all —
+        // unreachable, or using gradients this cannot draw — must not take the
+        // header with it. The brand text carries it.
+        var header = UiHeader.of("Acme").brandLogo("http://127.0.0.1:1/nope.svg");
+
+        var bar = (HBox) onFxThread(() -> bus().mount(header));
+
+        var brand = (javafx.scene.control.Labeled) bar.lookup(".sui-header-brand");
+        assertThat(brand.getGraphic()).isNull();
+        assertThat(brand.getText()).isEqualTo("Acme");
+    }
+
     private static <T> T onFxThread(Supplier<T> work) {
         var result = new AtomicReference<T>();
         var error = new AtomicReference<Throwable>();
