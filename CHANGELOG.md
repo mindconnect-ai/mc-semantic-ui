@@ -13,6 +13,25 @@ changes may land in a minor.
 
 **Adding an entry:** put it under `## [Unreleased]
 
+### Added
+
+- **Spacing and type are on a scale.** `--sui-space-*` (a 4px grid with one
+  half-step) and `--sui-text-*` (six steps), and the rules that set the
+  layout's rhythm — page, list rows, table cells, fields, buttons, menu,
+  tabs, dialog — now use them. The sheet had 25 distinct spacing values, 16
+  of them off any grid, and 12 font sizes from 9px to 24px; a theme that
+  wanted to be denser had to override component by component, and a new
+  component had nothing to pick from.
+
+  Snapping to the grid moved values by at most 2px each, which makes rows
+  about 5px shorter than before. Measured across three pages, no element
+  changed width or horizontal position by more than 4px.
+
+  This is a first pass over the declarations that form the rhythm, not the
+  whole sheet: 15 of 127 spacing declarations are on the scale so far. The
+  rest are one-off insets and fixed control sizes, which mostly should stay
+  literal — but some are simply not migrated yet.
+
 ### Fixed
 
 - **List rows line up.** A row's height follows its description, and the
