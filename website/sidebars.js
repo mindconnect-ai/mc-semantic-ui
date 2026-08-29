@@ -24,6 +24,7 @@ const sidebars = {
             'semantic-ui/overflow',
             'semantic-ui/feedback',
             'semantic-ui/icons',
+            {type: 'doc', id: 'semantic-ui/i18n', label: 'Language of the runtime'},
             'semantic-ui/rendering-modes',
           ],
         },

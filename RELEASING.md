@@ -44,6 +44,25 @@ them (`mvn install`); the parent sets `maven.deploy.skip=true`, so a plain
 
 ---
 
+## The changelog
+
+[CHANGELOG.md](CHANGELOG.md) has an `## [Unreleased]` section at the top. Write
+entries there as you go; nothing is moved by hand at release time.
+
+The workflow, in order:
+
+1. **Before the Central upload**, `[Unreleased]` is renamed to the version
+   being cut, dated. Its body is kept aside as the release notes.
+2. **With the next `-SNAPSHOT` bump**, a fresh empty `[Unreleased]` is opened,
+   so `main` always has somewhere to write the next entry.
+3. **The GitHub Release** uses that body, with the generated commit list
+   appended under it.
+
+An **empty `[Unreleased]` fails the release** — before anything is published,
+since a version on Central can never be taken back, and an empty section almost
+always means someone forgot rather than that nothing changed. For the case
+where nothing really did, re-run with the `allowEmptyChangelog` input.
+
 # The normal way: the release workflow
 
 **You do not have to release from your machine.**
