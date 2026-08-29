@@ -304,6 +304,15 @@ body {
 .sui-list-header {
     display: flex; align-items: center; justify-content: space-between;
     min-height: var(--sui-list-header-h);
+}
+/* An empty header — no title, no extras, no actions — is emitted by the
+   renderer for untitled nested lists, and the min-height above would blow
+   it up into a header-sized void. If it carries nothing, it shows nothing.
+   (Same cure the empty .sui-menu-head got.) */
+.sui-list-header:not(:has(h2, .sui-header-extra, .sui-actions > *)) {
+    display: none;
+}
+.sui-list-header {
     box-sizing: border-box;
     padding: var(--sui-space-lg) var(--sui-space-xl); border-bottom: 1px solid var(--sui-color-border);
 }
@@ -914,6 +923,9 @@ a.sui-tree-label:hover { text-decoration: underline; }
 
 .sui-stack            { display: flex; gap: 16px; }
 .sui-stack--vertical  { flex-direction: column; }
+/* A button dropped into a vertical stack is a control, not a banner: flex
+   stretch would pull it to the stack's full width. */
+.sui-stack--vertical > :is(.sui-btn, .sui-icon-btn) { align-self: start; }
 .sui-stack--horizontal{ flex-direction: row; align-items: center; }
 /* Form-layout helpers (apply via cssClass on a stack). `sui-cols` turns a
    horizontal stack into equal-width, top-aligned columns; `sui-fieldgroup`
