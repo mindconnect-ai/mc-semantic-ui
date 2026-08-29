@@ -1,13 +1,22 @@
 package ai.mindconnect.ui.javafx.renderers;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.TextNode;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
 import ai.mindconnect.ui.javafx.SuiFxText;
 import ai.mindconnect.ui.model.UiAction;
 import ai.mindconnect.ui.model.UiColumn;
+import ai.mindconnect.ui.model.UiNode;
 import ai.mindconnect.ui.model.UiRow;
 import ai.mindconnect.ui.model.UiTrigger;
 import ai.mindconnect.ui.model.UiTable;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
@@ -31,11 +40,30 @@ import javafx.scene.layout.VBox;
  * the trigger instead of reordering locally. Without one, the TableView sorts
  * itself.
  *
- * <p>First draft: {@link UiColumn#getCellTemplate()} is not applied — cells
+ * <p>{@link UiColumn#getCellTemplate()} paints a column's cells as nodes
+ * rather than text, with {@code {dataKey}} placeholders filled per row. Cells
  * render the raw value as text. Rich cells (a link, an inline action, an
  * editable field) come with the templating pass.
  */
 public class TableRenderer implements FxNodeRenderer<UiTable> {
+
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^{}]+)\\}");
+    /**
+     * What the stylesheet makes a column header and a row — measured, not
+     * guessed, and only ever used as a <em>preferred</em> height. A row that
+     * turns out taller (a wrapped line, a cell template) makes the table
+     * scroll rather than clip.
+     */
+    private static final double HEADER_HEIGHT = 26;
+    private static final double ROW_HEIGHT = 40;
+    /** Buttons stand taller than text, so a table with row actions has taller rows. */
+    private static final double ACTION_ROW_HEIGHT = 48;
+    /** An empty table still has to show the grid's "no content" line. */
+    private static final int MIN_VISIBLE_ROWS = 3;
+    /** Cell padding and the column border, which the buttons do not know about. */
+    private static final double ACTION_CELL_PADDING = 28;
+    /** Only ever used to clone and substitute cell templates. */
+    private static final ObjectMapper CELL_MAPPER = new ObjectMapper().findAndRegisterModules();
 
     @Override
     public Node render(UiTable node, FxRenderContext ctx) {
@@ -91,6 +119,13 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
         sorting(node, table, ctx);
         rowClicks(node, table, ctx);
 
+        // A TableView's preferred height is a flat 400px whatever is in it, so
+        // a one-row table came up as a row of data over a lawn of empty grid.
+        // The web sizes a table to its rows; so does this.
+        int rows = Math.max(node.getRows().size(), MIN_VISIBLE_ROWS);
+        double rowHeight = node.getRowActions().isEmpty() ? ROW_HEIGHT : ACTION_ROW_HEIGHT;
+        table.setPrefHeight(HEADER_HEIGHT + rows * rowHeight + 2);
+
         if (node.getMaxHeight() != null) {
             parsePx(node.getMaxHeight()).ifPresent(table::setMaxHeight);
         }
@@ -106,15 +141,113 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
             var value = cell.getValue().getData().get(column.getDataKey());
             return new SimpleStringProperty(value == null ? "" : value.toString());
         });
+        if (column.getCellTemplate() != null) applyCellTemplate(tc, column, ctx);
         return tc;
     }
 
     /** The trailing column of per-row buttons built from {@link UiTable#getRowActions()}. */
+    /**
+     * Paints a column's cells from its {@code cellTemplate} instead of as text.
+     *
+     * <p>A template is one node written once for the whole column, with
+     * {@code {dataKey}} placeholders standing in for the row: a link whose
+     * href is {@code /workflows/{id}} becomes a different link in every row.
+     * Without this the cell fell back to the raw value, so a column meant to
+     * be a link showed the id as text and there was no way in.
+     */
+    private void applyCellTemplate(TableColumn<UiRow, String> tc, UiColumn column, FxRenderContext ctx) {
+        tc.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                var row = getTableRow() == null ? null : getTableRow().getItem();
+                if (empty || row == null) {
+                    setText(null);
+                    setGraphic(null);
+                    return;
+                }
+                var node = forRow(column.getCellTemplate(), row);
+                setText(null);
+                // Through the renderer, so link, action and text handlers take
+                // over and the cell behaves like the node it is.
+                setGraphic(node == null ? null : ctx.render(node));
+            }
+        });
+    }
+
+    /**
+     * The row's own copy of a cell template.
+     *
+     * <p>Every string in it is substituted against the row's data plus its id;
+     * an unknown placeholder is left as written, so a mistyped key shows up on
+     * screen rather than turning into a blank. Ids are suffixed with the row
+     * instead of substituted — the same node is painted once per row, and two
+     * of them under one id would collide in the render index.
+     */
+    static UiNode forRow(UiNode template, UiRow row) {
+        if (template == null) return null;
+        var values = new LinkedHashMap<String, Object>();
+        if (row.getData() != null) values.putAll(row.getData());
+
+        var rowId = row.getId() != null ? row.getId()
+                : row.getData() == null ? null : row.getData().get("id");
+        if (rowId != null) values.put("id", rowId);
+        var suffix = rowId == null ? "" : String.valueOf(rowId);
+
+        try {
+            return CELL_MAPPER.treeToValue(
+                    substitute(CELL_MAPPER.valueToTree(template), values, suffix), UiNode.class);
+        } catch (Exception e) {
+            // A template that cannot be rebuilt is better skipped than fatal:
+            // the rest of the table still comes up.
+            return null;
+        }
+    }
+
+    private static JsonNode substitute(JsonNode node, Map<String, Object> values, String suffix) {
+        if (node.isTextual()) return TextNode.valueOf(fill(node.asText(), values));
+        if (node.isArray()) {
+            var out = CELL_MAPPER.createArrayNode();
+            node.forEach(child -> out.add(substitute(child, values, suffix)));
+            return out;
+        }
+        if (!node.isObject()) return node;
+
+        var out = CELL_MAPPER.createObjectNode();
+        node.fields().forEachRemaining(field -> {
+            var value = field.getValue();
+            if ("id".equals(field.getKey()) && value.isTextual() && !suffix.isEmpty()) {
+                out.put("id", value.asText() + "__" + suffix);
+            } else {
+                out.set(field.getKey(), substitute(value, values, suffix));
+            }
+        });
+        return out;
+    }
+
+    /** {@code {key}} from {@code values}; unknown keys stay, null becomes empty. */
+    private static String fill(String text, Map<String, Object> values) {
+        var matcher = PLACEHOLDER.matcher(text);
+        var out = new StringBuilder();
+        while (matcher.find()) {
+            var key = matcher.group(1);
+            var replacement = values.containsKey(key)
+                    ? (values.get(key) == null ? "" : String.valueOf(values.get(key)))
+                    : matcher.group();   // leave a bad key visible rather than blank
+            matcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(out);
+        return out.toString();
+    }
+
     private TableColumn<UiRow, Void> rowActionColumn(UiTable node, FxRenderContext ctx) {
         var tc = new TableColumn<UiRow, Void>("");
         tc.setSortable(false);
-        // Wide enough for its buttons and no narrower: this column is the one
-        // the user came for, and a default-width column would clip them.
+        // A starting guess only. What the buttons actually need depends on
+        // their labels, their icons and the font the host styled them with,
+        // and a guess that came up short clipped "Remove" to "R…". The first
+        // cell to lay its buttons out says how wide the column really has to
+        // be — see widenFor below.
         double width = Math.max(90, 96.0 * node.getRowActions().size());
         tc.setMinWidth(width);
         tc.setPrefWidth(width);
@@ -140,6 +273,9 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
                         button.getStyleClass().add("sui-action-" + action.getAppearance().name().toLowerCase());
                     }
                     Icons.lead(button, action.getIcon(), ctx);
+                    // A button is never narrower than its own label. Whatever
+                    // the column ends up being, the text stays readable.
+                    button.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
                     button.setDisable(!action.isEnabled());
 
                     // One trigger template is shared by every row, so it is
@@ -157,9 +293,29 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
                     buttons.getChildren().add(button);
                 }
                 setGraphic(buttons);
+                widenFor(tc, buttons);
             }
         });
         return tc;
+    }
+
+    /**
+     * Grows the action column to fit the buttons in it.
+     *
+     * <p>Measured after a pulse rather than now: a cell's buttons have no
+     * useful preferred width until they are in the scene with the host's CSS
+     * applied, and the width they need is exactly what a fixed guess cannot
+     * know. It only ever grows, so the widest row wins and the column never
+     * flickers narrower.
+     */
+    private static void widenFor(TableColumn<UiRow, Void> column, HBox buttons) {
+        Platform.runLater(() -> {
+            double needed = buttons.prefWidth(-1) + ACTION_CELL_PADDING;
+            if (needed > column.getMinWidth()) {
+                column.setMinWidth(needed);
+                column.setPrefWidth(needed);
+            }
+        });
     }
 
     private void selection(UiTable node, TableView<UiRow> table, FxRenderContext ctx) {
@@ -219,14 +375,14 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
         var page = node.getPagination();
         if (page == null) return java.util.Optional.empty();
 
-        int lastPage = page.getSize() <= 0 ? 0 : (int) ((page.getTotal() - 1) / page.getSize());
-        var status = new Label("Page " + (page.getPage() + 1) + " / " + (lastPage + 1)
-                + "  (" + page.getTotal() + " rows)");
+        // page is one-based, as the SPA has always read it.
+        var status = new Label("Page " + Pagers.label(
+                page.getPage(), page.getSize(), page.getTotal(), "rows"));
 
         var previous = new Button("‹ Previous");
         var next = new Button("Next ›");
-        previous.setDisable(page.getPage() <= 0);
-        next.setDisable(page.getPage() >= lastPage);
+        previous.setDisable(Pagers.isFirst(page.getPage()));
+        next.setDisable(Pagers.isLast(page.getPage(), page.getSize(), page.getTotal()));
 
         // The target page goes into the trigger's {page}, which is exactly the
         // place UiTable.Pagination#pageTrigger documents for it.

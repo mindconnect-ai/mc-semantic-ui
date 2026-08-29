@@ -7,7 +7,7 @@
     <parent>
         <groupId>ai.mindconnect</groupId>
         <artifactId>mc-semantic-ui-parent</artifactId>
-        <version>0.1.4-SNAPSHOT</version>
+        <version>0.2.0-SNAPSHOT</version>
         <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
     </parent>
 
@@ -23,11 +23,12 @@
             <groupId>ai.mindconnect</groupId>
             <artifactId>mc-semantic-ui-javafx</artifactId>
         </dependency>
-        <!-- For app-shell, header and iframe: a real server's page is usually
-             a shell, and without this one it would paint as a placeholder. -->
+        <!-- A browser has no say in what a page embeds, so it takes the
+             WebView too. The app shell itself needs nothing: it is part of the
+             renderer. -->
         <dependency>
             <groupId>ai.mindconnect</groupId>
-            <artifactId>mc-semantic-ui-javafx-shell</artifactId>
+            <artifactId>mc-semantic-ui-javafx-iframe</artifactId>
         </dependency>
 
         <!--

@@ -7,7 +7,7 @@
     <parent>
         <groupId>ai.mindconnect</groupId>
         <artifactId>mc-semantic-ui-parent</artifactId>
-        <version>0.1.4-SNAPSHOT</version>
+        <version>0.2.0-SNAPSHOT</version>
         <relativePath>parents/mc-semantic-ui-parent/pom.xml</relativePath>
     </parent>
 
@@ -27,7 +27,7 @@
         <!-- Third renderer: the same UiNode tree as a JavaFX rich client.
              Its tests skip themselves on a machine without a display. -->
         <module>core/mc-semantic-ui-javafx</module>
-        <module>core/mc-semantic-ui-javafx-shell</module>
+        <module>core/mc-semantic-ui-javafx-iframe</module>
         <module>core/mc-semantic-ui-javafx-markdown</module>
         <module>core/mc-semantic-ui-javafx-json</module>
         <module>ext/mc-semantic-ui-ext-json</module>

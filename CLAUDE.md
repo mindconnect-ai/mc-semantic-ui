@@ -45,8 +45,9 @@ extension.
 
 - `core/mc-semantic-ui-core` — `UiNode` model + dual renderer (the heart)
 - `core/mc-semantic-ui-javafx` — third renderer, a JavaFX desktop client;
-  `core/mc-semantic-ui-javafx-shell` adds `app-shell`/`header`/`iframe`
-  (split off because `iframe` needs `javafx-web`'s per-platform WebKit)
+  it paints the whole vocabulary bar one. `core/mc-semantic-ui-javafx-iframe`
+  adds that one, `iframe`, alone: it needs `javafx-web`'s per-platform WebKit,
+  and nothing else does
 - `core/mc-semantic-ui-javafx-markdown`, `core/mc-semantic-ui-javafx-json` —
   JavaFX painters for the `markdown` and `json-viewer` extension types; each is
   its own module so an app pays only for what it shows
@@ -104,6 +105,11 @@ out of step breaks it. Released versions go to Maven Central, see
 - SSR and SPA output must match; `encodeTrigger` + `data-trigger='…'` is the
   shared trigger encoding. Icons resolve via `renderIcon(name)` (lowercase-kebab
   sprite ids).
+- **Stage only what you changed yourself.** Never `git add -A` or `git add .`
+  — they sweep up whatever else happens to be in the working tree. Name the
+  paths you touched. If something unrelated is lying around, leave it and say
+  so; it is the author's to deal with, and a file nobody meant to commit is
+  very hard to get back out of a shared history.
 - **Git commits: do NOT add a `Co-Authored-By` trailer.**
 - **Before committing a user-facing change, add a line to `CHANGELOG.md`**
   under `## [Unreleased]`. User-facing means someone depending on the library

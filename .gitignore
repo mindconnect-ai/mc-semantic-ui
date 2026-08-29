@@ -65,4 +65,7 @@ Desktop.ini
 *~
 *.swp
 *.swo
-/mc-semantic-ui-sandbox/
+
+# Scratch space. Nothing under here belongs to the project — it is a place to
+# keep notes and experiments next to the code without them becoming part of it.
+mc-semantic-ui-sandbox/

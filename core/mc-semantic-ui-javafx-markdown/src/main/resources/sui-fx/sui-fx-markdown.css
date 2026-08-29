@@ -49,6 +49,27 @@
     -fx-padding: 10 12 10 12;
 }
 
+/*
+ * A table in prose. Rules between the rows and a shaded head, the way the
+ * <table> the other two renderers emit reads — not a grid of boxes, which is
+ * heavier than a document wants.
+ */
+.sui-md-table {
+    -fx-border-color: -sui-border;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-background-color: -sui-surface;
+    -fx-padding: 2 0 2 0;
+}
+.sui-md-th,
+.sui-md-td {
+    -fx-padding: 6 12 6 12;
+}
+.sui-md-th {
+    -fx-background-color: -sui-surface-alt;
+}
+
 /* ── inline runs ────────────────────────────────────────────────────────── */
 
 .sui-md-text {

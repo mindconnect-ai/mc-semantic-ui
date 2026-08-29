@@ -23,25 +23,6 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
-- **The JavaFX renderer draws the whole vocabulary.** `scrollpane` and `icon`
-  join the core renderer; `app-shell`, `header` and `iframe` arrive in
-  `mc-semantic-ui-javafx-shell`, kept separate because `iframe` is a `WebView`
-  and `javafx-web` carries a WebKit build per platform.
-- **Icons on the desktop**, rebuilt from the same `icons.svg` the browser
-  loads — all 2037 Lucide symbols, so a token means the same glyph in every
-  renderer. Every model type that carries an icon token now shows it.
-- **`markdown` and `json-viewer` on the desktop**, as
-  `mc-semantic-ui-javafx-markdown` and `mc-semantic-ui-javafx-json`. Markdown
-  is walked into real controls rather than an embedded browser.
-- **`SuiFxEventBus` applies a `UiPage`** — which is what made
-  `UiTrigger.go(href)` work on the desktop at all.
-- **`STREAM` reads Server-Sent Events** on JavaFX, so an agent's patches paint
-  as they arrive. A page's `activeStreams` reconnect on their own.
-- **`mc-sui-javafx-browser`** — a browser for `UiNode` servers: type a url and
-  whatever comes back is painted. Useful for checking that a screen the SPA
-  drives comes up the same on the desktop.
-- **`suiI18n`**, a message catalog for the runtime's own chrome strings, with
-  English and German built in and the locale following `<html lang>`.
 - **`MERGE` patch operation** — change the fields you name and leave the rest
   alone, instead of resending a whole node to flip one flag:
 
@@ -59,6 +40,89 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Fixed
 
+- **`display` works client-side on the web.** `cls()` read only `cssClass`,
+  while the server folds `display` into it — so setting or clearing `display`
+  from the client changed a field no client-side renderer looked at.
+
+- **JavaFX: a patch inside a tab or a scroll pane no longer collapses the
+  page.** Deleting a row, or anything else that patched a node sitting in a
+  JavaFX *control* rather than a pane, swapped the node inside the control's
+  private skin container and left the control itself still pointing at the
+  node that had been taken out. The replacement got none of what the control
+  does for its content — a `ScrollPane` stretches only the node its `content`
+  property names — so the panel shrank to its bare minimum and every label in
+  it turned into an ellipsis. Patches now find the slot a node actually
+  occupies: a tab's panel, a scroll pane's content, a collapsible's body, or a
+  pane's child list.
+- **JavaFX: `APPEND` and `CLEAR` reach through a `scrollpane`.** Appending to
+  one means appending to what it scrolls, which is how a chat adds a message
+  to its transcript; before, the operation was silently dropped.
+- **JavaFX: a dialog looks like the app it came out of.** A dialog is its own
+  scene, and a scene starts from the bare JavaFX theme; it inherited only what
+  the owner had put on its *scene*, which for an app that styles its root — the
+  documented way, and what `SuiFxOverlay` itself does — is nothing. Tabs and
+  buttons in a dialog came up unstyled. The palette is now installed outright,
+  and the owner's root stylesheets are adopted as well.
+- **JavaFX: `DOWNLOAD` saves a file you can find.** It wrote the bytes to a
+  randomly named temp file and logged the path, which from the clicking end is
+  indistinguishable from nothing happening. The name now comes from
+  `Content-Disposition`, or the url if the server said nothing — the same
+  two-step the browser renderer makes — and the default handler asks where to
+  put the file instead of logging. `setDownloadHandler` still overrides it.
+- **JavaFX: markdown tables are tables.** Tables are a GitHub extension rather
+  than CommonMark, and the parser was built without it — so the desktop was the
+  one renderer of the three that showed a table as the row of pipes it is
+  written as. `markdown` now parses GFM tables and paints them as a grid, with
+  header cells, per-column alignment and inline markup inside a cell.
+- **JavaFX: a table is as tall as its rows.** A `TableView`'s preferred height
+  is a flat 400px whatever it holds, so a table of one attached file came up as
+  a row of data over a lawn of empty grid.
+- **JavaFX: a row action's label is not clipped.** The width of the row-action
+  column was a fixed guess, and "Remove" came out as "R…". The column now grows
+  to what its buttons actually measure, and a button is never narrower than its
+  own label.
+
+## [0.1.4] - 2026-08-29
+
+### Added
+
+- **The JavaFX renderer draws the whole vocabulary.** `scrollpane` and `icon`
+  join the core renderer; `app-shell`, `header` and `iframe` arrive in
+  `mc-semantic-ui-javafx-shell`, kept separate because `iframe` is a `WebView`
+  and `javafx-web` carries a WebKit build per platform.
+- **Icons on the desktop**, rebuilt from the same `icons.svg` the browser
+  loads — all 2037 Lucide symbols, so a token means the same glyph in every
+  renderer. Every model type that carries an icon token now shows it.
+- **`markdown` and `json-viewer` on the desktop**, as
+  `mc-semantic-ui-javafx-markdown` and `mc-semantic-ui-javafx-json`. Markdown
+  is walked into real controls rather than an embedded browser.
+
+- **`SuiFxEventBus` applies a `UiPage`** — which is what made
+  `UiTrigger.go(href)` work on the desktop at all.
+- **`STREAM` reads Server-Sent Events** on JavaFX, so an agent's patches paint
+  as they arrive. A page's `activeStreams` reconnect on their own.
+- **`mc-sui-javafx-browser`** — a browser for `UiNode` servers: type a url and
+  whatever comes back is painted. Useful for checking that a screen the SPA
+  drives comes up the same on the desktop. An application rather than a
+  library: it is in the repository, not on Maven Central.
+- **`suiI18n`**, a message catalog for the runtime's own chrome strings, with
+  English and German built in and the locale following `<html lang>`.
+
+### Changed
+
+- **`app-shell` and `header` are part of `mc-semantic-ui-javafx`.** They are a
+  screen's frame, so the renderer draws them without anything being installed.
+  What was `mc-semantic-ui-javafx-shell` is now
+  `mc-semantic-ui-javafx-iframe` and holds `iframe` alone — the one node type
+  that needs `javafx-web`, and the only reason a separate artifact was ever
+  worth it. `SuiFxShell.install` becomes `SuiFxIFrame.install`. Nothing was
+  published under the old name.
+
+### Fixed
+
+- **The runtime's own strings are English.** A few German ones had survived in
+  the client's chrome; they are translated, and `suiI18n` is how a host
+  puts a language back.
 - **Relative urls resolve** against the page they arrived on. A server writes
   `/admin/tools` and `/img/logo.svg`; on the desktop every such link was dead.
 - **The JavaFX palette resolves when the overlay is not the scene root.** It
@@ -81,13 +145,45 @@ fresh empty one, so nothing has to be moved by hand at release time.
   panes now survive a patch. The browser gets this from its morphing library;
   the desktop rebuilds and swaps, so typing in a field while a stream patched
   the page above it used to cost the cursor mid-word.
-- **`display` works client-side on the web.** `cls()` read only `cssClass`,
-  while the server folds `display` into it — so setting or clearing `display`
-  from the client changed a field no client-side renderer looked at.
-- **`display` works at all on JavaFX.** The state was folded into a style class
-  and nothing on that renderer ever read it, so a `HIDDEN` node stayed on
-  screen. `HIDDEN` now takes the node out of the layout and `BLANK` leaves its
-  space behind, matching `display:none` and `visibility:hidden`.
+- **`display` works on JavaFX.** The state has been on `UiNode` since v0.1.3,
+  folded into a style class that this renderer never read — a `HIDDEN` node
+  stayed on screen. `HIDDEN` now takes the node out of the layout and `BLANK`
+  leaves its space behind, matching `display:none` and `visibility:hidden`.
+- **Table cell templates are applied on JavaFX.** A column can paint its cells
+  as nodes rather than text, with `{dataKey}` placeholders filled per row.
+  Without it a column meant to be a link showed the raw value and there was no
+  way in.
+- **A second dialog under the same id came up empty on JavaFX.** A server
+  swaps one dialog for another by removing it and appending the replacement,
+  both in one patch. The operations were being reordered — the dialog ones
+  applied inline, the rest collected and run afterwards — so the remove landed
+  after the append had already claimed the id, and deleted the content it had
+  just built. Patch operations run in sequence now, because a patch means what
+  it means in order.
+- **SVG line art is drawn on JavaFX.** A brand logo written as SVG used to be
+  skipped: JavaFX has no SVG support, and the libraries that add it bring a
+  rendering engine. But the icon sprite was already being rebuilt as shapes,
+  and a logo is very often the same kind of drawing — so that machinery now
+  handles any document of the sort, groups and viewBoxes and stroke widths
+  included. A logo in `currentColor` takes the brand's own colour, so it lights
+  up on the dark band without a second asset. Gradients, text and masks are
+  still out of reach and come back as nothing rather than as something wrong.
+- **A JavaFX dialog scrolls instead of growing off the screen.** A window sizes
+  itself to its content, and a long form grew past the bottom with the Close
+  button somewhere below the taskbar. The body scrolls now and the window stops
+  at four fifths of the screen's visual bounds.
+- **A field's trailing action is drawn on JavaFX.** A path field's "Browse…"
+  button was simply absent, leaving the path to be typed from memory.
+- **Paging worked off by one on JavaFX.** `page` is one-based, as the SPA has
+  always read it, and both the list and the table pager assumed zero. On a
+  16-item list of pages of 10 the first page was labelled "2 / 2", Previous was
+  enabled there, and pressing it asked the server for page 0.
+- **The JavaFX header is the dark band the web draws.** It was painted in the
+  surface colour with dark text — the same header in name only. The
+  `--sui-header-*` tokens now exist on the desktop too, so brand, navigation
+  and the user widget read against the band, and a host can relight it the same
+  way. An SVG brand logo is skipped with a note rather than silently never
+  appearing: JavaFX draws raster formats only.
 
 ## [0.1.3] - 2026-08-17
 

@@ -40,6 +40,16 @@
     -sui-action:         #111827;
     -sui-action-hover:   #1f2937;
     -sui-danger:         #dc2626;
+
+    /* The header is its own band, dark by default, with a palette to match —
+       the same tokens sui.css declares. Set -sui-header-bg light and the text
+       tokens dark for a light header. */
+    -sui-header-bg:            #1e293b;
+    -sui-header-fg:            #e2e8f0;
+    -sui-header-brand-fg:      #ffffff;
+    -sui-header-nav-fg:        #94a3b8;
+    -sui-header-nav-fg-hover:  #ffffff;
+    -sui-header-nav-bg-hover:  #334155;
     -sui-danger-bg:      #fee2e2;
 
     /* Arial (macOS + Windows), with Helvetica Neue and the Liberation Sans
@@ -567,4 +577,103 @@
     -fx-background-color: #fef3c7;
     -fx-padding: 6 10 6 10;
     -fx-background-radius: 8;
+}
+
+/* ── app shell ──────────────────────────────────────────────────────────── */
+
+.sui-shell {
+    -fx-background-color: -sui-bg;
+}
+.sui-shell-body {
+    -fx-background-color: transparent;
+}
+/* The page itself. Padding lives here rather than on the content node, so a
+   swapped-in page needs no chrome of its own to sit right. */
+.sui-shell-content {
+    -fx-background-color: transparent;
+    -fx-padding: 20;
+}
+/* The page scrolls when it outgrows the window; the base stylesheet already
+   makes .scroll-pane and its viewport transparent, so the shell colour shows
+   through. */
+.sui-shell-scroll {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.sui-shell-footer {
+    -fx-background-color: -sui-surface;
+    -fx-border-color: -sui-border transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+    -fx-padding: 12 20 12 20;
+}
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+
+.sui-header {
+    -fx-background-color: -sui-header-bg;
+    -fx-padding: 0 24 0 24;
+    -fx-min-height: 56;
+    -fx-pref-height: 56;
+}
+.sui-header-brand {
+    -fx-font-size: 16;
+    -fx-font-weight: bold;
+    -fx-text-fill: -sui-header-brand-fg;
+}
+/* Everything else in the band reads against the dark, not against the page. */
+.sui-header-username {
+    -fx-text-fill: -sui-header-fg;
+}
+.sui-header-extras .label {
+    -fx-text-fill: -sui-header-fg;
+}
+.sui-header-extras .hyperlink {
+    -fx-text-fill: -sui-header-nav-fg;
+}
+.sui-header-extras .hyperlink:hover {
+    -fx-text-fill: -sui-header-nav-fg-hover;
+}
+/* The brand is a Hyperlink when it navigates; strip the underline and the
+   focus ring so it reads as a wordmark rather than a link in a sentence. */
+.sui-header-brand:visited,
+.sui-header-brand:hover {
+    -fx-underline: false;
+}
+.sui-header-brand:focused {
+    -fx-border-color: transparent;
+}
+.sui-header-burger {
+    -fx-background-color: transparent;
+    -fx-text-fill: -sui-header-nav-fg;
+    -fx-border-color: transparent;
+    -fx-padding: 4 8 4 8;
+}
+.sui-header-burger:hover {
+    -fx-background-color: -sui-header-nav-bg-hover;
+    -fx-text-fill: -sui-header-nav-fg-hover;
+    -fx-background-radius: 8;
+}
+/* Initials in a circle: a JavaFX Label has no border-radius shorthand, so the
+   radius is half the fixed size and the two must move together. */
+.sui-header-avatar {
+    -fx-min-width: 32;
+    -fx-min-height: 32;
+    -fx-pref-width: 32;
+    -fx-pref-height: 32;
+    -fx-alignment: center;
+    -fx-background-color: -sui-primary;
+    -fx-background-radius: 16;
+    -fx-text-fill: white;
+    -fx-font-size: 12;
+    -fx-font-weight: bold;
+}
+.sui-header-user--clickable:hover {
+    -fx-cursor: hand;
+}
+
+/* The dialog's body scrolls; the base .scroll-pane rule already makes it
+   transparent, so only the inset it would otherwise add has to go. */
+.sui-dialog-scroll {
+    -fx-padding: 0;
 }

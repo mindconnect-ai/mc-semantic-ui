@@ -17,7 +17,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -35,6 +34,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * these are the pieces that would otherwise be thrown away with the old
  * controls — typing in a field while a stream patched the page above it used
  * to cost the cursor mid-word.
+ *
+ * <p>Every one of these is an ordinary {@code REPLACE}, which is what a live
+ * page does constantly. Nothing exotic was needed to lose the caret.
  */
 class FxViewStateTest {
 
@@ -80,17 +82,19 @@ class FxViewStateTest {
         var bus = shown(UiStack.of(UiText.of("banner", "before"), form));
 
         var input = (TextInputControl) onFxThread(() -> firstInput(bus.context().byId("note")));
-        onFxThread(() -> {
-            input.requestFocus();
-            input.positionCaret(5);
-            return null;
-        });
+        // Focus first, and wait for it: a text control's skin positions the
+        // caret itself when focus arrives, and doing both in one pulse lets it
+        // land after ours and undo it.
+        onFxThread(() -> { input.requestFocus(); return null; });
         await("focus to land", () -> onFxThread(() -> hasFocus(input)));
+        onFxThread(() -> { input.positionCaret(5); return null; });
+        await("the caret", () -> onFxThread(() -> input.getCaretPosition() == 5));
 
         // A patch repaints the form the user is typing in.
         onFxThread(() -> {
-            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.merge(
-                    "form", Map.of("title", "Notes"))));
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.replace("form",
+                    UiForm.of("form", "Notes")
+                            .field(UiField.text("note", "Note", "hello world").asEditable()))));
             return null;
         });
 
@@ -106,15 +110,16 @@ class FxViewStateTest {
         var bus = shown(UiStack.of(form));
 
         var input = (TextInputControl) onFxThread(() -> firstInput(bus.context().byId("note")));
-        onFxThread(() -> {
-            input.requestFocus();
-            input.selectRange(0, 5);
-            return null;
-        });
+        // Focus first, and wait for it — see the caret test above.
+        onFxThread(() -> { input.requestFocus(); return null; });
+        await("focus to land", () -> onFxThread(() -> hasFocus(input)));
+        onFxThread(() -> { input.selectRange(0, 5); return null; });
         await("the selection", () -> onFxThread(() -> "hello".equals(input.getSelectedText())));
 
         onFxThread(() -> {
-            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.merge("form", Map.of("title", "Notes"))));
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.replace("form",
+                    UiForm.of("form", "Notes")
+                            .field(UiField.text("note", "Note", "hello world").asEditable()))));
             return null;
         });
 
@@ -138,7 +143,10 @@ class FxViewStateTest {
         });
 
         onFxThread(() -> {
-            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.merge("tabs", Map.of("title", "Sections"))));
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.replace("tabs",
+                    UiSection.of("tabs", "Sections")
+                            .section("one", "First", UiText.of("a", "a"))
+                            .section("two", "Second", UiText.of("b", "b")))));
             return null;
         });
 
@@ -184,8 +192,8 @@ class FxViewStateTest {
 
         // A line in the middle of the log is repainted, as a stream would.
         onFxThread(() -> {
-            bus.applyPatch(UiPatch.of().patch(
-                    UiPatch.Operation.merge("line-30", Map.of("text", "line 30 (updated)"))));
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.replace(
+                    "line-30", UiText.of("line-30", "line 30 (updated)"))));
             return null;
         });
 
