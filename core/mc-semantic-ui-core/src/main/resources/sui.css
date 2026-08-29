@@ -131,6 +131,13 @@
        spinners, the indeterminate bar — deliberately do NOT use these: they
        are not transitions, and under reduced motion they should slow down
        rather than disappear. */
+    /* The height of a page header bar (.sui-list-header/.sui-table-header):
+       the height of the inline controls it usually carries (30px), the
+       bar's vertical padding, and its hairline. A token because other
+       things align to it — a drawer that opens below the header needs the
+       same number the header uses. */
+    --sui-list-header-h: calc(30px + 2 * var(--sui-space-lg) + 1px);
+
     --sui-duration-fast: 120ms;
     --sui-duration-base: 200ms;
     --sui-duration-slow: 300ms;
@@ -181,7 +188,7 @@ body {
 }
 .sui-header-brand {
     display: inline-flex; align-items: center; gap: 10px;
-    font-size: 16px; font-weight: 600;
+    font-size: var(--sui-text-xl); font-weight: 600;
     color: var(--sui-header-brand-fg); text-decoration: none;
 }
 .sui-header-brand:hover { text-decoration: none; }
@@ -205,7 +212,7 @@ body {
     display: inline-flex; align-items: center; justify-content: center;
     width: 32px; height: 32px; border-radius: 50%;
     background: var(--sui-color-primary); color: var(--sui-color-on-primary);
-    font-size: 12px; font-weight: 600; letter-spacing: .5px;
+    font-size: var(--sui-text-xs); font-weight: 600; letter-spacing: .5px;
 }
 .sui-header-username { font-size: 13px; font-weight: 500; color: var(--sui-header-fg); }
 /* Right side container: extras (nav links, theme picker, …) sit to the LEFT of
@@ -248,7 +255,7 @@ body {
     /* One 56px row, always: the brand shrinks (smaller type, clipped when it
        must) instead of the user widget wrapping onto a second line. */
     .sui-header { gap: 10px; padding: 0 12px; }
-    .sui-header-brand { font-size: 14px; white-space: nowrap; min-width: 0; overflow: hidden; }
+    .sui-header-brand { font-size: var(--sui-text-md); white-space: nowrap; min-width: 0; overflow: hidden; }
     .sui-header-right { gap: 8px; flex: 0 0 auto; }
     .sui-header-username { display: none; }        /* avatar carries the identity */
     .sui-header-user { padding: 4px; }
@@ -281,7 +288,7 @@ body {
 
 .sui-header-extras .sui-field { margin: 0; gap: 0; }
 .sui-header-extras .sui-field label { display: none; }
-.sui-header-extras select { padding: 6px 10px; font-size: 13px; }
+.sui-header-extras select { padding: 6px 10px; font-size: var(--sui-text-sm); }
 
 /* ── Lists ──────────────────────────────────────────────────────────────── */
 
@@ -294,7 +301,7 @@ body {
    before and one without them matches it. */
 .sui-list-header {
     display: flex; align-items: center; justify-content: space-between;
-    min-height: calc(30px + 2 * var(--sui-space-lg) + 1px);
+    min-height: var(--sui-list-header-h);
     box-sizing: border-box;
     padding: var(--sui-space-lg) var(--sui-space-xl); border-bottom: 1px solid var(--sui-color-border);
 }
@@ -314,8 +321,8 @@ body {
 .sui-header-extra .sui-form .sui-form-footer { display: none; }
 .sui-header-extra .sui-field { margin: 0; display: flex; flex-direction: row; align-items: center; gap: 6px; }
 .sui-header-extra .sui-field label:empty { display: none; }
-.sui-header-extra .sui-field label { margin: 0; font-size: 13px; }
-.sui-header-extra .sui-field input { width: 220px; padding: 6px 10px; font-size: 13px; }
+.sui-header-extra .sui-field label { margin: 0; font-size: var(--sui-text-sm); }
+.sui-header-extra .sui-field input { width: 220px; padding: 6px 10px; font-size: var(--sui-text-sm); }
 /* With an in-field icon the compact header input still needs room for it —
    this rule re-applies the left inset the compact padding above overrides. */
 .sui-header-extra .sui-input-icon > input { padding-left: 32px; }
@@ -375,7 +382,7 @@ body {
 .sui-tree-row {
     display: flex; align-items: center; gap: 8px;
     padding: 7px 8px; border-radius: var(--sui-radius-sm);
-    font-size: 15px; line-height: 1.4; min-height: 38px;
+    font-size: var(--sui-text-lg); line-height: 1.4; min-height: 38px;
     touch-action: manipulation;
 }
 .sui-tree-row:hover { background: var(--sui-color-border-soft); }
@@ -498,13 +505,13 @@ a.sui-tree-label:hover { text-decoration: underline; }
     box-shadow: 0 0 0 3px var(--sui-color-danger-bg);
 }
 .sui-field--error label { color: var(--sui-color-danger); }
-.sui-error { font-size: 13px; color: var(--sui-color-danger); }
+.sui-error { font-size: var(--sui-text-sm); color: var(--sui-color-danger); }
 .sui-form-error {
     padding: 10px 14px; margin-bottom: 16px;
     border: 1px solid var(--sui-color-danger); border-left-width: 3px;
     border-radius: var(--sui-radius-md);
     background: var(--sui-color-danger-bg); color: var(--sui-color-danger);
-    font-size: 13px;
+    font-size: var(--sui-text-sm);
 }
 .sui-value { color: var(--sui-color-text-body); }
 .sui-empty { color: var(--sui-color-empty); font-style: italic; }
@@ -529,7 +536,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
     color: var(--sui-color-primary);
 }
 .sui-upload-icon { font-size: 24px; line-height: 1; opacity: .7; }
-.sui-upload-prompt { font-size: 13px; }
+.sui-upload-prompt { font-size: var(--sui-text-sm); }
 /* The browse control is a <label> styled as a button. */
 .sui-upload-browse { cursor: pointer; }
 .sui-upload-hint { text-align: center; }
@@ -578,7 +585,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 36px; height: 36px; padding: 0 8px;
     border: none; border-radius: var(--sui-radius-md);
-    font-size: 14px; line-height: 1; cursor: pointer;
+    font-size: var(--sui-text-md); line-height: 1; cursor: pointer;
     font-family: inherit; transition: opacity var(--sui-duration-fast), background var(--sui-duration-fast);
     touch-action: manipulation;
 }
@@ -714,6 +721,26 @@ a.sui-tree-label:hover { text-decoration: underline; }
     border-inline: none;
 }
 
+/* A page ends at the bottom of the window, not at the bottom of its data.
+   A screen with two rows used to end in a band of canvas where a full one
+   was card all the way down — the same layout reading as two different
+   backgrounds depending on how much happened to be in it. The last card
+   stretches instead; transparent containers (stack, tabbed section) pass
+   the stretch down to whatever actually paints. */
+.sui-shell-content { display: flex; flex-direction: column; }
+/* Flex items refuse to shrink below their content by default; a wide table
+   would push its card past the viewport instead of scrolling inside it. */
+.sui-shell-content > * { min-width: 0; }
+.sui-shell-content > :last-child { flex: 1 0 auto; }
+.sui-shell-content > .sui-stack:last-child > :last-child { flex: 1 0 auto; }
+.sui-shell-content > .sui-stack:last-child > .sui-section:last-child { display: flex; flex-direction: column; }
+.sui-shell-content > .sui-stack:last-child > .sui-section:last-child > .sui-panels {
+    flex: 1 0 auto; display: flex; flex-direction: column;
+}
+.sui-shell-content > .sui-stack:last-child > .sui-section:last-child > .sui-panels > .sui-panel:not([hidden]) {
+    flex: 1 0 auto;
+}
+
 .sui-shell-footer {
     flex: none;
     padding: 12px 20px;
@@ -725,9 +752,15 @@ a.sui-tree-label:hover { text-decoration: underline; }
 /* ── Tables ─────────────────────────────────────────────────────────────── */
 
 .sui-table { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); overflow: hidden; }
+/* A table wider than its card scrolls sideways inside it. Without this the
+   card's overflow:hidden silently cut the right-hand columns off on a
+   narrow window — nowrap headings make a table's minimum width real. */
+.sui-table-scroll { overflow-x: auto; }
 .sui-table-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 20px; border-bottom: 1px solid var(--sui-color-border);
+    min-height: var(--sui-list-header-h);
+    box-sizing: border-box;
+    padding: var(--sui-space-lg) var(--sui-space-xl); border-bottom: 1px solid var(--sui-color-border);
 }
 .sui-table-header h2 { font-size: var(--sui-text-xl); font-weight: 600; }
 /* A title-less table still renders the bar for its actions — push them right. */
@@ -772,13 +805,13 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-th-sortable { padding: 0; }
 .sui-sort-btn {
     display: flex; align-items: center; gap: 6px; width: 100%;
-    padding: 11px 18px; background: none; border: 0; cursor: pointer;
+    padding: var(--sui-space-sm) var(--sui-space-xl); background: none; border: 0; cursor: pointer;
     font: inherit; color: inherit; text-align: left;
 }
 .sui-sort-btn:hover { color: var(--sui-color-text-body); }
 .sui-sort-btn:focus-visible { outline: 2px solid var(--sui-color-primary); outline-offset: -2px; }
 /* The indicator holds its width so the label doesn't shift when it changes. */
-.sui-sort-indicator { display: inline-block; min-width: 1em; opacity: .45; font-size: 11px; }
+.sui-sort-indicator { display: inline-block; min-width: 1em; opacity: .45; font-size: var(--sui-text-xs); }
 .sui-th-sortable.is-sorted { color: var(--sui-color-text-body); }
 .sui-th-sortable.is-sorted .sui-sort-indicator { opacity: 1; color: var(--sui-color-primary); }
 /* A link in a table cell is a row's name, the same thing `.sui-list-item-label`
@@ -873,7 +906,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-section-entry { padding: var(--sui-space-md);
                      border: 1px dashed var(--sui-color-border);
                      border-radius: var(--sui-radius-sm); }
-.sui-section-entry-title { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+.sui-section-entry-title { margin: 0 0 var(--sui-space-sm); font-size: var(--sui-text-md); font-weight: 600; }
 
 /* ── Stack (plain composition box) ─────────────────────────────────────── */
 
@@ -966,7 +999,7 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
     border-top: none;
     border-radius: 0 0 var(--sui-radius-lg) var(--sui-radius-lg);
     box-shadow: var(--sui-shadow-card);
-    padding: 18px 20px;
+    padding: var(--sui-space-xl);
 }
 /* Inside a tabbed panel the panel IS the card — direct child components
    render flat instead of stacking card-on-card chrome. */
@@ -1081,7 +1114,7 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
 .sui-menu-button--icon .sui-menu-button-trigger { width: 36px; height: 36px; justify-content: center; }
 /* Labelled trigger → a normal outline button. */
 .sui-menu-button--button .sui-menu-button-trigger {
-    padding: 8px 12px; font-size: 14px; font-weight: 500;
+    padding: var(--sui-space-sm) var(--sui-space-md); font-size: var(--sui-text-md); font-weight: 500;
     color: var(--sui-color-text-body); box-shadow: inset 0 0 0 1px var(--sui-color-border-strong);
 }
 
@@ -1467,7 +1500,7 @@ a[data-trigger].is-loading::before,
 /* Trailing badge — a count / short status. `label { flex:1 }` pushes it right. */
 .sui-menu-badge {
     background: var(--sui-color-primary-soft); color: var(--sui-color-primary);
-    font-size: 11px; font-weight: 600; line-height: 1;
+    font-size: var(--sui-text-xs); font-weight: 600; line-height: 1;
     padding: 3px 7px; border-radius: 999px; white-space: nowrap;
 }
 .sui-menu-item.is-active > .sui-menu-link > .sui-menu-badge {
