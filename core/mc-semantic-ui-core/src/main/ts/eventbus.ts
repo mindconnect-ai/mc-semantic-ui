@@ -666,7 +666,12 @@ export class SuiEventBus {
 
     /** Closes the dialog that {@code el} sits inside (its × / backdrop). */
     private closeDialogAround(el: HTMLElement): void {
-        el.closest(".sui-dialog-host")?.remove();
+        const host = el.closest(".sui-dialog-host");
+        if (!host) return;
+        // Through the renderer, not host.remove(): closing by backdrop click
+        // and closing because the server sent a REMOVE are the same event to
+        // the person watching, so they get the same animation.
+        this.renderer.removeAnimated(host);
     }
 
     // ── Automatic progressive enhancement ─────────────────────────────────────

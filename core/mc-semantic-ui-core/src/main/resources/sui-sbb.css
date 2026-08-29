@@ -472,3 +472,33 @@ details[open] .sui-activity-summary::before { content: "▼ "; }
 .sui-markdown th { background: var(--sui-color-surface-alt); font-weight: 700; letter-spacing: .03em; font-size: .9em; }
 .sui-markdown a { color: var(--sui-color-primary); text-decoration: underline; font-weight: 600; }
 .sui-markdown hr { border: none; border-top: 2px solid var(--sui-color-text); margin: 1.2em 0; }
+
+
+/* ── Patch animations ────────────────────────────────────────────────────
+   This sheet replaces sui.css rather than extending it, so the two classes
+   the renderer sets on APPEND and REMOVE have to be defined here as well —
+   without them a removed row would sit collapsed until the renderer's
+   timeout swept it up. Lyne is a flat, graphic system, so the entrance is
+   opacity alone: no lift, no easing curve with a personality. */
+@keyframes sui-enter {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+:root.sui-theme-sbb .sui-enter {
+    animation: sui-enter 150ms ease-out;
+}
+
+:root.sui-theme-sbb .sui-leave {
+    overflow: hidden;
+    pointer-events: none;
+    transition: opacity 100ms ease,
+                height  180ms ease,
+                margin  180ms ease,
+                padding 180ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :root.sui-theme-sbb .sui-enter { animation: none; }
+    :root.sui-theme-sbb .sui-leave { transition-duration: 1ms; }
+}

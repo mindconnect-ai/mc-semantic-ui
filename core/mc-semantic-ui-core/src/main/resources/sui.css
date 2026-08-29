@@ -59,7 +59,9 @@
     --sui-header-nav-fg-hover:  #ffffff;
     --sui-header-nav-bg-hover:  #334155;
     --sui-header-radius:        var(--sui-radius-lg);
-    --sui-header-shadow:        0 4px 14px rgba(15, 23, 42, .25);
+    /* No default shadow: the band is separated by the strongest surface
+       step on the screen. Themes may set one. */
+    --sui-header-shadow:        none;
     /* Logo recolor: source SVGs stroke dark, so invert to white on the dark
        band. Apps with a light header or a pre-colored logo set this to "none". */
     --sui-header-logo-filter:   brightness(0) invert(1);
@@ -85,6 +87,68 @@
     --sui-shadow-card:  0 1px 2px rgba(16, 24, 40, .04), 0 4px 12px rgba(16, 24, 40, .06);
     --sui-shadow-pop:   0 4px 12px rgba(16, 24, 40, .08), 0 12px 32px rgba(16, 24, 40, .10);
     --sui-focus-ring:   0 0 0 3px rgba(37, 99, 235, .18);
+
+    /* Space. A 4px grid with one half-step, and every value below is one of
+       these — the layout-forming ones, at least: container padding, row
+       padding, field gaps, control padding. Sizes that are not spacing (an
+       icon's inset, a 1px rule, a fixed control height) stay literal, because
+       putting them on this scale would say they move with it, and they do
+       not.
+
+       The reason this exists is the same reason the colours are variables: a
+       theme should be able to have an opinion. Before it, a density theme had
+       to name every component one by one — a whole file to say "a quarter
+       tighter". After it, that is six declarations.
+
+       Names, not sizes: `--sui-space-4` would be a lie the moment a theme
+       changed it. */
+    --sui-space-hair: 2px;
+    --sui-space-xs:   4px;
+    --sui-space-sm:   8px;
+    --sui-space-md:   12px;
+    --sui-space-lg:   16px;
+    --sui-space-xl:   20px;
+    --sui-space-2xl:  24px;
+    --sui-space-3xl:  32px;
+
+    /* Type. Six steps and nothing between them. The sheet had twelve sizes
+       from 9px to 24px, which is not a scale but a list of decisions taken
+       one at a time — and the smallest of them were below the size anything
+       should be asked to read. */
+    --sui-text-xs:   12px;
+    --sui-text-sm:   13px;
+    --sui-text-md:   14px;
+    --sui-text-lg:   15px;
+    --sui-text-xl:   17px;
+    --sui-text-2xl:  22px;
+
+    /* Motion. Durations and easings are variables for the same reason
+       colours are: so a theme can have a tempo, and so reduced motion is one
+       switch rather than a rule per animation (see the block at the end of
+       this file).
+
+       Three durations, and the names say what they are for: `fast` is
+       feedback on something under the cursor, `base` is an element arriving
+       or leaving, `slow` is a panel-sized move. Looping animations —
+       spinners, the indeterminate bar — deliberately do NOT use these: they
+       are not transitions, and under reduced motion they should slow down
+       rather than disappear. */
+    /* The height of a page header bar (.sui-list-header/.sui-table-header):
+       the height of the inline controls it usually carries (30px), the
+       bar's vertical padding, and its hairline. A token because other
+       things align to it — a drawer that opens below the header needs the
+       same number the header uses. */
+    --sui-list-header-h: calc(30px + 2 * var(--sui-space-lg) + 1px);
+
+    --sui-duration-fast: 120ms;
+    --sui-duration-base: 200ms;
+    --sui-duration-slow: 300ms;
+
+    /* Standard easing for state changes; decelerate for things that arrive
+       (fast at first, settling at the end — it reads as landing rather than
+       as sliding to a stop). */
+    --sui-ease-standard:   cubic-bezier(.2, 0, .2, 1);
+    --sui-ease-decelerate: cubic-bezier(.05, .7, .1, 1);
 }
 
 /* ── Base reset ─────────────────────────────────────────────────────────── */
@@ -105,10 +169,15 @@ body {
     overflow-anchor: auto;
 }
 
-/* Subtle hover elevation on content cards (a bit of life without distracting
-   from editing surfaces like forms/detail, which deliberately don't lift). */
-.sui-list, .sui-table, .sui-tree { transition: box-shadow .2s ease; }
-.sui-list:hover, .sui-table:hover, .sui-tree:hover { box-shadow: var(--sui-shadow-pop); }
+/* No hover elevation on content cards: a page where every card rises to
+   meet the cursor is a page that never sits still. Elevation is for things
+   that float (popovers, dialogs); a card in the flow is separated from the
+   page by its surface, and that is enough. */
+
+:is(h1, h2, h3, h4) {
+    color: var(--sui-color-text-strong);
+    letter-spacing: -.011em;
+}
 
 /* ── Header ─────────────────────────────────────────────────────────────── */
 
@@ -126,7 +195,7 @@ body {
 }
 .sui-header-brand {
     display: inline-flex; align-items: center; gap: 10px;
-    font-size: 16px; font-weight: 600;
+    font-size: var(--sui-text-xl); font-weight: 600;
     color: var(--sui-header-brand-fg); text-decoration: none;
 }
 .sui-header-brand:hover { text-decoration: none; }
@@ -143,14 +212,14 @@ body {
     display: flex; align-items: center; gap: 10px;
     color: var(--sui-header-fg); text-decoration: none;
     padding: 4px 10px 4px 4px; border-radius: 999px;
-    transition: background .15s;
+    transition: background var(--sui-duration-fast);
 }
 .sui-header-user:hover { background: var(--sui-header-nav-bg-hover); text-decoration: none; }
 .sui-header-avatar {
     display: inline-flex; align-items: center; justify-content: center;
     width: 32px; height: 32px; border-radius: 50%;
     background: var(--sui-color-primary); color: var(--sui-color-on-primary);
-    font-size: 12px; font-weight: 600; letter-spacing: .5px;
+    font-size: var(--sui-text-xs); font-weight: 600; letter-spacing: .5px;
 }
 .sui-header-username { font-size: 13px; font-weight: 500; color: var(--sui-header-fg); }
 /* Right side container: extras (nav links, theme picker, …) sit to the LEFT of
@@ -193,7 +262,7 @@ body {
     /* One 56px row, always: the brand shrinks (smaller type, clipped when it
        must) instead of the user widget wrapping onto a second line. */
     .sui-header { gap: 10px; padding: 0 12px; }
-    .sui-header-brand { font-size: 14px; white-space: nowrap; min-width: 0; overflow: hidden; }
+    .sui-header-brand { font-size: var(--sui-text-md); white-space: nowrap; min-width: 0; overflow: hidden; }
     .sui-header-right { gap: 8px; flex: 0 0 auto; }
     .sui-header-username { display: none; }        /* avatar carries the identity */
     .sui-header-user { padding: 4px; }
@@ -226,16 +295,33 @@ body {
 
 .sui-header-extras .sui-field { margin: 0; gap: 0; }
 .sui-header-extras .sui-field label { display: none; }
-.sui-header-extras select { padding: 6px 10px; font-size: 13px; }
+.sui-header-extras select { padding: 6px 10px; font-size: var(--sui-text-sm); }
 
 /* ── Lists ──────────────────────────────────────────────────────────────── */
 
-.sui-list { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); }
+.sui-list { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); }
+/* min-height, because the bar's height was set by whatever happened to be in
+   it: with a button or a search box it came to 63px, with only a title to
+   59, and every screen's header sat at its own height depending on which
+   controls it carried. 30px is the height of the controls that usually set
+   it (an inline .sui-btn), so a header with them is exactly as tall as
+   before and one without them matches it. */
 .sui-list-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 20px; border-bottom: 1px solid var(--sui-color-border);
+    min-height: var(--sui-list-header-h);
 }
-.sui-list-header h2 { font-size: 17px; font-weight: 600; }
+/* An empty header — no title, no extras, no actions — is emitted by the
+   renderer for untitled nested lists, and the min-height above would blow
+   it up into a header-sized void. If it carries nothing, it shows nothing.
+   (Same cure the empty .sui-menu-head got.) */
+.sui-list-header:not(:has(h2, .sui-header-extra, .sui-actions > *)) {
+    display: none;
+}
+.sui-list-header {
+    box-sizing: border-box;
+    padding: var(--sui-space-lg) var(--sui-space-xl); border-bottom: 1px solid var(--sui-color-border);
+}
+.sui-list-header h2 { font-size: var(--sui-text-xl); font-weight: 600; }
 /* Optional leading header icon (UiList.icon / UiTable.icon): sized to the
    title, slightly muted so the text stays the headline. */
 .sui-list-header h2, .sui-table-header h2 { display: inline-flex; align-items: center; gap: 8px; }
@@ -251,8 +337,8 @@ body {
 .sui-header-extra .sui-form .sui-form-footer { display: none; }
 .sui-header-extra .sui-field { margin: 0; display: flex; flex-direction: row; align-items: center; gap: 6px; }
 .sui-header-extra .sui-field label:empty { display: none; }
-.sui-header-extra .sui-field label { margin: 0; font-size: 13px; }
-.sui-header-extra .sui-field input { width: 220px; padding: 6px 10px; font-size: 13px; }
+.sui-header-extra .sui-field label { margin: 0; font-size: var(--sui-text-sm); }
+.sui-header-extra .sui-field input { width: 220px; padding: 6px 10px; font-size: var(--sui-text-sm); }
 /* With an in-field icon the compact header input still needs room for it —
    this rule re-applies the left inset the compact padding above overrides. */
 .sui-header-extra .sui-input-icon > input { padding-left: 32px; }
@@ -269,24 +355,42 @@ body {
     .sui-header-extra .sui-field input { width: 100%; flex: 1; }
     .sui-list-header .sui-actions, .sui-table-header > .sui-btn { margin-left: auto; }
 }
-.sui-list ul { list-style: none; }
+/* The list's own rows only — a markdown block nested inside a list item
+   keeps its bullets. (Every theme used to re-add them by hand.) */
+.sui-list > ul { list-style: none; }
+/* Top-aligned, not centred, and with a gutter it cannot lose.
+ *
+ * A row's height follows its description, so centring the actions made them
+ * sit 11, 21 or 31px below the title depending on how long that description
+ * happened to be — three different heights in one list, next to a badge that
+ * was top-aligned and therefore disagreed with them. Aligning to the start
+ * puts the action group's centre exactly on the title's centre in every row,
+ * whatever the row is: measured across a ten-row list, the spread goes from
+ * 20px to 0.
+ *
+ * The gap is the other half. Without it the description ran to within 2px of
+ * the first button — not an overlap, but close enough to read as one. 24px
+ * is a gutter the text has to respect, so it wraps early instead. */
 .sui-list-item {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 20px; border-bottom: 1px solid var(--sui-color-border-soft);
-    transition: background .12s;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 24px;
+    padding: var(--sui-space-md) var(--sui-space-xl); border-bottom: 1px solid var(--sui-color-border-soft);
+    transition: background var(--sui-duration-fast);
 }
 .sui-list-item:hover { background: var(--sui-color-surface-alt); }
 .sui-list-item:last-child { border-bottom: none; }
-.sui-list-item-main { display: flex; flex-direction: column; gap: 3px; }
+.sui-list-item-main { display: flex; flex-direction: column; gap: var(--sui-space-hair); min-width: 0; }
 .sui-list-item-label { font-weight: 500; color: var(--sui-color-primary); text-decoration: none; cursor: pointer; }
 .sui-list-item-label:hover { text-decoration: underline; }
 .sui-list-item-desc { font-size: 14px; color: var(--sui-color-text-muted); }
-.sui-list-item-actions { display: flex; gap: 8px; }
+/* Never squeezed by a long description: the text column shrinks, the
+   buttons do not. */
+.sui-list-item-actions { display: flex; gap: var(--sui-space-sm); flex: 0 0 auto; }
 
 /* ── Tree ───────────────────────────────────────────────────────────────── */
 
-.sui-tree { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); padding: 8px 12px; }
-.sui-tree-title { font-size: 17px; font-weight: 600; padding: 8px 4px; }
+.sui-tree { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); padding: 8px 12px; }
+.sui-tree-title { font-size: var(--sui-text-xl); font-weight: 600; padding: var(--sui-space-sm) var(--sui-space-xs); }
 .sui-tree-list, .sui-tree-children { list-style: none; margin: 0; padding: 0; }
 /* Indent + guide line for nested levels. */
 .sui-tree-children { margin-left: 10px; padding-left: 10px; border-left: 1px solid var(--sui-color-border-soft); }
@@ -296,7 +400,7 @@ body {
 .sui-tree-row {
     display: flex; align-items: center; gap: 8px;
     padding: 7px 8px; border-radius: var(--sui-radius-sm);
-    font-size: 15px; line-height: 1.4; min-height: 38px;
+    font-size: var(--sui-text-lg); line-height: 1.4; min-height: 38px;
     touch-action: manipulation;
 }
 .sui-tree-row:hover { background: var(--sui-color-border-soft); }
@@ -310,7 +414,7 @@ summary.sui-tree-summary::-webkit-details-marker { display: none; }
 summary.sui-tree-summary::before {
     content: "▶"; flex: 0 0 auto;
     color: var(--sui-color-text-muted); font-size: 11px;
-    width: 12px; text-align: center; transition: transform .15s;
+    width: 12px; text-align: center; transition: transform var(--sui-duration-fast);
 }
 details.sui-tree-item[open] > summary.sui-tree-summary::before { transform: rotate(90deg); }
 
@@ -327,12 +431,12 @@ a.sui-tree-label:hover { text-decoration: underline; }
 
 .sui-form, .sui-detail {
     background: var(--sui-color-surface); border-radius: var(--sui-radius-lg);
-    box-shadow: var(--sui-shadow-card); padding: 24px;
+    padding: var(--sui-space-2xl);
 }
-.sui-form h2, .sui-detail h2 { margin-bottom: 20px; font-size: 17px; font-weight: 600; }
-.sui-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+.sui-form h2, .sui-detail h2 { margin-bottom: var(--sui-space-xl); font-size: var(--sui-text-xl); font-weight: 600; }
+.sui-field { display: flex; flex-direction: column; gap: var(--sui-space-xs); margin-bottom: var(--sui-space-lg); }
 /* Control + trailing action (e.g. Browse…) on one row. */
-.sui-field-row { display: flex; align-items: center; gap: 8px; }
+.sui-field-row { display: flex; align-items: center; gap: var(--sui-space-sm); }
 .sui-field-row > input, .sui-field-row > textarea, .sui-field-row > select,
 .sui-field-row > .sui-input-icon { flex: 1; min-width: 0; }
 .sui-field-row > .sui-btn, .sui-field-row > button { flex: 0 0 auto; }
@@ -344,7 +448,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
     background: var(--sui-color-surface);
     color: var(--sui-color-text);
     font-size: var(--sui-font-size); font-family: inherit; width: 100%;
-    transition: border-color .15s, box-shadow .15s;
+    transition: border-color var(--sui-duration-fast), box-shadow var(--sui-duration-fast);
 }
 .sui-field input:focus, .sui-field textarea:focus, .sui-field select:focus {
     outline: none; border-color: var(--sui-color-primary); box-shadow: var(--sui-focus-ring);
@@ -374,7 +478,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
     flex: 0 0 auto; cursor: pointer; position: relative;
     border: 1.5px solid var(--sui-color-border-strong);
     background: var(--sui-color-surface);
-    transition: background .12s, border-color .12s;
+    transition: background var(--sui-duration-fast), border-color var(--sui-duration-fast);
 }
 .sui-field input[type="checkbox"], .sui-table-selection input[type="checkbox"] { border-radius: 5px; }
 .sui-field input[type="radio"], .sui-table-selection input[type="radio"] { border-radius: 50%; }
@@ -419,13 +523,13 @@ a.sui-tree-label:hover { text-decoration: underline; }
     box-shadow: 0 0 0 3px var(--sui-color-danger-bg);
 }
 .sui-field--error label { color: var(--sui-color-danger); }
-.sui-error { font-size: 13px; color: var(--sui-color-danger); }
+.sui-error { font-size: var(--sui-text-sm); color: var(--sui-color-danger); }
 .sui-form-error {
     padding: 10px 14px; margin-bottom: 16px;
     border: 1px solid var(--sui-color-danger); border-left-width: 3px;
     border-radius: var(--sui-radius-md);
     background: var(--sui-color-danger-bg); color: var(--sui-color-danger);
-    font-size: 13px;
+    font-size: var(--sui-text-sm);
 }
 .sui-value { color: var(--sui-color-text-body); }
 .sui-empty { color: var(--sui-color-empty); font-style: italic; }
@@ -441,7 +545,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
     border-radius: var(--sui-radius-lg);
     background: var(--sui-color-surface-alt);
     color: var(--sui-color-text-muted);
-    transition: border-color .15s, background .15s;
+    transition: border-color var(--sui-duration-fast), background var(--sui-duration-fast);
 }
 /* Highlighted while a file is being dragged over the zone. */
 .sui-upload--dragover .sui-upload-zone {
@@ -450,7 +554,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
     color: var(--sui-color-primary);
 }
 .sui-upload-icon { font-size: 24px; line-height: 1; opacity: .7; }
-.sui-upload-prompt { font-size: 13px; }
+.sui-upload-prompt { font-size: var(--sui-text-sm); }
 /* The browse control is a <label> styled as a button. */
 .sui-upload-browse { cursor: pointer; }
 .sui-upload-hint { text-align: center; }
@@ -463,9 +567,9 @@ a.sui-tree-label:hover { text-decoration: underline; }
 /* ── Buttons ────────────────────────────────────────────────────────────── */
 
 .sui-btn {
-    padding: 8px 16px; border: none; border-radius: var(--sui-radius-md);
-    font-size: 14px; font-weight: 500; cursor: pointer; touch-action: manipulation;
-    font-family: inherit; transition: background .15s, box-shadow .15s, opacity .15s, transform .05s;
+    padding: var(--sui-space-sm) var(--sui-space-lg); border: none; border-radius: var(--sui-radius-md);
+    font-size: var(--sui-text-md); font-weight: 500; cursor: pointer; touch-action: manipulation;
+    font-family: inherit; transition: background var(--sui-duration-fast), box-shadow var(--sui-duration-fast), opacity var(--sui-duration-fast), transform .05s;
     /* SSR renders some actions as <a> (anchor-style triggers) and others
        as <button> (form-wrapped). They must look identical, so neutralise
        the anchor defaults: no underline, no inherited text color, sit
@@ -485,7 +589,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
    Inline-block keeps the form group on the same baseline as anchor-style
    action buttons. */
 .sui-ssr-form { display: inline-block; margin: 0; }
-.sui-btn--primary   { background: var(--sui-color-action); color: var(--sui-color-on-action); box-shadow: var(--sui-shadow-sm); }
+.sui-btn--primary   { background: var(--sui-color-action); color: var(--sui-color-on-action); }
 .sui-btn--primary:hover:not(:disabled)   { background: var(--sui-color-action-hover); }
 /* Secondary = a clean outline button (inset ring avoids a layout shift since
    the base .sui-btn has border:none). */
@@ -499,8 +603,8 @@ a.sui-tree-label:hover { text-decoration: underline; }
     display: inline-flex; align-items: center; justify-content: center;
     min-width: 36px; height: 36px; padding: 0 8px;
     border: none; border-radius: var(--sui-radius-md);
-    font-size: 14px; line-height: 1; cursor: pointer;
-    font-family: inherit; transition: opacity .15s, background .15s;
+    font-size: var(--sui-text-md); line-height: 1; cursor: pointer;
+    font-family: inherit; transition: opacity var(--sui-duration-fast), background var(--sui-duration-fast);
     touch-action: manipulation;
 }
 .sui-icon-btn:disabled { opacity: .45; cursor: not-allowed; }
@@ -615,10 +719,44 @@ a.sui-tree-label:hover { text-decoration: underline; }
 }
 .sui-shell-body > .sui-menu--right { border-right: none; border-left: 1px solid var(--sui-color-border); }
 
+/* No inset. The content area used to sit in 20px of its own padding, so the
+   page ended in a band of nothing on all four sides and the card floated in
+   the middle of the frame instead of being it. Flush, the shell reads as one
+   surface: the header meets the content, the sidebar meets the content, and
+   the card's own padding is the only space around what you are reading.
+   Below, a card that is the content's direct child gives up its corners for
+   the same reason — a radius only means something where there is a page
+   behind it to show through. */
 .sui-shell-content {
     flex: 1 1 auto; min-width: 0;
     overflow: auto;                  /* the page scrolls here, not the window */
-    padding: 20px; background: var(--sui-color-surface-alt);
+    padding: 0; background: var(--sui-color-surface-alt);
+}
+
+.sui-shell-content > :is(.sui-list, .sui-table, .sui-form, .sui-detail, .sui-tree),
+.sui-shell-content > .sui-stack > :is(.sui-list, .sui-table, .sui-form, .sui-detail, .sui-tree) {
+    border-radius: 0;
+    border-inline: none;
+}
+
+/* A page ends at the bottom of the window, not at the bottom of its data.
+   A screen with two rows used to end in a band of canvas where a full one
+   was card all the way down — the same layout reading as two different
+   backgrounds depending on how much happened to be in it. The last card
+   stretches instead; transparent containers (stack, tabbed section) pass
+   the stretch down to whatever actually paints. */
+.sui-shell-content { display: flex; flex-direction: column; }
+/* Flex items refuse to shrink below their content by default; a wide table
+   would push its card past the viewport instead of scrolling inside it. */
+.sui-shell-content > * { min-width: 0; }
+.sui-shell-content > :last-child { flex: 1 0 auto; }
+.sui-shell-content > .sui-stack:last-child > :last-child { flex: 1 0 auto; }
+.sui-shell-content > .sui-stack:last-child > .sui-section:last-child { display: flex; flex-direction: column; }
+.sui-shell-content > .sui-stack:last-child > .sui-section:last-child > .sui-panels {
+    flex: 1 0 auto; display: flex; flex-direction: column;
+}
+.sui-shell-content > .sui-stack:last-child > .sui-section:last-child > .sui-panels > .sui-panel:not([hidden]) {
+    flex: 1 0 auto;
 }
 
 .sui-shell-footer {
@@ -631,21 +769,44 @@ a.sui-tree-label:hover { text-decoration: underline; }
 
 /* ── Tables ─────────────────────────────────────────────────────────────── */
 
-.sui-table { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); overflow: hidden; }
+.sui-table { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); overflow: hidden; }
+/* A table wider than its card scrolls sideways inside it. Without this the
+   card's overflow:hidden silently cut the right-hand columns off on a
+   narrow window — nowrap headings make a table's minimum width real. */
+.sui-table-scroll { overflow-x: auto; }
 .sui-table-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 16px 20px; border-bottom: 1px solid var(--sui-color-border);
+    min-height: var(--sui-list-header-h);
+    box-sizing: border-box;
+    padding: var(--sui-space-lg) var(--sui-space-xl); border-bottom: 1px solid var(--sui-color-border);
 }
-.sui-table-header h2 { font-size: 17px; font-weight: 600; }
+.sui-table-header h2 { font-size: var(--sui-text-xl); font-weight: 600; }
 /* A title-less table still renders the bar for its actions — push them right. */
 .sui-table-header:not(:has(h2)) { justify-content: flex-end; }
 .sui-table table { width: 100%; border-collapse: collapse; }
+/* A column heading is a label, not a band. It used to be a filled strip in
+   surface-alt with square corners inside a rounded card — so the card's own
+   radius was cut off at the top, which is what made it read as a dark bar
+   stuck onto the table rather than as part of it. Now it is the card's own
+   surface, separated by the same hairline as every row, and the outer cells
+   carry the card's corners. */
 .sui-table thead th {
-    padding: 11px 18px; text-align: left; font-size: 13px;
-    font-weight: 600; color: var(--sui-color-text-muted);
-    background: var(--sui-color-surface-alt);
+    /* Tighter above and below than a data row: a heading is one line of
+       small type, and giving it a row's worth of air opened a visible band
+       between the labels and the data they label. */
+    padding: var(--sui-space-sm) var(--sui-space-xl); text-align: left;
+    /* The same size as the cells under it. It was two steps smaller, which
+       is backwards: a column heading labels the column, and a label printed
+       smaller than the thing it labels reads as a footnote. What separates
+       it from the data is weight and colour, not size. */
+    font-size: var(--sui-text-lg);
+    font-weight: 500; color: var(--sui-color-text-muted);
+    background: var(--sui-color-surface);
     border-bottom: 1px solid var(--sui-color-border);
 }
+
+.sui-table thead tr:first-child th:first-child { border-start-start-radius: var(--sui-radius-lg); }
+.sui-table thead tr:first-child th:last-child  { border-start-end-radius:   var(--sui-radius-lg); }
 
 /* Scroll container (UiTable.maxHeight). Always present so SSR and SPA emit
    the same structure; only the capped variant actually scrolls, and only
@@ -662,18 +823,32 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-th-sortable { padding: 0; }
 .sui-sort-btn {
     display: flex; align-items: center; gap: 6px; width: 100%;
-    padding: 11px 18px; background: none; border: 0; cursor: pointer;
+    padding: var(--sui-space-sm) var(--sui-space-xl); background: none; border: 0; cursor: pointer;
     font: inherit; color: inherit; text-align: left;
 }
 .sui-sort-btn:hover { color: var(--sui-color-text-body); }
 .sui-sort-btn:focus-visible { outline: 2px solid var(--sui-color-primary); outline-offset: -2px; }
 /* The indicator holds its width so the label doesn't shift when it changes. */
-.sui-sort-indicator { display: inline-block; min-width: 1em; opacity: .45; font-size: 11px; }
+.sui-sort-indicator { display: inline-block; min-width: 1em; opacity: .45; font-size: var(--sui-text-xs); }
 .sui-th-sortable.is-sorted { color: var(--sui-color-text-body); }
 .sui-th-sortable.is-sorted .sui-sort-indicator { opacity: 1; color: var(--sui-color-primary); }
+/* A link in a table cell is a row's name, the same thing `.sui-list-item-label`
+   is in a list — and it was rendering a weight lighter, which is why workflow
+   names looked thinner than agent names for no reason anyone could point at. */
+.sui-table td .sui-link { font-weight: 500; }
+
+/* A column heading names a column; wrapping it turns one row of labels into
+   two of ragged fragments. The cells still wrap — it is the heading that has
+   to stay one line. */
+.sui-table thead th { white-space: nowrap; }
+
+/* Same ink as a list row. A table cell and a list row hold the same kind of
+   thing, and they were two different greys — `text-body` here, plain `text`
+   there — which is a difference you feel without being able to name it. */
 .sui-table tbody td {
-    padding: 13px 18px; font-size: 15px; border-bottom: 1px solid var(--sui-color-border-soft);
-    color: var(--sui-color-text-body);
+    padding: var(--sui-space-md) var(--sui-space-xl); font-size: var(--sui-text-lg);
+    border-bottom: 1px solid var(--sui-color-border-soft);
+    color: var(--sui-color-text);
 }
 .sui-table tbody tr:last-child td { border-bottom: none; }
 .sui-table tbody tr:hover { background: var(--sui-color-surface-alt); }
@@ -733,15 +908,31 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-row dt { font-weight: 600; color: var(--sui-color-text-muted); }
 .sui-row dd { margin: 0; }
 .sui-row-empty { font-style: italic; color: var(--sui-color-empty); grid-column: 1 / -1; }
-.sui-section-entry { padding: 12px;
+/* A section's own title had no rule at all, so it fell through to the
+   browser's default h2 — 1.5em at weight 700, which came out as 22.5px and
+   bold on a page whose every other title is 17px at 600. That is why the
+   vector-store and file screens looked like they belonged to a different
+   app: not a theme, not a page-specific stylesheet, just a heading nobody
+   had ever styled. Every other container styles its own h2; this makes the
+   section do the same, from the same step of the scale. */
+.sui-section > h2 {
+    font-size: var(--sui-text-xl); font-weight: 600;
+    color: var(--sui-color-text-strong);
+    margin-bottom: var(--sui-space-md);
+}
+
+.sui-section-entry { padding: var(--sui-space-md);
                      border: 1px dashed var(--sui-color-border);
                      border-radius: var(--sui-radius-sm); }
-.sui-section-entry-title { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+.sui-section-entry-title { margin: 0 0 var(--sui-space-sm); font-size: var(--sui-text-md); font-weight: 600; }
 
 /* ── Stack (plain composition box) ─────────────────────────────────────── */
 
 .sui-stack            { display: flex; gap: 16px; }
 .sui-stack--vertical  { flex-direction: column; }
+/* A button dropped into a vertical stack is a control, not a banner: flex
+   stretch would pull it to the stack's full width. */
+.sui-stack--vertical > :is(.sui-btn, .sui-icon-btn) { align-self: start; }
 .sui-stack--horizontal{ flex-direction: row; align-items: center; }
 /* Form-layout helpers (apply via cssClass on a stack). `sui-cols` turns a
    horizontal stack into equal-width, top-aligned columns; `sui-fieldgroup`
@@ -760,10 +951,14 @@ a.sui-tree-label:hover { text-decoration: underline; }
     border: 1px solid var(--sui-color-border); border-radius: var(--sui-radius-md);
     padding: 14px 16px; margin: 0; min-width: 0;
 }
+/* Uppercase at 12px in bold was the loudest quiet thing in the sheet: it
+   shouts, and it costs legibility — capitals lose the word shapes that make
+   a label readable at a glance. Sentence case, one weight down, does the
+   same job. */
 .sui-fieldgroup-title {
-    display: block; padding: 0; width: auto; font-size: 12px; font-weight: 700;
-    letter-spacing: .04em; text-transform: uppercase;
-    color: var(--sui-color-text-subtle); margin-bottom: 8px;
+    display: block; padding: 0; width: auto;
+    font-size: var(--sui-text-xs); font-weight: 600;
+    color: var(--sui-color-text-muted); margin-bottom: var(--sui-space-sm);
 }
 /* A <legend> renders inside the border by default; keep it as a plain block. */
 legend.sui-fieldgroup-title { float: none; }
@@ -786,7 +981,7 @@ details.sui-section--collapsible > summary.sui-section-summary::-webkit-details-
 details.sui-section--collapsible > summary.sui-section-summary::before {
     content: "▶ ";
     display: inline-block; color: var(--sui-color-text-muted); font-size: 10px;
-    margin-right: 4px; transition: transform .15s;
+    margin-right: 4px; transition: transform var(--sui-duration-fast);
 }
 details.sui-section--collapsible[open] > summary.sui-section-summary::before {
     transform: rotate(90deg);
@@ -799,13 +994,13 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
    top corners; the active one gets a border and a bottom edge painted in the
    surface colour so it opens seamlessly into the panel below. */
 .sui-tab {
-    padding: 9px 18px; cursor: pointer;
-    font-size: 15px; font-weight: 500; color: var(--sui-color-text-muted);
+    padding: var(--sui-space-sm) var(--sui-space-lg); cursor: pointer;
+    font-size: var(--sui-text-lg); font-weight: 500; color: var(--sui-color-text-muted);
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--sui-radius-md) var(--sui-radius-md) 0 0;
     margin-bottom: -1px;
-    transition: color .15s, background .15s, border-color .15s;
+    transition: color var(--sui-duration-fast), background var(--sui-duration-fast), border-color var(--sui-duration-fast);
 }
 .sui-tab:hover:not(.active) { color: var(--sui-color-text-body); background: var(--sui-color-surface-alt); }
 .sui-tab.active {
@@ -824,8 +1019,7 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
     border: 1px solid var(--sui-color-border);
     border-top: none;
     border-radius: 0 0 var(--sui-radius-lg) var(--sui-radius-lg);
-    box-shadow: var(--sui-shadow-card);
-    padding: 18px 20px;
+    padding: var(--sui-space-xl);
 }
 /* Inside a tabbed panel the panel IS the card — direct child components
    render flat instead of stacking card-on-card chrome. */
@@ -891,7 +1085,7 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
     padding: 9px 12px; border: none; background: none; cursor: pointer;
     color: var(--sui-color-text-muted); border-radius: var(--sui-radius-md) var(--sui-radius-md) 0 0;
     margin-bottom: -1px; display: inline-flex; align-items: center;
-    transition: color .15s, background .15s;
+    transition: color var(--sui-duration-fast), background var(--sui-duration-fast);
 }
 .sui-tab-more-btn:hover { color: var(--sui-color-text-body); background: var(--sui-color-surface-alt); }
 .sui-tab-more-btn.active { color: var(--sui-color-primary); }
@@ -901,7 +1095,7 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
     min-width: 160px; margin-top: 2px; padding: 4px;
     display: flex; flex-direction: column; gap: 2px;
     background: var(--sui-color-surface); border: 1px solid var(--sui-color-border);
-    border-radius: var(--sui-radius-md); box-shadow: var(--sui-shadow-card);
+    border-radius: var(--sui-radius-md); box-shadow: var(--sui-shadow-pop);
 }
 /* The `display:flex` above would otherwise beat the UA `[hidden]` rule and keep
    the dropdown permanently open — re-assert the closed state. */
@@ -923,7 +1117,7 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
     display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box;
     font: inherit; color: var(--sui-color-text-muted);
     border: 1px solid transparent; border-radius: var(--sui-radius-md);
-    transition: background .15s, color .15s, box-shadow .15s; touch-action: manipulation;
+    transition: background var(--sui-duration-fast), color var(--sui-duration-fast), box-shadow var(--sui-duration-fast); touch-action: manipulation;
 }
 .sui-menu-button-trigger::-webkit-details-marker { display: none; }
 .sui-menu-button-trigger::marker { content: ""; }
@@ -940,7 +1134,7 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
 .sui-menu-button--icon .sui-menu-button-trigger { width: 36px; height: 36px; justify-content: center; }
 /* Labelled trigger → a normal outline button. */
 .sui-menu-button--button .sui-menu-button-trigger {
-    padding: 8px 12px; font-size: 14px; font-weight: 500;
+    padding: var(--sui-space-sm) var(--sui-space-md); font-size: var(--sui-text-md); font-weight: 500;
     color: var(--sui-color-text-body); box-shadow: inset 0 0 0 1px var(--sui-color-border-strong);
 }
 
@@ -952,7 +1146,7 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
     display: flex; flex-direction: column; gap: 1px;
     background: var(--sui-color-surface); border: 1px solid var(--sui-color-border);
     border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-pop);
-    animation: sui-menu-pop-in .12s ease-out;
+    animation: sui-menu-pop-in var(--sui-duration-fast) ease-out;
 }
 .sui-menu-button--align-end   .sui-menu-button-popover { right: 0; }
 .sui-menu-button--align-start .sui-menu-button-popover { left: 0; }
@@ -966,7 +1160,7 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
     text-align: left; cursor: pointer; text-decoration: none;
     font: inherit; font-size: 14px; color: var(--sui-color-text-body);
     background: none; border: none; border-radius: var(--sui-radius-sm); padding: 8px 10px;
-    transition: background .1s, color .1s; touch-action: manipulation;
+    transition: background var(--sui-duration-fast), color var(--sui-duration-fast); touch-action: manipulation;
 }
 .sui-menu-button-item:hover { background: var(--sui-color-surface-alt); color: var(--sui-color-text-strong); }
 .sui-menu-button-item.is-danger { color: var(--sui-color-danger); }
@@ -1034,7 +1228,7 @@ details[open] > .sui-activity-summary::before { content: "▼ "; }
     pointer-events: none;
     z-index: 50;
     opacity: 0;
-    transition: opacity .15s ease;
+    transition: opacity var(--sui-duration-fast) ease;
 }
 .sui-loading > .sui-loading-overlay { opacity: 1; }
 
@@ -1153,7 +1347,7 @@ a[data-trigger].is-loading::before,
     width: 0;
     background: var(--sui-color-primary);
     border-radius: inherit;
-    transition: width .3s ease;
+    transition: width var(--sui-duration-slow) ease;
 }
 .sui-progress-text {
     font-size: .85em;
@@ -1189,7 +1383,7 @@ a[data-trigger].is-loading::before,
 .sui-progress-ring-fill {
     stroke: var(--sui-color-primary);
     stroke-linecap: round;
-    transition: stroke-dashoffset .3s ease;
+    transition: stroke-dashoffset var(--sui-duration-slow) ease;
 }
 .sui-progress--success .sui-progress-ring-fill { stroke: var(--sui-color-success, #16a34a); }
 .sui-progress--warning .sui-progress-ring-fill { stroke: var(--sui-color-warning, #d97706); }
@@ -1210,7 +1404,12 @@ a[data-trigger].is-loading::before,
    only, submenus as hover fly-outs) and --hidden (only the hamburger). The SPA
    event bus cycles the class; a no-JS checkbox-hack toggles show/hide. */
 .sui-menu {
-    --sui-menu-w: 240px;
+    /* 240 was wide enough for labels nobody has: with "Vector Stores" as the
+       longest item the text ended 17px short of the menu's own edge, and then
+       the content's padding added its own — 37px of nothing between the
+       navigation and the thing being navigated to. 200 fits the same labels
+       and gives the gap back to the content. */
+    --sui-menu-w: 200px;
     --sui-menu-rail-w: 60px;
     display: flex;
     flex-direction: column;
@@ -1221,8 +1420,7 @@ a[data-trigger].is-loading::before,
     background: var(--sui-color-surface);
     border: 1px solid var(--sui-color-border);
     border-radius: var(--sui-radius-lg);
-    box-shadow: var(--sui-shadow-card);
-    transition: width .2s ease;
+    transition: width var(--sui-duration-base) ease;
 }
 .sui-menu-cb { display: none; }
 
@@ -1230,6 +1428,13 @@ a[data-trigger].is-loading::before,
     display: flex; align-items: center; gap: 10px;
     padding: 6px 8px; min-height: 40px;
 }
+
+/* An app shell whose menu has no title, and whose collapse toggle lives in
+   the page header instead, still rendered this head — empty, and still 40px
+   tall. With the menu's own padding that put 52px of nothing between the
+   header and the first nav item, which is the gap you see at the top of
+   every admin screen. Nothing in it, nothing to show. */
+.sui-menu-head:not(:has(*)) { display: none; }
 .sui-menu-title {
     font-weight: 600; font-size: 15px; color: var(--sui-color-text-strong);
     white-space: nowrap; overflow: hidden;
@@ -1250,9 +1455,9 @@ a[data-trigger].is-loading::before,
 
 .sui-menu-link {
     display: flex; align-items: center; gap: 10px;
-    padding: 8px 10px; border-radius: var(--sui-radius-md);
+    padding: var(--sui-space-sm) var(--sui-space-sm); border-radius: var(--sui-radius-md);
     color: var(--sui-color-text-body); text-decoration: none;
-    cursor: pointer; white-space: nowrap; font-size: 15px;
+    cursor: pointer; white-space: nowrap; font-size: var(--sui-text-lg);
 }
 .sui-menu-link:hover { background: var(--sui-color-border-soft); text-decoration: none; }
 .sui-menu-item.is-active > .sui-menu-link,
@@ -1266,7 +1471,7 @@ a[data-trigger].is-loading::before,
 /* Group = a <details>; drop the native marker, use our own caret. */
 .sui-menu-group > summary { list-style: none; }
 .sui-menu-group > summary::-webkit-details-marker { display: none; }
-.sui-menu-caret { display: inline-flex; transition: transform .15s ease; color: var(--sui-color-text-muted); }
+.sui-menu-caret { display: inline-flex; transition: transform var(--sui-duration-fast) ease; color: var(--sui-color-text-muted); }
 .sui-menu-caret .sui-icon { width: 16px; height: 16px; }
 .sui-menu-group[open] > summary .sui-menu-caret { transform: rotate(180deg); }
 .sui-menu-sublist { padding-left: 22px; }   /* indent under the icon column */
@@ -1277,7 +1482,7 @@ a[data-trigger].is-loading::before,
     position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%);
     background: var(--sui-color-text-strong); color: var(--sui-color-surface);
     padding: 4px 8px; border-radius: var(--sui-radius-sm); font-size: 12px;
-    white-space: nowrap; z-index: 60; pointer-events: none; box-shadow: var(--sui-shadow-card);
+    white-space: nowrap; z-index: 60; pointer-events: none; box-shadow: var(--sui-shadow-pop);
 }
 
 /* State: RAIL — icons only; submenus fly out on hover. */
@@ -1293,7 +1498,7 @@ a[data-trigger].is-loading::before,
     position: absolute; left: calc(100% + 8px); top: 0;
     min-width: 180px; padding: 6px;
     background: var(--sui-color-surface); border: 1px solid var(--sui-color-border);
-    border-radius: var(--sui-radius-md); box-shadow: var(--sui-shadow-card); z-index: 60;
+    border-radius: var(--sui-radius-md); box-shadow: var(--sui-shadow-pop); z-index: 60;
 }
 .sui-menu--rail .sui-menu-item--group:hover > .sui-menu-group > .sui-menu-sublist { display: flex; }
 .sui-menu--rail .sui-menu-sublist .sui-menu-label { display: inline; }
@@ -1313,8 +1518,8 @@ a[data-trigger].is-loading::before,
 
 /* Trailing badge — a count / short status. `label { flex:1 }` pushes it right. */
 .sui-menu-badge {
-    background: var(--sui-color-primary-soft); color: var(--sui-color-primary);
-    font-size: 11px; font-weight: 600; line-height: 1;
+    background: var(--sui-color-surface-alt); color: var(--sui-color-text-muted);
+    font-size: var(--sui-text-xs); font-weight: 500; line-height: 1;
     padding: 3px 7px; border-radius: 999px; white-space: nowrap;
 }
 .sui-menu-item.is-active > .sui-menu-link > .sui-menu-badge {
@@ -1336,7 +1541,7 @@ a[data-trigger].is-loading::before,
    sibling backdrop dims the rest and closes on click; HIDDEN slides it away. */
 .sui-menu--overlay {
     position: absolute; top: 0; left: 0; height: 100%; z-index: 41;
-    transition: transform .2s ease, width .2s ease;
+    transition: transform var(--sui-duration-base) ease, width var(--sui-duration-base) ease;
 }
 .sui-menu--overlay.sui-menu--hidden { width: var(--sui-menu-w); transform: translateX(-100%); }
 .sui-menu--overlay.sui-menu--hidden .sui-menu-list,
@@ -1344,7 +1549,7 @@ a[data-trigger].is-loading::before,
 .sui-menu-backdrop {
     position: absolute; inset: 0; z-index: 40;
     background: rgba(15, 23, 42, .35);
-    opacity: 0; pointer-events: none; transition: opacity .2s ease;
+    opacity: 0; pointer-events: none; transition: opacity var(--sui-duration-base) ease;
 }
 .sui-menu--overlay:not(.sui-menu--hidden) + .sui-menu-backdrop { opacity: 1; pointer-events: auto; }
 
@@ -1360,7 +1565,7 @@ a[data-trigger].is-loading::before,
         position: absolute; top: 0; left: 0; height: 100%; z-index: 41;
         width: var(--sui-menu-w);
         box-shadow: 4px 0 16px rgba(15, 23, 42, .18);
-        transition: transform .2s ease;
+        transition: transform var(--sui-duration-base) ease;
     }
     /* On mobile the drawer is either fully open or slid off-canvas — content
        stays populated so it animates cleanly. */
@@ -1381,7 +1586,7 @@ a[data-trigger].is-loading::before,
     .sui-menu--responsive + .sui-menu-backdrop {
         display: block; position: absolute; inset: 0; z-index: 40;
         background: rgba(15, 23, 42, .35);
-        opacity: 0; pointer-events: none; transition: opacity .2s ease;
+        opacity: 0; pointer-events: none; transition: opacity var(--sui-duration-base) ease;
     }
     .sui-menu--responsive:not(.sui-menu--hidden) + .sui-menu-backdrop { opacity: 1; pointer-events: auto; }
 }
@@ -1451,7 +1656,6 @@ a[data-trigger].is-loading::before,
     min-height: 0;
     background: var(--sui-color-surface);
     border-radius: var(--sui-radius-lg);
-    box-shadow: var(--sui-shadow-card);
 }
 
 /* ── Auto-scroll feeds (.sui-autoscroll) ────────────────────────────────── */
@@ -1467,10 +1671,10 @@ a[data-trigger].is-loading::before,
     border: 1px solid var(--sui-color-border);
     background: var(--sui-color-surface);
     color: var(--sui-color-text-body);
-    box-shadow: 0 4px 12px rgba(15, 23, 42, .18);
+    box-shadow: var(--sui-shadow-pop);
     cursor: pointer;
     opacity: 0; pointer-events: none;
-    transition: opacity .15s;
+    transition: opacity var(--sui-duration-fast);
     z-index: 5;
 }
 .sui-scroll-latest.is-visible { opacity: 1; pointer-events: auto; }
@@ -1498,13 +1702,14 @@ a[data-trigger].is-loading::before,
 .sui-dialog {
     position: relative;
     background: var(--sui-color-surface);
+    border: 1px solid var(--sui-color-border);
     border-radius: var(--sui-radius-lg);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, .25);
+    box-shadow: var(--sui-shadow-pop);
     max-width: min(640px, calc(100vw - 32px));
     max-height: calc(100vh - 64px);
     display: flex; flex-direction: column;
     overflow: hidden;
-    animation: sui-dialog-in .15s ease-out;
+    animation: sui-dialog-in var(--sui-duration-fast) ease-out;
 }
 /* Wide variant (set UiDialog cssClass "sui-dialog--wide"): for dialog
    content with its own columns — a master-detail memory view, a trace
@@ -1527,7 +1732,7 @@ a[data-trigger].is-loading::before,
     font-family: inherit; text-decoration: none;
 }
 .sui-dialog-close:hover { color: var(--sui-color-text); }
-.sui-dialog-body { padding: 20px; overflow: auto; }
+.sui-dialog-body { padding: var(--sui-space-xl); overflow: auto; }
 /* The form's own <h2> is redundant when the dialog header already shows the
    title. Hide it inside dialogs so we don't get two stacked titles. */
 .sui-dialog-body .sui-form > h2 { display: none; }
@@ -1536,6 +1741,23 @@ a[data-trigger].is-loading::before,
 @keyframes sui-dialog-in {
     from { transform: translateY(-10px); opacity: 0; }
     to   { transform: translateY(0);     opacity: 1; }
+}
+
+/* The dialog arrived with a small drop, so it leaves the same way in
+   reverse. The host carries `.sui-leave` (the renderer puts it there for a
+   server-ordered close and for a backdrop click alike) and fades the
+   backdrop; this animates the panel inside it, which is what the eye
+   actually follows. `forwards` holds the end state — without it the panel
+   snaps back to full opacity for the frame between the animation ending and
+   the host being removed. */
+.sui-leave > .sui-dialog,
+.sui-leave .sui-dialog {
+    animation: sui-dialog-out var(--sui-duration-fast) ease-in forwards;
+}
+
+@keyframes sui-dialog-out {
+    from { transform: translateY(0);    opacity: 1; }
+    to   { transform: translateY(-8px); opacity: 0; }
 }
 
 /* ── Toasts ─────────────────────────────────────────────────────────────── */
@@ -1567,9 +1789,9 @@ a[data-trigger].is-loading::before,
     box-shadow: inset 0 0 0 1px var(--sui-toast-ring), var(--sui-shadow-pop);
     font-size: 14px;
     color: var(--sui-toast-fg);
-    animation: sui-toast-in .22s cubic-bezier(.22, 1, .36, 1);
+    animation: sui-toast-in var(--sui-duration-base) cubic-bezier(.22, 1, .36, 1);
 }
-.sui-toast--leaving { animation: sui-toast-out .2s ease-in forwards; }
+.sui-toast--leaving { animation: sui-toast-out var(--sui-duration-base) ease-in forwards; }
 .sui-toast-icon {
     flex: none; display: inline-flex; margin-top: 1px;
     color: var(--sui-toast-fg);
@@ -1583,7 +1805,7 @@ a[data-trigger].is-loading::before,
     color: var(--sui-toast-fg); opacity: .6;
     font-size: 18px; line-height: 1; padding: 0 2px; margin: -2px -2px 0 0;
     font-family: inherit; border-radius: var(--sui-radius-sm);
-    transition: opacity .12s;
+    transition: opacity var(--sui-duration-fast);
 }
 .sui-toast-close:hover { opacity: 1; }
 
@@ -1644,16 +1866,19 @@ a[data-trigger].is-loading::before,
 .sui-markdown h3 { font-size: 1.05em; }
 .sui-markdown p  { margin: 0 0 .75em; }
 .sui-markdown p:last-child { margin-bottom: 0; }
-.sui-markdown ul, .sui-markdown ol { margin: 0 0 .75em 1.4em; }
-.sui-markdown li { margin-bottom: .2em; }
+.sui-markdown ul { list-style: disc;    padding-inline-start: 1.35em; margin: 0 0 .75em; }
+.sui-markdown ol { list-style: decimal; padding-inline-start: 1.35em; margin: 0 0 .75em; }
+.sui-markdown li { margin-block: .25em; }
+.sui-markdown li::marker { color: var(--sui-color-text-subtle); }
 .sui-markdown code {
     font-family: var(--sui-font-mono);
-    font-size: .85em; background: var(--sui-color-border-soft);
-    padding: 1px 5px; border-radius: 3px;
+    font-size: .9em; background: var(--sui-color-surface-alt);
+    padding: .1em .35em; border-radius: 5px;
 }
 .sui-markdown pre {
     background: var(--sui-color-code-bg); color: var(--sui-color-code-fg);
-    padding: 12px 16px; border-radius: var(--sui-radius-md);
+    padding: 1rem 1.1rem; border-radius: var(--sui-radius-md);
+    line-height: 1.6;
     overflow-x: auto; margin: 0 0 .75em;
 }
 .sui-markdown pre code { background: none; padding: 0; color: inherit; font-size: .82em; }
@@ -1668,3 +1893,137 @@ a[data-trigger].is-loading::before,
 .sui-markdown th { background: var(--sui-color-surface-alt); font-weight: 600; }
 .sui-markdown a { color: var(--sui-color-primary); }
 .sui-markdown hr { border: none; border-top: 1px solid var(--sui-color-border); margin: 1em 0; }
+
+
+/* ── Patch animations ────────────────────────────────────────────────────
+   Set by the renderer on the two patch operations that put an element on the
+   page or take one off: APPEND stamps `.sui-enter` on what it appended,
+   REMOVE stamps `.sui-leave` on what it is about to drop and waits for the
+   transition. REPLACE and MERGE are deliberately not animated — a streaming
+   turn replaces the same node once per token, and an enter animation there
+   would restart several times a second.
+
+   These are ordinary classes, so an app can restyle either animation without
+   touching the renderer: redefine `.sui-enter`'s animation, or the
+   properties `.sui-leave` transitions. */
+
+/* Opacity and transform only. APPEND is measured by the tail-chase that
+   decides whether to follow a chat to its newest message, and an element
+   animating its height would be measured while it was still growing. */
+@keyframes sui-enter {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+}
+
+.sui-enter {
+    animation: sui-enter var(--sui-duration-base) var(--sui-ease-decelerate);
+}
+
+/* Leaving may animate height: nothing measures a removal, and a row that
+   fades while keeping its space reads as a bug. The renderer freezes the
+   height in pixels first and collapses it a frame later — this class only
+   says how the collapse should look. */
+.sui-leave {
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* The doubled class is not a typo. Plenty of components declare a
+   `transition` shorthand of their own — `.sui-list-item` animates its
+   background, `.sui-btn` four properties — and a shorthand replaces the whole
+   list, so at equal specificity whichever rule comes later wins and the leave
+   silently loses its height animation. One extra class outranks all of them
+   without reaching for !important, and leaves `.sui-leave` itself free for an
+   app to restyle. */
+.sui-leave.sui-leave {
+    transition: opacity var(--sui-duration-fast) var(--sui-ease-standard),
+                height  var(--sui-duration-base) var(--sui-ease-standard),
+                margin  var(--sui-duration-base) var(--sui-ease-standard),
+                padding var(--sui-duration-base) var(--sui-ease-standard);
+}
+
+
+/* ── Disclosures ─────────────────────────────────────────────────────────
+   A <details> snaps: its content is there or it is not, and at the sizes
+   these are used — a tool call's output, a collapsible section, a tree node
+   — the jump is the difference between "it expanded" and "the page moved".
+
+   `::details-content` is the browser's own box around everything after the
+   summary, and `interpolate-size: allow-keywords` is what makes `auto` an
+   animatable value at all. Where either is missing the whole rule is ignored
+   and the disclosure snaps exactly as it does today, which is why this needs
+   no feature query.
+
+   Scoped to the disclosures, deliberately: `.sui-menu-button` is also a
+   <details>, but its content is a positioned popover with its own entrance,
+   and clipping it to an animated block-size would break it. */
+:root {
+    interpolate-size: allow-keywords;
+}
+
+.sui-activity::details-content,
+details.sui-section--collapsible::details-content,
+details.sui-tree-item::details-content,
+.sui-menu-group::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition: block-size var(--sui-duration-base) var(--sui-ease-standard),
+                content-visibility var(--sui-duration-base) allow-discrete;
+}
+
+.sui-activity[open]::details-content,
+details.sui-section--collapsible[open]::details-content,
+details.sui-tree-item[open]::details-content,
+.sui-menu-group[open]::details-content {
+    block-size: auto;
+}
+
+/* ── View transitions ────────────────────────────────────────────────────
+   The renderer wraps the two navigation-sized swaps — mounting a page, and
+   filling a slot — in `document.startViewTransition` where the browser has
+   it. The browser's own default is already the right idea (a cross-fade of
+   everything that changed); all this does is put it on the same clock as the
+   rest of the sheet, so a theme that slows the app down slows this down too.
+
+   Nothing else animates through this API. APPEND and REMOVE have their own
+   classes above, and a REPLACE that is not a slot is very often a component
+   redrawing itself once per streaming token — a full-page snapshot at that
+   rate would be a disaster.
+
+   To go further, name a region: give an element `view-transition-name` and
+   it is captured and animated as its own pair, which is how a header stays
+   put while the content under it changes, or how a row grows into a detail
+   view. The names have to be unique per document. */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation-duration: var(--sui-duration-base);
+    animation-timing-function: var(--sui-ease-standard);
+}
+
+/* ── Reduced motion ──────────────────────────────────────────────────────
+   One block, because every state change in this file is timed by the three
+   duration variables. Setting them to almost nothing turns off transitions,
+   the enter/leave patch animations and the dialog/toast/menu entrances at
+   once — including anything added later, which is the point of doing it
+   here rather than per rule.
+
+   Looping indicators are handled separately and on purpose: a spinner that
+   stopped would say "finished", so the spinner rule above slows it instead.
+   The sidebar keeps its own `transition: none` for the same reason it always
+   did — it animates transform and width, which the durations do not reach. */
+@media (prefers-reduced-motion: reduce) {
+    :root {
+        --sui-duration-fast: 1ms;
+        --sui-duration-base: 1ms;
+        --sui-duration-slow: 1ms;
+    }
+
+    /* The two patch animations have nothing to interpolate at 1ms, and an
+       element still ought to arrive and leave — it just does so at once. */
+    .sui-enter { animation: none; }
+
+    /* The renderer already skips view transitions under reduced motion; this
+       is for the case where an app turned them on for itself. */
+    ::view-transition-old(root),
+    ::view-transition-new(root) { animation: none; }
+}

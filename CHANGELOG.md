@@ -11,7 +11,82 @@ The format is [Keep a Changelog][keepachangelog]; this project follows
 [semantic versioning][semver], with the caveat that it is pre-1.0 and breaking
 changes may land in a minor.
 
-**Adding an entry:** put it under `## [Unreleased]`, in the section that fits.
+**Adding an entry:** put it under `## [Unreleased]
+
+### Added
+
+- **Spacing and type are on a scale.** `--sui-space-*` (a 4px grid with one
+  half-step) and `--sui-text-*` (six steps), and the rules that set the
+  layout's rhythm — page, list rows, table cells, fields, buttons, menu,
+  tabs, dialog — now use them. The sheet had 25 distinct spacing values, 16
+  of them off any grid, and 12 font sizes from 9px to 24px; a theme that
+  wanted to be denser had to override component by component, and a new
+  component had nothing to pick from.
+
+  Snapping to the grid moved values by at most 2px each, which makes rows
+  about 5px shorter than before. Measured across three pages, no element
+  changed width or horizontal position by more than 4px.
+
+  This is a first pass over the declarations that form the rhythm, not the
+  whole sheet: 15 of 127 spacing declarations are on the scale so far. The
+  rest are one-off insets and fixed control sizes, which mostly should stay
+  literal — but some are simply not migrated yet.
+
+### Fixed
+
+- **Pages stop disagreeing with each other.** A section's own `<h2>` had no
+  rule at all, so it fell through to the browser's default — 22.5px at weight
+  700 on screens whose every other title is 17px at 600, which is why the
+  vector-store and file pages looked like a different app. Table rows had a
+  different horizontal padding from list rows (16px against 20px), so a page
+  built on a table sat at a different rhythm from one built on a list. Both
+  are on the shared step now, and every container's title comes from the same
+  one.
+
+- **A table's row name weighs the same as a list's.** A link in a table cell
+  is the row's name, exactly as `.sui-list-item-label` is in a list, and it
+  was rendering a weight lighter — which is why workflow names looked thinner
+  than agent names for no reason anyone could point at. Column headings also
+  stop wrapping: one row of labels rather than two of ragged fragments.
+
+- **The column heading stops being a band.** A filled strip in `surface-alt`
+  with square corners inside a rounded card cut the card's own radius off at
+  the top, which is what made it read as something stuck on rather than part
+  of the table. It is the card's surface now, separated by the same hairline
+  as every row, with the outer cells carrying the corners — and it is the
+  same size as the cells under it, where it used to be two steps smaller. A
+  label printed smaller than the thing it labels reads as a footnote.
+
+- **Field-group titles are sentence case.** Uppercase at 12px in bold was the
+  loudest quiet thing in the sheet, and capitals cost the word shapes that
+  make a small label readable at a glance.
+
+- **An empty menu head no longer reserves 40px.** An app shell whose menu has
+  no title, and whose collapse toggle lives in the page header instead, still
+  rendered the head — empty, and still full height. With the menu's own
+  padding that was 52px of nothing between the header and the first nav item,
+  on every screen. It is 8px now.
+
+- **The content area is flush, and the sidebar is 200px.** The content used
+  to sit in 20px of its own padding, so the page ended in a band of nothing
+  on all four sides and the card floated in the frame instead of being it.
+  The sidebar reserved 240px for labels nobody has — with "Vector Stores" as
+  the longest, the text ended 17px short of its own edge, and the content's
+  padding added more: 37px of nothing between the navigation and what it
+  navigates to.
+
+- **List rows line up.** A row's height follows its description, and the
+  actions were centred in it — so the buttons sat 11, 21 or 31px below the
+  title depending on how long that description happened to be, next to a
+  badge that was top-aligned and therefore disagreed with them. They are
+  aligned to the start now, which puts the action group's centre exactly on
+  the title's centre in every row: measured across a ten-row list, the spread
+  goes from 20px to 0. The row also gained a 24px gutter, because the
+  description used to run to within 2px of the first button — not an overlap,
+  but close enough to read as one — and the actions no longer shrink when the
+  text is long.
+
+`, in the section that fits.
 The release workflow renames that heading to the version being cut and opens a
 fresh empty one, so nothing has to be moved by hand at release time.
 
@@ -22,6 +97,47 @@ fresh empty one, so nothing has to be moved by hand at release time.
 ## [Unreleased]
 
 ### Added
+
+- **The two patch operations that add and remove an element now animate.**
+  `APPEND` fades its new elements in with a small lift; `REMOVE` fades its
+  target out and collapses the space it held before dropping it, so a row
+  leaving a list no longer blinks out from under the ones below it. The
+  renderer sets `.sui-enter` and `.sui-leave`, and `sui.css` decides what they
+  look like — restyle either without touching the renderer, or turn the whole
+  thing off with `renderer.animatePatches = false`.
+
+  `REPLACE` and `MERGE` deliberately do **not** animate: they are the
+  streaming path, and a chat turn replaces the same node once per token.
+
+- **Disclosures open and close instead of snapping.** Activity summaries,
+  collapsible sections and tree nodes animate their height, via
+  `::details-content` and `interpolate-size`. Where a browser has neither, the
+  rule is ignored and they snap exactly as before — no feature query needed.
+  Menu-button popovers are deliberately left out: their content is positioned,
+  and clipping it to an animated height would break it.
+
+- **Dialogs leave the way they arrive.** A dialog dropped in with a small
+  fall; now it falls back out instead of vanishing between frames. Closing by
+  backdrop click or × goes through the same path as a close the server
+  ordered — the event bus now removes the host through the renderer's new
+  `removeAnimated()` rather than deleting it outright — so the two look the
+  same.
+
+- **Navigation cross-fades where the browser supports it.** Mounting a page
+  and filling a slot — an app shell's content area — go through the View
+  Transition API, so a screen change is a fade rather than a jump. Nothing
+  else does: `APPEND` and `REMOVE` have their own animation, and a `REPLACE`
+  that is not a slot is very often a component redrawing itself once per
+  streaming token. Turn it off with `renderer.viewTransitions = false`;
+  browsers without the API are unaffected. Name a region with
+  `view-transition-name` to animate it as its own pair — that is how a header
+  stays put while the content under it changes.
+
+- **Motion is themable.** Durations and easings are custom properties now
+  (`--sui-duration-fast|base|slow`, `--sui-ease-standard|decelerate`) and every
+  transition in `sui.css` is timed by them, so a theme can set a tempo the way
+  it sets a palette. Looping indicators keep their own timing on purpose — a
+  spinner that stopped would read as "finished".
 
 - **`MERGE` patch operation** — change the fields you name and leave the rest
   alone, instead of resending a whole node to flip one flag:
@@ -48,7 +164,23 @@ fresh empty one, so nothing has to be moved by hand at release time.
   application rather than a library: it is in the repository, not on Maven
   Central.
 
+### Changed
+
+- **`prefers-reduced-motion` is honoured everywhere, from one place.** The two
+  partial blocks are replaced by a single one that flattens the duration
+  variables, so it covers every transition in the sheet — including ones added
+  later. The renderer also skips the patch animations outright under reduced
+  motion, and in a hidden tab, where the browser would not run them anyway.
+
 ### Fixed
+
+- **Animation no longer breaks the renderer outside a browser.** Deciding
+  whether to animate is the one thing here that has to ask about its
+  environment, and the question was asked in a way that assumed the answer: the
+  gate read `window.matchMedia` without checking there was a `window`, so a
+  patch applied from a Node backend died with a `ReferenceError` instead of
+  applying. It now asks for a real browser positively, and anything else
+  simply does not animate.
 
 - **A `MERGE` on a table row destroyed the row.** The table's patch handling
   knew `REPLACE`, `APPEND` and `REMOVE`, so a merge fell through to the generic

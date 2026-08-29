@@ -236,6 +236,114 @@ export declare class SuiRenderer {
      * Markdown that paints in a follow-up frame (e.g. when the markdown
      * extension is still resolving its CDN import on first use).
      */
+    /**
+     * Whether APPEND animates its new elements in and REMOVE animates its
+     * target out. On by default; set to {@code false} for a renderer driving
+     * a screen where motion is wrong (a test harness, a print view, a
+     * high-frequency feed).
+     *
+     * <p>Only these two operations animate, and that is deliberate. REPLACE
+     * and MERGE are the streaming path — a chat turn REPLACEs the same node
+     * once per token — so an enter animation there would restart several
+     * times a second. APPEND and REMOVE are the only operations that put an
+     * element on the page or take one off, which is exactly when an
+     * animation has something to say.
+     */
+    animatePatches: boolean;
+    /** Longest an enter/leave may take before it is cleaned up regardless. */
+    private static readonly ANIMATION_TIMEOUT_MS;
+    /**
+     * Whether a patch should animate at all.
+     *
+     * <p>The hidden-document check is not an optimisation. Browsers do not
+     * run {@code requestAnimationFrame} in a background tab, and both
+     * animations below need a frame between setting up and starting — so in
+     * a tab nobody is looking at they would freeze halfway and be cleaned up
+     * by their timeout. Skipping outright gets the same result immediately,
+     * and the user sees the finished state when they come back, which is
+     * what they would have seen anyway.
+     */
+    private shouldAnimate;
+    /**
+     * Shared by every animation here: is motion wanted, and would it run?
+     *
+     * <p>Asked defensively, because this is the one thing in the renderer that
+     * has to know about the environment it is in — and the string API is
+     * documented to run on a Node backend with no DOM at all. Anything that is
+     * not a browser answers "no", which is the right answer there anyway:
+     * there is no frame to paint. So a missing `window`, a `document` that
+     * throws on access, a `matchMedia` that is not a function — all of them
+     * mean the same thing, and none of them is worth an exception escaping
+     * into a patch.
+     */
+    private motionAllowed;
+    /**
+     * Whether a whole-view swap should go through the View Transition API.
+     * On where the browser supports it; set to {@code false} to opt out.
+     *
+     * <p>Used for navigation only — {@link #mount} and a REPLACE that fills a
+     * slot, which is what an app shell's content area is. Not for the other
+     * operations: APPEND and REMOVE bring their own animation, and REPLACE on
+     * anything else is the streaming path, where a full-page snapshot per
+     * token would be a disaster.
+     */
+    viewTransitions: boolean;
+    private shouldViewTransition;
+    /**
+     * Runs a whole-view swap inside a view transition where one is available,
+     * and plainly where it is not.
+     *
+     * <p>The callback is deliberately allowed to run later than the call: the
+     * API captures the old frame first and only then applies the change.
+     * Nothing here depends on the DOM having changed by the time this
+     * returns — the event bus re-runs its enhancers from a MutationObserver,
+     * so they fire whenever the mutation actually lands.
+     */
+    private withViewTransition;
+    /**
+     * Marks freshly appended elements so the stylesheet can animate them in,
+     * and takes the class back off once it has played.
+     *
+     * <p>The animation `sui.css` gives them moves opacity and transform only.
+     * That is not a stylistic choice: APPEND runs inside
+     * {@link #withTailChase}, which decides whether to follow the tail by
+     * measuring the scroll container. An entering element that animated its
+     * height would be measured mid-flight, and a chat would scroll to the
+     * wrong place on every message.
+     */
+    private animateEnter;
+    /**
+     * Plays the element out and removes it when the transition ends.
+     *
+     * <p>Height is animated here, unlike on enter: REMOVE is not inside a
+     * tail-chase, and a row that fades but keeps its space until it vanishes
+     * reads as a bug. The height has to start from a concrete pixel value
+     * for a transition to have anything to interpolate, so it is frozen
+     * first and only collapsed in the next frame — a class that both
+     * declared the transition and changed the value in one recalculation
+     * would jump instead.
+     */
+    /** Longest of the element's declared transitions (delay included), in ms. */
+    private transitionMillis;
+    /**
+     * Removes an element, letting it play out first: it takes the
+     * {@code .sui-leave} class, and is dropped when the transition the
+     * stylesheet declared for it has run. An element that is out of the
+     * document flow — a dialog host, a toast — only fades; one in the flow
+     * also collapses the space it held, so the rows below it close the gap
+     * instead of jumping into it.
+     *
+     * <p>Public because REMOVE is not the only way something leaves the
+     * page: the event bus closes a dialog on a backdrop click without ever
+     * asking the server, and that should look the same as a close the server
+     * ordered.
+     *
+     * <p>Falls back to a plain removal whenever an animation would not run
+     * or would not be wanted — reduced motion, a hidden tab, a stylesheet
+     * that declares no transition for the class.
+     */
+    removeAnimated(element: Element): void;
+    private animateLeave;
     private withTailChase;
     /**
      * Handles patch ops that address a table's rows or columns. Tables

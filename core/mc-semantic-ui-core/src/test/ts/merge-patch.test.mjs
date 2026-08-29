@@ -207,6 +207,24 @@ describe("MERGE", () => {
         assert.match(wrapper.outerHTML, /Ada/);
     });
 
+    test("a patch outside a real browser applies without animating", () => {
+        // Animation is the one thing in the renderer that has to ask about the
+        // environment it is in, and asking must not be what breaks it. This
+        // suite is the environment that caught it: a stubbed document and no
+        // window at all. The gate asked "is anything missing?" and let the
+        // stub through, and the animation then reached for HTMLElement, which
+        // is not defined here — so a REMOVE died with a ReferenceError instead
+        // of removing anything.
+        const renderer = createDefaultRenderer();
+        let removed = 0;
+        element.remove = () => { removed++; };
+        renderer.render({ type: "text", id: "gone", text: "x" });
+
+        renderer.applyPatch({ patches: [{ op: "REMOVE", targetId: "gone" }] });
+
+        assert.equal(removed, 1, "the node still goes, it just does not fade on the way");
+    });
+
     test("REMOVE forgets what the id was", () => {
         const renderer = createDefaultRenderer();
         renderer.render({ type: "text", id: "spinner", text: "thinking" });

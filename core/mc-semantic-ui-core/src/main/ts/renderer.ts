@@ -275,7 +275,9 @@ export class SuiRenderer {
         if (!this.rootElement) {
             throw new Error("SuiRenderer.mount(): no host element attached");
         }
-        this.morph(this.rootElement, this.render(node), "innerHTML");
+        const html = this.render(node);
+        const host = this.rootElement;
+        this.withViewTransition(() => this.morph(host, html, "innerHTML"));
         return this;
     }
 
@@ -396,19 +398,24 @@ export class SuiRenderer {
                 // streaming token-by-token message and the message gets
                 // taller. Sample the scroller around either op so the
                 // tail-chase fires for both.
-                this.withTailChase(target, () => {
+                // A slot is the app shell's content area, so filling one is a
+                // navigation: it gets the cross-fade. Everything else is a
+                // component redrawing itself, very possibly once per token.
+                const swap = () => this.withTailChase(target, () => {
                     this.morph(target, this.render(op.node!), isSlot ? "innerHTML" : "outerHTML");
                 });
+                if (isSlot) this.withViewTransition(swap); else swap();
                 break;
             }
             case "APPEND": {
                 if (!op.node) return;
                 // For appends we deliberately don't morph: we want to add
                 // new content, not reconcile against existing siblings.
+                let added: Element[] = [];
                 this.withTailChase(target, () => {
                     const type = (op.node as { type?: string }).type;
                     if (type === "list") {
-                        this.appendListItems(target, op.node as { items?: UiListItem[] });
+                        added = this.appendListItems(target, op.node as { items?: UiListItem[] });
                     } else {
                         // Tree rows are <li>s that belong inside the tree's
                         // <ul> (root list or a node's children list), not at
@@ -418,9 +425,17 @@ export class SuiRenderer {
                             : target;
                         const tmp = document.createElement("div");
                         tmp.innerHTML = this.render(op.node!);
-                        while (tmp.firstChild) host.appendChild(tmp.firstChild);
+                        while (tmp.firstChild) {
+                            const child = tmp.firstChild;
+                            host.appendChild(child);
+                            if (child.nodeType === Node.ELEMENT_NODE) added.push(child as Element);
+                        }
                     }
                 });
+                // After the tail-chase, never inside it: the scroller is
+                // measured around the mutation, and an entering element must
+                // not be mid-animation while that measurement happens.
+                this.animateEnter(added);
                 break;
             }
             case "MERGE": {
@@ -443,7 +458,7 @@ export class SuiRenderer {
                 // inside a list item (<li>), drop the wrapping <li> so we
                 // don't leave behind an empty list row.
                 const li = target.closest("li");
-                (li ?? target).remove();
+                this.animateLeave(li ?? target);
                 // And forget what it was: the id is free again, and a later
                 // merge against it should say so rather than resurrect a
                 // model for something no longer on the page.
@@ -470,6 +485,243 @@ export class SuiRenderer {
      * Markdown that paints in a follow-up frame (e.g. when the markdown
      * extension is still resolving its CDN import on first use).
      */
+    // ── Patch animations ──────────────────────────────────────────────────
+
+    /**
+     * Whether APPEND animates its new elements in and REMOVE animates its
+     * target out. On by default; set to {@code false} for a renderer driving
+     * a screen where motion is wrong (a test harness, a print view, a
+     * high-frequency feed).
+     *
+     * <p>Only these two operations animate, and that is deliberate. REPLACE
+     * and MERGE are the streaming path — a chat turn REPLACEs the same node
+     * once per token — so an enter animation there would restart several
+     * times a second. APPEND and REMOVE are the only operations that put an
+     * element on the page or take one off, which is exactly when an
+     * animation has something to say.
+     */
+    animatePatches = true;
+
+    /** Longest an enter/leave may take before it is cleaned up regardless. */
+    private static readonly ANIMATION_TIMEOUT_MS = 1000;
+
+    /**
+     * Whether a patch should animate at all.
+     *
+     * <p>The hidden-document check is not an optimisation. Browsers do not
+     * run {@code requestAnimationFrame} in a background tab, and both
+     * animations below need a frame between setting up and starting — so in
+     * a tab nobody is looking at they would freeze halfway and be cleaned up
+     * by their timeout. Skipping outright gets the same result immediately,
+     * and the user sees the finished state when they come back, which is
+     * what they would have seen anyway.
+     */
+    private shouldAnimate(): boolean {
+        return this.animatePatches && this.motionAllowed();
+    }
+
+    /**
+     * Shared by every animation here: is motion wanted, and would it run?
+     *
+     * <p>Asked defensively, because this is the one thing in the renderer that
+     * has to know about the environment it is in — and the string API is
+     * documented to run on a Node backend with no DOM at all. Anything that is
+     * not a browser answers "no", which is the right answer there anyway:
+     * there is no frame to paint. So a missing `window`, a `document` that
+     * throws on access, a `matchMedia` that is not a function — all of them
+     * mean the same thing, and none of them is worth an exception escaping
+     * into a patch.
+     */
+    private motionAllowed(): boolean {
+        try {
+            // A real browser, positively: no window, no frame to paint, and
+            // nothing downstream of this gate — getComputedStyle, setTimeout,
+            // HTMLElement — exists to be reached for. Asking the other way
+            // round ("is anything missing?") let a stubbed document through
+            // and the animation then tripped over the next global it wanted.
+            if (typeof window === "undefined" || typeof document === "undefined") return false;
+            if (document.hidden) return false;
+            return !(typeof window.matchMedia === "function"
+                && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Whether a whole-view swap should go through the View Transition API.
+     * On where the browser supports it; set to {@code false} to opt out.
+     *
+     * <p>Used for navigation only — {@link #mount} and a REPLACE that fills a
+     * slot, which is what an app shell's content area is. Not for the other
+     * operations: APPEND and REMOVE bring their own animation, and REPLACE on
+     * anything else is the streaming path, where a full-page snapshot per
+     * token would be a disaster.
+     */
+    viewTransitions = true;
+
+    private shouldViewTransition(): boolean {
+        if (!this.viewTransitions) return false;
+        // Same reasoning as motionAllowed: asking about the environment must
+        // not be the thing that breaks a renderer running outside one.
+        try {
+            return typeof document !== "undefined"
+                && typeof document.startViewTransition === "function"
+                && this.motionAllowed();
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Runs a whole-view swap inside a view transition where one is available,
+     * and plainly where it is not.
+     *
+     * <p>The callback is deliberately allowed to run later than the call: the
+     * API captures the old frame first and only then applies the change.
+     * Nothing here depends on the DOM having changed by the time this
+     * returns — the event bus re-runs its enhancers from a MutationObserver,
+     * so they fire whenever the mutation actually lands.
+     */
+    private withViewTransition(mutate: () => void): void {
+        if (!this.shouldViewTransition()) {
+            mutate();
+            return;
+        }
+        try {
+            document.startViewTransition(mutate);
+        } catch {
+            // Nothing about a transition is worth losing the update over.
+            mutate();
+        }
+    }
+
+    /**
+     * Marks freshly appended elements so the stylesheet can animate them in,
+     * and takes the class back off once it has played.
+     *
+     * <p>The animation `sui.css` gives them moves opacity and transform only.
+     * That is not a stylistic choice: APPEND runs inside
+     * {@link #withTailChase}, which decides whether to follow the tail by
+     * measuring the scroll container. An entering element that animated its
+     * height would be measured mid-flight, and a chat would scroll to the
+     * wrong place on every message.
+     */
+    private animateEnter(nodes: Element[]): void {
+        if (!nodes.length || !this.shouldAnimate()) return;
+        for (const node of nodes) {
+            node.classList.add("sui-enter");
+            const done = () => node.classList.remove("sui-enter");
+            node.addEventListener("animationend", done, { once: true });
+            // The class also has to come off when no animation runs at all —
+            // a stylesheet that does not define one, a display:none ancestor,
+            // a tab that was in the background the whole time.
+            window.setTimeout(done, SuiRenderer.ANIMATION_TIMEOUT_MS);
+        }
+    }
+
+    /**
+     * Plays the element out and removes it when the transition ends.
+     *
+     * <p>Height is animated here, unlike on enter: REMOVE is not inside a
+     * tail-chase, and a row that fades but keeps its space until it vanishes
+     * reads as a bug. The height has to start from a concrete pixel value
+     * for a transition to have anything to interpolate, so it is frozen
+     * first and only collapsed in the next frame — a class that both
+     * declared the transition and changed the value in one recalculation
+     * would jump instead.
+     */
+    /** Longest of the element's declared transitions (delay included), in ms. */
+    private transitionMillis(element: Element): number {
+        const style = window.getComputedStyle(element);
+        const toMs = (value: string) => value.split(",").map((part) => {
+            const text = part.trim();
+            const n = parseFloat(text);
+            if (Number.isNaN(n)) return 0;
+            return text.endsWith("ms") ? n : n * 1000;
+        });
+        const durations = toMs(style.transitionDuration);
+        const delays = toMs(style.transitionDelay);
+        return durations.reduce((max, d, i) => Math.max(max, d + (delays[i] ?? delays[0] ?? 0)), 0);
+    }
+
+    /**
+     * Removes an element, letting it play out first: it takes the
+     * {@code .sui-leave} class, and is dropped when the transition the
+     * stylesheet declared for it has run. An element that is out of the
+     * document flow — a dialog host, a toast — only fades; one in the flow
+     * also collapses the space it held, so the rows below it close the gap
+     * instead of jumping into it.
+     *
+     * <p>Public because REMOVE is not the only way something leaves the
+     * page: the event bus closes a dialog on a backdrop click without ever
+     * asking the server, and that should look the same as a close the server
+     * ordered.
+     *
+     * <p>Falls back to a plain removal whenever an animation would not run
+     * or would not be wanted — reduced motion, a hidden tab, a stylesheet
+     * that declares no transition for the class.
+     */
+    removeAnimated(element: Element): void {
+        this.animateLeave(element);
+    }
+
+    private animateLeave(element: Element): void {
+        if (!this.shouldAnimate() || !(element instanceof HTMLElement)) {
+            element.remove();
+            return;
+        }
+        // Collapsing the height only means something for an element that
+        // takes space in the flow. A fixed or absolutely positioned one — a
+        // dialog host, a popover, a toast — holds no space to give back, and
+        // animating its height would be a wipe nobody asked for. Those fade
+        // and nothing else.
+        const inFlow = !["fixed", "absolute"].includes(window.getComputedStyle(element).position);
+        if (inFlow) element.style.height = `${element.offsetHeight}px`;
+        element.classList.add("sui-leave");
+
+        // The class carries the transition, and a stylesheet may not define
+        // one — a replacement theme, an app that ships its own CSS, a node
+        // in a hidden subtree. Without this check the element would sit
+        // there, already collapsed, until the timeout below caught it.
+        if (this.transitionMillis(element) <= 0) {
+            element.style.removeProperty("height");
+            element.remove();
+            return;
+        }
+
+        let removed = false;
+        const drop = () => {
+            if (removed) return;
+            removed = true;
+            element.remove();
+        };
+        // Wait for however long the stylesheet actually asked for, rather
+        // than for one named property to report back. Which property finishes
+        // last depends on the theme, and a `transitionend` that never arrives
+        // — the property was overridden, the element is in a background tab —
+        // would leave the row collapsed but present until the hard cap below.
+        window.setTimeout(drop, Math.min(this.transitionMillis(element) + 50,
+                                         SuiRenderer.ANIMATION_TIMEOUT_MS));
+        // …and let it go early if everything is visibly done sooner.
+        element.addEventListener("transitionend", () => {
+            if (window.getComputedStyle(element).opacity === "0"
+                && (!inFlow || element.getBoundingClientRect().height === 0)) drop();
+        });
+
+        // A forced reflow, not requestAnimationFrame. Both make the frozen
+        // height the transition's start value; only this one does so
+        // synchronously, which keeps the leave in one code path instead of
+        // splitting it across a callback that a browser is free never to run.
+        void element.offsetHeight;
+        element.style.opacity = "0";
+        if (inFlow) {
+            element.style.height = "0px";
+            element.style.marginBlock = "0px";
+            element.style.paddingBlock = "0px";
+        }
+    }
+
     private withTailChase(target: HTMLElement, mutate: () => void): void {
         const scroller = ancestorScroller(target) ?? findScroller(target);
         const wasAtBottom = scroller != null && isAtBottom(scroller);
@@ -605,19 +857,24 @@ export class SuiRenderer {
         return children;
     }
 
-    private appendListItems(target: HTMLElement, node: { items?: UiListItem[] }): void {
+    private appendListItems(target: HTMLElement, node: { items?: UiListItem[] }): Element[] {
         const ul = target.querySelector("ul");
-        if (!ul) return;
+        if (!ul) return [];
         // Conventional placeholder used by empty-state list rendering:
         // <li data-id="empty">…</li>. Drop it on the first real item.
         const placeholder = ul.querySelector('[data-id="empty"]');
         if (placeholder) placeholder.remove();
+        const added: Element[] = [];
         for (const item of (node.items ?? [])) {
             const tmp = document.createElement("ul");
             tmp.innerHTML = this.renderItem(item);
             const first = tmp.firstElementChild;
-            if (first) ul.appendChild(first);
+            if (first) {
+                ul.appendChild(first);
+                added.push(first);
+            }
         }
+        return added;
     }
 
     // ── Loading indicator ─────────────────────────────────────────────────
