@@ -236,6 +236,60 @@ export declare class SuiRenderer {
      * Markdown that paints in a follow-up frame (e.g. when the markdown
      * extension is still resolving its CDN import on first use).
      */
+    /**
+     * Whether APPEND animates its new elements in and REMOVE animates its
+     * target out. On by default; set to {@code false} for a renderer driving
+     * a screen where motion is wrong (a test harness, a print view, a
+     * high-frequency feed).
+     *
+     * <p>Only these two operations animate, and that is deliberate. REPLACE
+     * and MERGE are the streaming path — a chat turn REPLACEs the same node
+     * once per token — so an enter animation there would restart several
+     * times a second. APPEND and REMOVE are the only operations that put an
+     * element on the page or take one off, which is exactly when an
+     * animation has something to say.
+     */
+    animatePatches: boolean;
+    /** Longest an enter/leave may take before it is cleaned up regardless. */
+    private static readonly ANIMATION_TIMEOUT_MS;
+    /**
+     * Whether a patch should animate at all.
+     *
+     * <p>The hidden-document check is not an optimisation. Browsers do not
+     * run {@code requestAnimationFrame} in a background tab, and both
+     * animations below need a frame between setting up and starting — so in
+     * a tab nobody is looking at they would freeze halfway and be cleaned up
+     * by their timeout. Skipping outright gets the same result immediately,
+     * and the user sees the finished state when they come back, which is
+     * what they would have seen anyway.
+     */
+    private shouldAnimate;
+    /**
+     * Marks freshly appended elements so the stylesheet can animate them in,
+     * and takes the class back off once it has played.
+     *
+     * <p>The animation `sui.css` gives them moves opacity and transform only.
+     * That is not a stylistic choice: APPEND runs inside
+     * {@link #withTailChase}, which decides whether to follow the tail by
+     * measuring the scroll container. An entering element that animated its
+     * height would be measured mid-flight, and a chat would scroll to the
+     * wrong place on every message.
+     */
+    private animateEnter;
+    /**
+     * Plays the element out and removes it when the transition ends.
+     *
+     * <p>Height is animated here, unlike on enter: REMOVE is not inside a
+     * tail-chase, and a row that fades but keeps its space until it vanishes
+     * reads as a bug. The height has to start from a concrete pixel value
+     * for a transition to have anything to interpolate, so it is frozen
+     * first and only collapsed in the next frame — a class that both
+     * declared the transition and changed the value in one recalculation
+     * would jump instead.
+     */
+    /** Longest of the element's declared transitions (delay included), in ms. */
+    private transitionMillis;
+    private animateLeave;
     private withTailChase;
     /**
      * Handles patch ops that address a table's rows or columns. Tables

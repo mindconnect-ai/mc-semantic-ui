@@ -11,7 +11,36 @@ The format is [Keep a Changelog][keepachangelog]; this project follows
 [semantic versioning][semver], with the caveat that it is pre-1.0 and breaking
 changes may land in a minor.
 
-**Adding an entry:** put it under `## [Unreleased]`, in the section that fits.
+**Adding an entry:** put it under `## [Unreleased]
+
+### Added
+
+- **The two patch operations that add and remove an element now animate.**
+  `APPEND` fades its new elements in with a small lift; `REMOVE` fades its
+  target out and collapses the space it held before dropping it, so a row
+  leaving a list no longer blinks out from under the ones below it. The
+  renderer sets `.sui-enter` and `.sui-leave`, and `sui.css` decides what they
+  look like — restyle either without touching the renderer, or turn the whole
+  thing off with `renderer.animatePatches = false`.
+
+  `REPLACE` and `MERGE` deliberately do **not** animate: they are the
+  streaming path, and a chat turn replaces the same node once per token.
+
+- **Motion is themable.** Durations and easings are custom properties now
+  (`--sui-duration-fast|base|slow`, `--sui-ease-standard|decelerate`) and every
+  transition in `sui.css` is timed by them, so a theme can set a tempo the way
+  it sets a palette. Looping indicators keep their own timing on purpose — a
+  spinner that stopped would read as "finished".
+
+### Changed
+
+- **`prefers-reduced-motion` is honoured everywhere, from one place.** The two
+  partial blocks are replaced by a single one that flattens the duration
+  variables, so it covers every transition in the sheet — including ones added
+  later. The renderer also skips the patch animations outright under reduced
+  motion, and in a hidden tab, where the browser would not run them anyway.
+
+`, in the section that fits.
 The release workflow renames that heading to the version being cut and opens a
 fresh empty one, so nothing has to be moved by hand at release time.
 
