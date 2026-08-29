@@ -105,3 +105,11 @@ out of step breaks it. Released versions go to Maven Central, see
   shared trigger encoding. Icons resolve via `renderIcon(name)` (lowercase-kebab
   sprite ids).
 - **Git commits: do NOT add a `Co-Authored-By` trailer.**
+- **Before committing a user-facing change, add a line to `CHANGELOG.md`**
+  under `## [Unreleased]`. User-facing means someone depending on the library
+  would want to know: a new node type, a changed behaviour, a fixed bug whose
+  symptom they may have been living with. Refactorings, tests, docs and build
+  plumbing do not need one — write the entry for a reader deciding whether to
+  upgrade, not for the commit log, which the releases page already has.
+  The release workflow renames `[Unreleased]` to the version being cut, so
+  nothing is moved by hand; see [RELEASING.md](RELEASING.md).
