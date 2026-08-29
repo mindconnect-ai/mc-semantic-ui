@@ -132,10 +132,11 @@ the client replaces exactly that panel. The demo does this over a real socket.
 
 ## What is supported
 
-20 node types render today:
+22 node types render today, with no module beyond the renderer itself:
 
 | | |
 |---|---|
+| Frame | `UiAppShell`, `UiHeader` |
 | Layout | `UiStack`, `UiSection` (tabs), `UiScrollPane`, `UiFieldGroup` |
 | Data | `UiTable` (sorting, row actions, pagination), `UiTree`, `UiDetail`, `UiList` |
 | Input | `UiForm`, `UiField` (text, textarea, number, boolean, date, select, multiselect, file), `UiUpload` |
@@ -145,8 +146,8 @@ the client replaces exactly that panel. The demo does this over a real socket.
 Anything else paints a visible placeholder instead of throwing, so an unknown
 node degrades rather than taking the window down.
 
-`UiAppShell`, `UiHeader` and `UiIFrame` live in a second module — see
-[The shell module](#the-shell-module) below. `UiPage` is a response envelope
+`UiIFrame` needs a WebView, so it lives in a second artifact — see
+[`iframe`, in its own artifact](#iframe-in-its-own-artifact) below. `UiPage` is a response envelope
 rather than a visual node, and belongs to the event bus — see
 [Pages and navigation](#pages-and-navigation).
 
@@ -214,33 +215,41 @@ lists `activeStreams` this bus is not already reading — after a restart, or in
 a second window — it reconnects to their resume urls on its own.
 `bus.activeStreams()` lists what it is reading.
 
-### The shell module
+### The app shell
 
-`mc-semantic-ui-javafx-shell` adds three more node types: `app-shell`, `header`
-and `iframe`.
+`app-shell` and `header` are part of the renderer — a screen's frame is a base
+component, and nothing about it needs installing.
+
+The shell puts the header on top, the menu and the page side by side beneath
+it, and the footer at the bottom. The page sits in a slot registered under
+`UiAppShell.contentId()`, so a patch can swap it while the header and menu stay
+put — the desktop counterpart of the web shell's `data-sui-slot="content"`. It
+scrolls when the page outgrows the window.
+
+### `iframe`, in its own artifact
+
+One node type, one module:
 
 ```xml
 <dependency>
     <groupId>ai.mindconnect</groupId>
-    <artifactId>mc-semantic-ui-javafx-shell</artifactId>
+    <artifactId>mc-semantic-ui-javafx-iframe</artifactId>
 </dependency>
 ```
 
 ```java
 var renderer = SuiFxRenderer.createDefaultRenderer();
-SuiFxShell.install(renderer);
-SuiFxShell.style(scene.getRoot());
+SuiFxIFrame.install(renderer);
+SuiFxIFrame.style(scene.getRoot());
 ```
 
-It is a separate artifact because of one of the three: `iframe` is a `WebView`,
-and `javafx-web` carries a WebKit build per platform — tens of megabytes. An
-app that wants an app-shell should not have to ship a browser engine it never
-opens.
+`iframe` is a `WebView`, and `javafx-web` carries a WebKit build per platform —
+tens of megabytes. An app that embeds no pages should not ship a browser engine
+in order to draw a table, so this one renderer lives apart and the rest of the
+vocabulary costs nothing.
 
-The shell puts the header on top, the menu and the page side by side beneath
-it, and the footer at the bottom. The page sits in a slot registered under
-`UiAppShell.contentId()`, so a patch can swap it while the header and menu stay
-put — the desktop counterpart of the web shell's `data-sui-slot="content"`.
+Without the module on the classpath an `iframe` paints the usual placeholder,
+so a tree that contains one still comes up.
 
 :::warning `sandbox` is not a security boundary here
 The attribute is a list of permissions the HTML spec defines for an `<iframe>`,

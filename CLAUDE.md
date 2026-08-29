@@ -45,8 +45,9 @@ extension.
 
 - `core/mc-semantic-ui-core` — `UiNode` model + dual renderer (the heart)
 - `core/mc-semantic-ui-javafx` — third renderer, a JavaFX desktop client;
-  `core/mc-semantic-ui-javafx-shell` adds `app-shell`/`header`/`iframe`
-  (split off because `iframe` needs `javafx-web`'s per-platform WebKit)
+  it paints the whole vocabulary bar one. `core/mc-semantic-ui-javafx-iframe`
+  adds that one, `iframe`, alone: it needs `javafx-web`'s per-platform WebKit,
+  and nothing else does
 - `core/mc-semantic-ui-javafx-markdown`, `core/mc-semantic-ui-javafx-json` —
   JavaFX painters for the `markdown` and `json-viewer` extension types; each is
   its own module so an app pays only for what it shows

@@ -826,11 +826,13 @@ class SuiFxRendererTest {
 
     @Test
     void unknownTypesPaintAPlaceholderInsteadOfFailing() {
-        // UiHeader has no JavaFX renderer yet.
-        var header = new ai.mindconnect.ui.model.UiHeader();
-        header.setTitle("Page header");
+        // iframe is the one type the default renderer deliberately leaves out:
+        // it needs a WebView, and that lives in mc-semantic-ui-javafx-iframe.
+        // Meeting it without that module on the classpath is exactly the case
+        // the placeholder exists for — a partly-supported tree still comes up.
+        var frame = ai.mindconnect.ui.model.UiIFrame.of("docs", "about:blank");
 
-        Node painted = onFxThread(() -> new SuiFxEventBus().mount(header));
+        Node painted = onFxThread(() -> new SuiFxEventBus().mount(frame));
 
         assertThat(painted.getStyleClass()).contains("sui-unsupported");
     }

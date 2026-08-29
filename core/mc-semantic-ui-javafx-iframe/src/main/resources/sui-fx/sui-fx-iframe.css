@@ -1,0 +1,13 @@
+/*
+ * The embedded browsing context. Layered on top of sui-fx.css from
+ * mc-semantic-ui-javafx; the -sui-* colours are looked-up colours it declares.
+ */
+/* ── iframe ─────────────────────────────────────────────────────────────── */
+
+.sui-iframe {
+    -fx-background-color: -sui-surface;
+    -fx-border-color: -sui-border;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-border-width: 1;
+}
