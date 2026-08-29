@@ -559,6 +559,26 @@ export declare class SuiEventBus {
      */
     private inferImplicitPayload;
     private switchTab;
+    /**
+     * The trigger of a standalone SSR action, which lives on the form and not
+     * on the button.
+     *
+     * <p>An action that is not already inside a `UiForm` renders JS-free as a
+     * `<form>` wrapping a `<button type="submit">`. The trigger goes on the
+     * form — it is the outermost element, which is where an id goes in every
+     * other node, and the form is what a browser without JS actually submits.
+     * The button carries `data-action` and nothing else.
+     *
+     * <p>So the click path, which lands on the button, found no trigger and
+     * had already called preventDefault: the native submit was cancelled and
+     * nothing took its place. Every standalone action on a hybrid page was
+     * inert, silently.
+     *
+     * <p>Only that wrapper is consulted, never any ancestor with a trigger: a
+     * button inside a clickable row must keep its own behaviour rather than
+     * inheriting the row's.
+     */
+    private ssrFormTrigger;
     private parseTrigger;
     /**
      * Collects editable field values from a {@code UiForm}-like node by id.
