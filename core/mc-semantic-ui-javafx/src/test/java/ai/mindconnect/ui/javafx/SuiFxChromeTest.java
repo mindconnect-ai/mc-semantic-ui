@@ -322,6 +322,67 @@ class SuiFxChromeTest {
         assertThat(((Label) msg).getText()).isEqualTo("after");
     }
 
+    @Test
+    void swappingADialogUnderTheSameIdKeepsTheNewOnesContent() {
+        // How a server swaps one dialog for another: REMOVE it, APPEND the
+        // replacement, both under one id. The two are one patch and mean what
+        // they mean in sequence.
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("body", "page"))));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of()
+                    .patch(UiPatch.Operation.remove("wf-dialog"))
+                    .patch(UiPatch.Operation.append(SuiFxEventBus.DIALOG_HOST_ID,
+                            dialog("wf-dialog", "First", UiText.of("chooser", "one")))));
+            return null;
+        });
+        assertThat(onFxThread(() -> bus.context().byId("chooser"))).isNotNull();
+
+        // The user closes it and asks for another, which is the same patch again.
+        onFxThread(() -> {
+            List.copyOf(Window.getWindows()).forEach(w -> {
+                if (w instanceof Stage stage) stage.close();
+            });
+            bus.applyPatch(UiPatch.of()
+                    .patch(UiPatch.Operation.remove("wf-dialog"))
+                    .patch(UiPatch.Operation.append(SuiFxEventBus.DIALOG_HOST_ID,
+                            dialog("wf-dialog", "Second", UiText.of("chooser", "two")))));
+            return null;
+        });
+
+        // Asserted on what is in the window, not on what is in the render
+        // index: the index keeps a node that has been detached, so an
+        // index-only check passes against a dialog the user sees as blank.
+        assertThat(onFxThread(SuiFxChromeTest::stageTitles)).contains("Second");
+        assertThat(onFxThread(() -> textIn(openStage("Second"))))
+                .as("the second dialog's own window shows its content")
+                .contains("two");
+    }
+
+    /** The showing stage with this title, or null. */
+    private static Stage openStage(String title) {
+        for (Window w : Window.getWindows()) {
+            if (w instanceof Stage stage && title.equals(stage.getTitle())) return stage;
+        }
+        return null;
+    }
+
+    /** Every label's text inside a window — what the user can actually read. */
+    private static java.util.List<String> textIn(Stage stage) {
+        var out = new java.util.ArrayList<String>();
+        if (stage == null || stage.getScene() == null) return out;
+        collectText(stage.getScene().getRoot(), out);
+        return out;
+    }
+
+    private static void collectText(Node node, java.util.List<String> out) {
+        if (node instanceof Label label && label.getText() != null) out.add(label.getText());
+        if (node instanceof javafx.scene.Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) collectText(child, out);
+        }
+    }
+
     /** UiDialog.of takes (title, closeHref, node); the id is what a patch names it by. */
     @Test
     void aTallDialogScrollsInsteadOfGrowingPastTheScreen() {

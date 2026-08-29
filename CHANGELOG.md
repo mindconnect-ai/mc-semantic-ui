@@ -85,6 +85,13 @@ fresh empty one, so nothing has to be moved by hand at release time.
   as nodes rather than text, with `{dataKey}` placeholders filled per row.
   Without it a column meant to be a link showed the raw value and there was no
   way in.
+- **A second dialog under the same id came up empty on JavaFX.** A server
+  swaps one dialog for another by removing it and appending the replacement,
+  both in one patch. The operations were being reordered — the dialog ones
+  applied inline, the rest collected and run afterwards — so the remove landed
+  after the append had already claimed the id, and deleted the content it had
+  just built. Patch operations run in sequence now, because a patch means what
+  it means in order.
 - **A JavaFX dialog scrolls instead of growing off the screen.** A window sizes
   itself to its content, and a long form grew past the bottom with the Close
   button somewhere below the taskbar. The body scrolls now and the window stops

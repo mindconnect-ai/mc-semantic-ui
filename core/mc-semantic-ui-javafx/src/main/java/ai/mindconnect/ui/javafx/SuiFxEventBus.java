@@ -502,15 +502,24 @@ public class SuiFxEventBus {
     public void applyPatch(UiPatch patch) {
         if (patch == null) return;
         onFxThread(() -> {
-            // Dialogs are windows here, not scene-graph children, so the
-            // operations aimed at the dialog host never reach the renderer.
-            var forRenderer = UiPatch.of();
+            // In order, one at a time. Dialogs are windows here rather than
+            // scene-graph children, so those operations are intercepted — but
+            // collecting the rest and running them afterwards reorders the
+            // patch, and a patch means what it means in sequence.
+            //
+            // The case that proves it is the ordinary "swap this dialog":
+            // REMOVE wf-dialog, then APPEND a new wf-dialog. Deferred, the
+            // remove ran after the append had already re-indexed that id, so
+            // it deleted the new dialog's content and the window came up
+            // empty.
             for (var op : patch.getPatches()) {
-                if (!applyDialogOperation(op)) forRenderer.patch(op);
+                if (!applyDialogOperation(op)) {
+                    // Node operations are the renderer's job — it owns the id
+                    // index — and it takes them a patch at a time.
+                    renderer.applyPatch(UiPatch.of().patch(op));
+                }
             }
-            // Node operations are the renderer's job (it owns the id index);
-            // toasts are the bus's, since only it knows the toast handler.
-            if (!forRenderer.getPatches().isEmpty()) renderer.applyPatch(forRenderer);
+            // Toasts are the bus's, since only it knows the toast handler.
             if (patch.getToasts() != null) patch.getToasts().forEach(toastHandler);
         });
     }
