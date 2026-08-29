@@ -34,6 +34,35 @@ changes may land in a minor.
 
 ### Fixed
 
+- **Pages stop disagreeing with each other.** A section's own `<h2>` had no
+  rule at all, so it fell through to the browser's default — 22.5px at weight
+  700 on screens whose every other title is 17px at 600, which is why the
+  vector-store and file pages looked like a different app. Table rows had a
+  different horizontal padding from list rows (16px against 20px), so a page
+  built on a table sat at a different rhythm from one built on a list. Both
+  are on the shared step now, and every container's title comes from the same
+  one.
+
+- **The column heading stops being a band.** A filled strip in `surface-alt`
+  with square corners inside a rounded card cut the card's own radius off at
+  the top, which is what made it read as something stuck on rather than part
+  of the table. It is the card's surface now, separated by the same hairline
+  as every row, with the outer cells carrying the corners — and it is the
+  same size as the cells under it, where it used to be two steps smaller. A
+  label printed smaller than the thing it labels reads as a footnote.
+
+- **Field-group titles are sentence case.** Uppercase at 12px in bold was the
+  loudest quiet thing in the sheet, and capitals cost the word shapes that
+  make a small label readable at a glance.
+
+- **The content area is flush, and the sidebar is 200px.** The content used
+  to sit in 20px of its own padding, so the page ended in a band of nothing
+  on all four sides and the card floated in the frame instead of being it.
+  The sidebar reserved 240px for labels nobody has — with "Vector Stores" as
+  the longest, the text ended 17px short of its own edge, and the content's
+  padding added more: 37px of nothing between the navigation and what it
+  navigates to.
+
 - **List rows line up.** A row's height follows its description, and the
   actions were centred in it — so the buttons sat 11, 21 or 31px below the
   title depending on how long that description happened to be, next to a

@@ -290,7 +290,7 @@ body {
     display: flex; align-items: center; justify-content: space-between;
     padding: var(--sui-space-lg) var(--sui-space-xl); border-bottom: 1px solid var(--sui-color-border);
 }
-.sui-list-header h2 { font-size: 17px; font-weight: 600; }
+.sui-list-header h2 { font-size: var(--sui-text-xl); font-weight: 600; }
 /* Optional leading header icon (UiList.icon / UiTable.icon): sized to the
    title, slightly muted so the text stays the headline. */
 .sui-list-header h2, .sui-table-header h2 { display: inline-flex; align-items: center; gap: 8px; }
@@ -357,7 +357,7 @@ body {
 /* ── Tree ───────────────────────────────────────────────────────────────── */
 
 .sui-tree { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); padding: 8px 12px; }
-.sui-tree-title { font-size: 17px; font-weight: 600; padding: 8px 4px; }
+.sui-tree-title { font-size: var(--sui-text-xl); font-weight: 600; padding: var(--sui-space-sm) var(--sui-space-xs); }
 .sui-tree-list, .sui-tree-children { list-style: none; margin: 0; padding: 0; }
 /* Indent + guide line for nested levels. */
 .sui-tree-children { margin-left: 10px; padding-left: 10px; border-left: 1px solid var(--sui-color-border-soft); }
@@ -400,7 +400,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
     background: var(--sui-color-surface); border-radius: var(--sui-radius-lg);
     box-shadow: var(--sui-shadow-card); padding: var(--sui-space-2xl);
 }
-.sui-form h2, .sui-detail h2 { margin-bottom: 20px; font-size: 17px; font-weight: 600; }
+.sui-form h2, .sui-detail h2 { margin-bottom: var(--sui-space-xl); font-size: var(--sui-text-xl); font-weight: 600; }
 .sui-field { display: flex; flex-direction: column; gap: var(--sui-space-xs); margin-bottom: var(--sui-space-lg); }
 /* Control + trailing action (e.g. Browse…) on one row. */
 .sui-field-row { display: flex; align-items: center; gap: var(--sui-space-sm); }
@@ -686,10 +686,24 @@ a.sui-tree-label:hover { text-decoration: underline; }
 }
 .sui-shell-body > .sui-menu--right { border-right: none; border-left: 1px solid var(--sui-color-border); }
 
+/* No inset. The content area used to sit in 20px of its own padding, so the
+   page ended in a band of nothing on all four sides and the card floated in
+   the middle of the frame instead of being it. Flush, the shell reads as one
+   surface: the header meets the content, the sidebar meets the content, and
+   the card's own padding is the only space around what you are reading.
+   Below, a card that is the content's direct child gives up its corners for
+   the same reason — a radius only means something where there is a page
+   behind it to show through. */
 .sui-shell-content {
     flex: 1 1 auto; min-width: 0;
     overflow: auto;                  /* the page scrolls here, not the window */
-    padding: var(--sui-space-xl); background: var(--sui-color-surface-alt);
+    padding: 0; background: var(--sui-color-surface-alt);
+}
+
+.sui-shell-content > :is(.sui-list, .sui-table, .sui-form, .sui-detail, .sui-tree),
+.sui-shell-content > .sui-stack > :is(.sui-list, .sui-table, .sui-form, .sui-detail, .sui-tree) {
+    border-radius: 0;
+    border-inline: none;
 }
 
 .sui-shell-footer {
@@ -707,16 +721,30 @@ a.sui-tree-label:hover { text-decoration: underline; }
     display: flex; align-items: center; justify-content: space-between;
     padding: 16px 20px; border-bottom: 1px solid var(--sui-color-border);
 }
-.sui-table-header h2 { font-size: 17px; font-weight: 600; }
+.sui-table-header h2 { font-size: var(--sui-text-xl); font-weight: 600; }
 /* A title-less table still renders the bar for its actions — push them right. */
 .sui-table-header:not(:has(h2)) { justify-content: flex-end; }
 .sui-table table { width: 100%; border-collapse: collapse; }
+/* A column heading is a label, not a band. It used to be a filled strip in
+   surface-alt with square corners inside a rounded card — so the card's own
+   radius was cut off at the top, which is what made it read as a dark bar
+   stuck onto the table rather than as part of it. Now it is the card's own
+   surface, separated by the same hairline as every row, and the outer cells
+   carry the card's corners. */
 .sui-table thead th {
-    padding: 11px 18px; text-align: left; font-size: 13px;
-    font-weight: 600; color: var(--sui-color-text-muted);
-    background: var(--sui-color-surface-alt);
+    padding: var(--sui-space-md) var(--sui-space-xl); text-align: left;
+    /* The same size as the cells under it. It was two steps smaller, which
+       is backwards: a column heading labels the column, and a label printed
+       smaller than the thing it labels reads as a footnote. What separates
+       it from the data is weight and colour, not size. */
+    font-size: var(--sui-text-lg);
+    font-weight: 500; color: var(--sui-color-text-muted);
+    background: var(--sui-color-surface);
     border-bottom: 1px solid var(--sui-color-border);
 }
+
+.sui-table thead tr:first-child th:first-child { border-start-start-radius: var(--sui-radius-lg); }
+.sui-table thead tr:first-child th:last-child  { border-start-end-radius:   var(--sui-radius-lg); }
 
 /* Scroll container (UiTable.maxHeight). Always present so SSR and SPA emit
    the same structure; only the capped variant actually scrolls, and only
@@ -743,7 +771,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-th-sortable.is-sorted { color: var(--sui-color-text-body); }
 .sui-th-sortable.is-sorted .sui-sort-indicator { opacity: 1; color: var(--sui-color-primary); }
 .sui-table tbody td {
-    padding: var(--sui-space-md) var(--sui-space-lg); font-size: var(--sui-text-lg); border-bottom: 1px solid var(--sui-color-border-soft);
+    padding: var(--sui-space-md) var(--sui-space-xl); font-size: var(--sui-text-lg); border-bottom: 1px solid var(--sui-color-border-soft);
     color: var(--sui-color-text-body);
 }
 .sui-table tbody tr:last-child td { border-bottom: none; }
@@ -804,6 +832,19 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-row dt { font-weight: 600; color: var(--sui-color-text-muted); }
 .sui-row dd { margin: 0; }
 .sui-row-empty { font-style: italic; color: var(--sui-color-empty); grid-column: 1 / -1; }
+/* A section's own title had no rule at all, so it fell through to the
+   browser's default h2 — 1.5em at weight 700, which came out as 22.5px and
+   bold on a page whose every other title is 17px at 600. That is why the
+   vector-store and file screens looked like they belonged to a different
+   app: not a theme, not a page-specific stylesheet, just a heading nobody
+   had ever styled. Every other container styles its own h2; this makes the
+   section do the same, from the same step of the scale. */
+.sui-section > h2 {
+    font-size: var(--sui-text-xl); font-weight: 600;
+    color: var(--sui-color-text-strong);
+    margin-bottom: var(--sui-space-md);
+}
+
 .sui-section-entry { padding: var(--sui-space-md);
                      border: 1px dashed var(--sui-color-border);
                      border-radius: var(--sui-radius-sm); }
@@ -831,10 +872,14 @@ a.sui-tree-label:hover { text-decoration: underline; }
     border: 1px solid var(--sui-color-border); border-radius: var(--sui-radius-md);
     padding: 14px 16px; margin: 0; min-width: 0;
 }
+/* Uppercase at 12px in bold was the loudest quiet thing in the sheet: it
+   shouts, and it costs legibility — capitals lose the word shapes that make
+   a label readable at a glance. Sentence case, one weight down, does the
+   same job. */
 .sui-fieldgroup-title {
-    display: block; padding: 0; width: auto; font-size: 12px; font-weight: 700;
-    letter-spacing: .04em; text-transform: uppercase;
-    color: var(--sui-color-text-subtle); margin-bottom: 8px;
+    display: block; padding: 0; width: auto;
+    font-size: var(--sui-text-xs); font-weight: 600;
+    color: var(--sui-color-text-muted); margin-bottom: var(--sui-space-sm);
 }
 /* A <legend> renders inside the border by default; keep it as a plain block. */
 legend.sui-fieldgroup-title { float: none; }
@@ -1281,7 +1326,12 @@ a[data-trigger].is-loading::before,
    only, submenus as hover fly-outs) and --hidden (only the hamburger). The SPA
    event bus cycles the class; a no-JS checkbox-hack toggles show/hide. */
 .sui-menu {
-    --sui-menu-w: 240px;
+    /* 240 was wide enough for labels nobody has: with "Vector Stores" as the
+       longest item the text ended 17px short of the menu's own edge, and then
+       the content's padding added its own — 37px of nothing between the
+       navigation and the thing being navigated to. 200 fits the same labels
+       and gives the gap back to the content. */
+    --sui-menu-w: 200px;
     --sui-menu-rail-w: 60px;
     display: flex;
     flex-direction: column;
