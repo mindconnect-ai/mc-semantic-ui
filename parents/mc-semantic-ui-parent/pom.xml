@@ -174,7 +174,7 @@
             </dependency>
             <dependency>
                 <groupId>ai.mindconnect</groupId>
-                <artifactId>mc-semantic-ui-javafx-shell</artifactId>
+                <artifactId>mc-semantic-ui-javafx-iframe</artifactId>
                 <version>0.1.4-SNAPSHOT</version>
             </dependency>
             <dependency>

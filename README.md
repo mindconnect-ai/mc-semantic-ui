@@ -87,7 +87,7 @@ is a sweet spot, and where it explicitly isn't.
 |---------------------------------------|----------------------------------------------------------------------------|
 | `core/mc-semantic-ui-core`            | UiNode model + dual renderer (Handlebars SSR + TypeScript SPA bus + CSS)   |
 | `core/mc-semantic-ui-javafx`          | Third renderer: the same tree as a native JavaFX desktop client ([README](core/mc-semantic-ui-javafx/README.md)) |
-| `core/mc-semantic-ui-javafx-shell`    | `app-shell`, `header` and `iframe` for the JavaFX renderer; separate because `iframe` needs a WebView |
+| `core/mc-semantic-ui-javafx-iframe`   | `iframe` for the JavaFX renderer, alone in its own artifact because a WebView drags in a per-platform WebKit build |
 | `core/mc-semantic-ui-javafx-markdown` | Paints `markdown` on the desktop, as controls rather than in a WebView |
 | `core/mc-semantic-ui-javafx-json`     | Paints `json-viewer` as pretty-printed, selectable text |
 | `client/mc-sui-javafx-browser`        | A browser for `UiNode` servers: type a url, render what comes back ([README](client/mc-sui-javafx-browser/README.md)) |
@@ -451,7 +451,7 @@ mc-semantic-ui/                            — repo root (the build reactor)
 │   │   ├── .../javafx/icons/               — the sprite, rebuilt as FX shapes
 │   │   ├── .../javafx/demo/                — runnable DemoApplication
 │   │   └── src/main/resources/sui-fx/      — sui-fx.css (the FX design system)
-│   └── mc-semantic-ui-javafx-shell/       — app-shell, header, iframe (pulls in WebView)
+│   └── mc-semantic-ui-javafx-iframe/      — iframe alone (pulls in WebView)
 │
 ├── ext/                                   — optional modules; each adds node
 │   │                                        types the core can't draw itself

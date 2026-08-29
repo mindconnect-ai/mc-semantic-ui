@@ -1,20 +1,15 @@
-package ai.mindconnect.ui.javafx.shell;
+package ai.mindconnect.ui.javafx;
 
-import ai.mindconnect.ui.javafx.SuiFxEventBus;
-import ai.mindconnect.ui.javafx.SuiFxRenderer;
 import ai.mindconnect.ui.model.UiAppShell;
 import ai.mindconnect.ui.model.UiHeader;
-import ai.mindconnect.ui.model.UiIFrame;
 import ai.mindconnect.ui.model.UiMenu;
 import ai.mindconnect.ui.model.UiMenuItem;
 import ai.mindconnect.ui.model.UiPatch;
 import ai.mindconnect.ui.model.UiText;
 import javafx.application.Platform;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.scene.web.WebView;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -27,13 +22,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * The shell module's three node types, rendered through the real renderer.
+ * The app shell and its header — the frame a whole screen hangs in.
  *
- * <p>Runs headless via the software pipeline; the toolkit is started once for
- * the whole class, and the tests are skipped rather than failed on a machine
- * with no display.
+ * <p>Base components, so they are registered by the default renderer and need
+ * no installing. Only {@code iframe} was ever worth a module of its own, and
+ * only because a WebView drags a WebKit build in behind it.
  */
-class SuiFxShellTest {
+class SuiFxAppShellTest {
 
     @BeforeAll
     static void startToolkit() {
@@ -45,10 +40,11 @@ class SuiFxShellTest {
         } catch (Throwable noDisplay) {
             assumeTrue(false, "No JavaFX toolkit available here: " + noDisplay);
         }
+        Platform.setImplicitExit(false);
     }
 
     private static SuiFxEventBus bus() {
-        return new SuiFxEventBus(SuiFxShell.install(SuiFxRenderer.createDefaultRenderer()));
+        return new SuiFxEventBus();
     }
 
     @Test
@@ -152,54 +148,6 @@ class SuiFxShellTest {
 
         onFxThread(() -> { burger.fire(); return null; });
         assertThat(menuNode.isVisible()).isTrue();
-    }
-
-    @Test
-    void anIFrameBecomesAWebView() {
-        var frame = UiIFrame.of("docs", "about:blank").height("320px");
-
-        var view = (WebView) onFxThread(() -> bus().mount(frame));
-
-        assertThat(view.getStyleClass()).contains("sui-iframe");
-        assertThat(view.getPrefHeight()).isEqualTo(320);
-    }
-
-    @Test
-    void aViewportRelativeHeightLeavesTheFrameToFillItsParent() {
-        var frame = UiIFrame.of("docs", "about:blank").height("60vh");
-
-        var view = (WebView) onFxThread(() -> bus().mount(frame));
-
-        // 60vh has no JavaFX equivalent, so the grow hint takes over — the same
-        // call ScrollPaneRenderer makes.
-        assertThat(javafx.scene.layout.VBox.getVgrow(view))
-                .isEqualTo(javafx.scene.layout.Priority.ALWAYS);
-    }
-
-    @Test
-    void aSandboxWithoutAllowScriptsTurnsJavaScriptOff() {
-        var locked = UiIFrame.of("a", "about:blank").sandbox("allow-forms");
-        var scripted = UiIFrame.of("b", "about:blank").sandbox("allow-forms allow-scripts");
-        var unset = UiIFrame.of("c", "about:blank");
-
-        assertThat(((WebView) onFxThread(() -> bus().mount(locked)))
-                .getEngine().isJavaScriptEnabled()).isFalse();
-        // The one sandbox distinction a WebView can actually enforce; the rest
-        // of the attribute has no counterpart here.
-        assertThat(((WebView) onFxThread(() -> bus().mount(scripted)))
-                .getEngine().isJavaScriptEnabled()).isTrue();
-        assertThat(((WebView) onFxThread(() -> bus().mount(unset)))
-                .getEngine().isJavaScriptEnabled()).isTrue();
-    }
-
-    @Test
-    void heightAcceptsPixelsAndRefusesEverythingElse() {
-        assertThat(IFrameRenderer.pixels("320px")).isEqualTo(320);
-        assertThat(IFrameRenderer.pixels("320")).isEqualTo(320);
-        assertThat(IFrameRenderer.pixels("60vh")).isZero();
-        assertThat(IFrameRenderer.pixels("100%")).isZero();
-        assertThat(IFrameRenderer.pixels("auto")).isZero();
-        assertThat(IFrameRenderer.pixels(null)).isZero();
     }
 
     private static <T> T onFxThread(Supplier<T> work) {

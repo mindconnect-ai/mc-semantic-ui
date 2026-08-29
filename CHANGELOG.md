@@ -33,6 +33,16 @@ fresh empty one, so nothing has to be moved by hand at release time.
 - **`markdown` and `json-viewer` on the desktop**, as
   `mc-semantic-ui-javafx-markdown` and `mc-semantic-ui-javafx-json`. Markdown
   is walked into real controls rather than an embedded browser.
+
+### Changed
+
+- **`app-shell` and `header` are part of `mc-semantic-ui-javafx`.** They are a
+  screen's frame, so the renderer draws them without anything being installed.
+  What was `mc-semantic-ui-javafx-shell` is now
+  `mc-semantic-ui-javafx-iframe` and holds `iframe` alone — the one node type
+  that needs `javafx-web`, and the only reason a separate artifact was ever
+  worth it. `SuiFxShell.install` becomes `SuiFxIFrame.install`. Nothing was
+  published under the old name.
 - **`SuiFxEventBus` applies a `UiPage`** — which is what made
   `UiTrigger.go(href)` work on the desktop at all.
 - **`STREAM` reads Server-Sent Events** on JavaFX, so an agent's patches paint

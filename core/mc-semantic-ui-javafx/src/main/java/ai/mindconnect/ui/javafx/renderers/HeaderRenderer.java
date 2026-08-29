@@ -1,4 +1,4 @@
-package ai.mindconnect.ui.javafx.shell;
+package ai.mindconnect.ui.javafx.renderers;
 
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;

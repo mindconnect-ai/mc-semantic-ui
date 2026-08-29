@@ -39,8 +39,9 @@ Back and forward are the browser's own state, and taking a new turn drops the
 forward branch, as an address bar does.
 
 It installs
-[`mc-semantic-ui-javafx-shell`](../../core/mc-semantic-ui-javafx-shell), so a
-page that is an `app-shell` comes up as one rather than as a placeholder.
+[`mc-semantic-ui-javafx-iframe`](../../core/mc-semantic-ui-javafx-iframe),
+since a browser has no say in what a page embeds. The app shell itself needs
+nothing — it is part of the renderer.
 
 ## What a server has to send
 

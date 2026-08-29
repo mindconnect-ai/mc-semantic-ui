@@ -15,6 +15,8 @@ import java.net.URI;
 import ai.mindconnect.ui.javafx.icons.FxIconResolver;
 import ai.mindconnect.ui.javafx.icons.SpriteIconResolver;
 import ai.mindconnect.ui.javafx.icons.SuiFxIcon;
+import ai.mindconnect.ui.javafx.renderers.AppShellRenderer;
+import ai.mindconnect.ui.javafx.renderers.HeaderRenderer;
 import ai.mindconnect.ui.javafx.renderers.IconRenderer;
 import ai.mindconnect.ui.javafx.renderers.ProgressRenderer;
 import ai.mindconnect.ui.javafx.renderers.ScrollPaneRenderer;
@@ -35,6 +37,8 @@ import ai.mindconnect.ui.model.UiLink;
 import ai.mindconnect.ui.model.UiList;
 import ai.mindconnect.ui.model.UiMenu;
 import ai.mindconnect.ui.model.UiMenuButton;
+import ai.mindconnect.ui.model.UiAppShell;
+import ai.mindconnect.ui.model.UiHeader;
 import ai.mindconnect.ui.model.UiIcon;
 import ai.mindconnect.ui.model.UiProgress;
 import ai.mindconnect.ui.model.UiNode;
@@ -72,7 +76,8 @@ import java.util.Optional;
  *
  * <p><b>Covered types:</b> {@code form}, {@code field}, {@code fieldgroup},
  * {@code text}, {@code table}, {@code section} (tabs), {@code stack},
- * {@code scrollpane}, {@code icon}, {@code action}, {@code tree}, {@code dialog},
+ * {@code scrollpane}, {@code icon}, {@code app-shell}, {@code header},
+ * {@code action}, {@code tree}, {@code dialog},
  * {@code spinner}, {@code progress}, {@code link}, {@code menu},
  * {@code menu-button}, {@code detail}, {@code list} and {@code upload}.
  * Anything else paints as a
@@ -318,6 +323,8 @@ public class SuiFxRenderer {
         register(UiSection.class,    new SectionRenderer());
         register(UiScrollPane.class, new ScrollPaneRenderer());
         register(UiIcon.class,       new IconRenderer());
+        register(UiAppShell.class,   new AppShellRenderer());
+        register(UiHeader.class,     new HeaderRenderer());
         register(UiStack.class,      new StackRenderer());
         register(UiAction.class,     new ActionRenderer());
         register(UiTree.class,       new TreeRenderer());
