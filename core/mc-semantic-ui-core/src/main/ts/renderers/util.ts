@@ -1,8 +1,25 @@
 import { escapeHtml, encodeTrigger } from "../renderer.js";
 import type { UiTrigger } from "../model.js";
 
-export function cls(base: string, node: { cssClass?: string }): string {
-    return node.cssClass ? `${base} ${escapeHtml(node.cssClass)}` : base;
+export function cls(base: string, node: { cssClass?: string; display?: string }): string {
+    // display is the source of truth for visibility, exactly as in
+    // UiNode.getCssClass(). The server bakes the marker into cssClass as well,
+    // so it is stripped here before being derived again — otherwise a MERGE
+    // that clears display would leave the baked-in sui-hidden behind and the
+    // node would stay invisible with nothing left to say why.
+    const marker = node.display === "HIDDEN" ? "sui-hidden"
+        : node.display === "BLANK" ? "sui-blank" : null;
+    // Split on whitespace and drop the marker by exact token. A regex with
+    // \b does not work here: a hyphen is a non-word character, so /\bsui-hidden\b/
+    // matches inside "sui-hidden-x" and leaves "-x" behind.
+    const own = (node.cssClass ?? "")
+        .split(/\s+/)
+        .filter(token => token && token !== "sui-hidden" && token !== "sui-blank")
+        .join(" ");
+    const parts = [base];
+    if (own) parts.push(escapeHtml(own));
+    if (marker) parts.push(marker);
+    return parts.join(" ");
 }
 
 /**

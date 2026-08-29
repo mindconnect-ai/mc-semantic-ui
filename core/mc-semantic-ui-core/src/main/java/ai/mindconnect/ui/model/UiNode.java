@@ -149,8 +149,13 @@ public abstract class UiNode {
             this.cssClass = null;
             return;
         }
-        String cleaned = cssClass.replace("sui-hidden", "").replace("sui-blank", "")
-                .replaceAll("\\s+", " ").trim();
+        // By whole class, not by substring: a plain replace also ate the
+        // middle of "sui-hidden-x" and left "-x", and a class list is
+        // whitespace-delimited, so the tokens are what to compare.
+        String cleaned = java.util.Arrays.stream(cssClass.split("\\s+"))
+                .filter(token -> !token.isEmpty()
+                        && !token.equals("sui-hidden") && !token.equals("sui-blank"))
+                .collect(java.util.stream.Collectors.joining(" "));
         this.cssClass = cleaned.isEmpty() ? null : cleaned;
     }
 }

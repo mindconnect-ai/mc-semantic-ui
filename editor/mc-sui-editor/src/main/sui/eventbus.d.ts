@@ -346,6 +346,20 @@ export declare class SuiEventBus {
      * The host sits at body level so it overlays {@code #sui-root}; its own
      * listeners are needed because that subtree is outside the root.
      */
+    /**
+     * Hands the renderer the model of a hybrid page.
+     *
+     * <p>Such a page arrives as finished HTML, so the renderer has drawn none
+     * of it and knows what none of it is. The server parks the tree in a
+     * `<script type="application/json" id="sui-model">` for exactly this, and
+     * without it the first MERGE on a freshly loaded page would have nothing
+     * to merge into.
+     *
+     * <p>Absent on a pure-SSR page (no client to read it) and on a page this
+     * client rendered itself (it indexed as it drew) — neither is a problem,
+     * so a missing element is silent.
+     */
+    private seedModelsFromDocument;
     private ensureDialogHost;
     /**
      * Replaces the dialog host's contents with the page's open dialogs. Called
@@ -545,6 +559,26 @@ export declare class SuiEventBus {
      */
     private inferImplicitPayload;
     private switchTab;
+    /**
+     * The trigger of a standalone SSR action, which lives on the form and not
+     * on the button.
+     *
+     * <p>An action that is not already inside a `UiForm` renders JS-free as a
+     * `<form>` wrapping a `<button type="submit">`. The trigger goes on the
+     * form — it is the outermost element, which is where an id goes in every
+     * other node, and the form is what a browser without JS actually submits.
+     * The button carries `data-action` and nothing else.
+     *
+     * <p>So the click path, which lands on the button, found no trigger and
+     * had already called preventDefault: the native submit was cancelled and
+     * nothing took its place. Every standalone action on a hybrid page was
+     * inert, silently.
+     *
+     * <p>Only that wrapper is consulted, never any ancestor with a trigger: a
+     * button inside a clickable row must keep its own behaviour rather than
+     * inheriting the row's.
+     */
+    private ssrFormTrigger;
     private parseTrigger;
     /**
      * Collects editable field values from a {@code UiForm}-like node by id.

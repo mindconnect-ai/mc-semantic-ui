@@ -1,6 +1,7 @@
 import type { UiTrigger } from "../model.js";
 export declare function cls(base: string, node: {
     cssClass?: string;
+    display?: string;
 }): string;
 /**
  * Renders a node's event triggers as {@code data-sui-on-<event>} attributes

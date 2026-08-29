@@ -196,6 +196,121 @@ class SuiFxChromeTest {
         assertThat(painted.isManaged()).isTrue();
     }
 
+    // ── merging attributes ────────────────────────────────────────────────
+
+    @Test
+    void aMergeChangesOneFieldAndLeavesTheRest() {
+        var bus = new SuiFxEventBus();
+        var greeting = UiText.of("greeting", "hello");
+        greeting.setCssClass("shout");
+        onFxThread(() -> bus.renderer().mount(UiStack.of(greeting)));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(
+                    UiPatch.Operation.merge("greeting", java.util.Map.of("text", "goodbye"))));
+            return null;
+        });
+
+        var label = (Label) onFxThread(() -> bus.context().byId("greeting"));
+        assertThat(label.getText()).isEqualTo("goodbye");
+        // Never mentioned, so still there — the point of the operation.
+        assertThat(label.getStyleClass()).contains("shout");
+    }
+
+    @Test
+    void mergesAccumulate() {
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("t", "one"))));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of()
+                    .patch(UiPatch.Operation.merge("t", java.util.Map.of("text", "two")))
+                    .patch(UiPatch.Operation.merge("t", java.util.Map.of("cssClass", "loud"))));
+            return null;
+        });
+
+        // The second merge starts from the first one's result, not from the
+        // node as it first arrived.
+        var label = (Label) onFxThread(() -> bus.context().byId("t"));
+        assertThat(label.getText()).isEqualTo("two");
+        assertThat(label.getStyleClass()).contains("loud");
+    }
+
+    @Test
+    void aMergeOnAnUnknownTargetIsReported() {
+        var bus = new SuiFxEventBus();
+        var errors = new AtomicReference<Throwable>();
+        bus.setOnError(errors::set);
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("t", "one"))));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(
+                    UiPatch.Operation.merge("nowhere", java.util.Map.of("text", "x"))));
+            return null;
+        });
+
+        // Quietly doing nothing would leave the author hunting a server bug.
+        assertThat(errors.get()).isNotNull();
+    }
+
+    @Test
+    void anAttributeTheTargetDoesNotHaveIsIgnoredRatherThanFatal() {
+        // The SPA merges with Object.assign and the handler never reads the
+        // stray key, so the merge lands and the unknown field is simply
+        // ignored. This renderer goes through Jackson, which fails an unknown
+        // property by default -- so the same patch used to apply on the web
+        // and be dropped whole on the desktop. One model, one meaning.
+        var bus = new SuiFxEventBus();
+        var errors = new AtomicReference<Throwable>();
+        bus.setOnError(errors::set);
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("t", "one"))));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.merge("t",
+                    java.util.Map.of("text", "two", "enabled", false))));
+            return null;
+        });
+
+        var label = (Label) onFxThread(() -> bus.context().byId("t"));
+        assertThat(label.getText()).isEqualTo("two");
+        assertThat(errors.get()).isNull();
+    }
+
+    @Test
+    void hideAndShowAreMergesOnTheDisplayAttribute() {
+        // The tests above paint a display state that arrived with the node.
+        // This is the case the operation exists for: toggling one on a node
+        // that is already on screen, without resending it.
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("filters", "Filters"))));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.hide("filters")));
+            return null;
+        });
+
+        var hidden = (Label) onFxThread(() -> bus.context().byId("filters"));
+        assertThat(hidden.isVisible()).isFalse();
+        assertThat(hidden.isManaged()).as("HIDDEN is display:none — out of the layout").isFalse();
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.hide(
+                    "filters", ai.mindconnect.ui.model.UiNode.Display.BLANK)));
+            return null;
+        });
+        var blank = (Label) onFxThread(() -> bus.context().byId("filters"));
+        assertThat(blank.isManaged()).as("BLANK is visibility:hidden — the space stays").isTrue();
+
+        // Being able to hide something is only half a feature.
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.show("filters")));
+            return null;
+        });
+        var shown = (Label) onFxThread(() -> bus.context().byId("filters"));
+        assertThat(shown.isVisible()).isTrue();
+        assertThat(shown.isManaged()).isTrue();
+    }
+
     // ── a field's trailing action ─────────────────────────────────────────
 
     @Test

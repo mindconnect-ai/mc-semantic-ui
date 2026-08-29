@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ai.mindconnect</groupId>
+        <artifactId>mc-semantic-ui-parent</artifactId>
+        <version>0.2.0-SNAPSHOT</version>
+        <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mc-sui-merge-demo</artifactId>
+    <packaging>jar</packaging>
+    <description>
+        Demo Spring Boot app for the MERGE patch operation: change the fields
+        you name on a node that is already on screen and leave the rest alone.
+        Every response prints the JSON it sent onto the page, next to the
+        REPLACE that would have done the same thing, so the difference is
+        something you can read rather than take on trust.
+    </description>
+
+    <dependencies>
+        <!-- SUI core: pulls handlebars.java and the SSR auto-configuration. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-core</artifactId>
+        </dependency>
+        <!-- Handlebars is <optional> in core; an SSR consumer must declare it. -->
+        <dependency>
+            <groupId>com.github.jknack</groupId>
+            <artifactId>handlebars</artifactId>
+            <version>${handlebars.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

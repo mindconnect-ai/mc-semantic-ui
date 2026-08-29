@@ -245,6 +245,7 @@ export class SuiEventBus {
         this.installRootListeners();
         this.ensureDialogHost();
         this.registerDefaultBehaviors();
+        this.seedModelsFromDocument();
         this.installAutoEnhance();
         // A patch SSE event is so universal that we wire it as a built-in
         // stream handler; apps can override by registering another handler
@@ -613,6 +614,30 @@ export class SuiEventBus {
      * The host sits at body level so it overlays {@code #sui-root}; its own
      * listeners are needed because that subtree is outside the root.
      */
+    /**
+     * Hands the renderer the model of a hybrid page.
+     *
+     * <p>Such a page arrives as finished HTML, so the renderer has drawn none
+     * of it and knows what none of it is. The server parks the tree in a
+     * `<script type="application/json" id="sui-model">` for exactly this, and
+     * without it the first MERGE on a freshly loaded page would have nothing
+     * to merge into.
+     *
+     * <p>Absent on a pure-SSR page (no client to read it) and on a page this
+     * client rendered itself (it indexed as it drew) — neither is a problem,
+     * so a missing element is silent.
+     */
+    private seedModelsFromDocument(): void {
+        const element = document.getElementById("sui-model");
+        const json = element?.textContent;
+        if (!json) return;
+        try {
+            this.renderer.seedModels(JSON.parse(json));
+        } catch (err) {
+            console.warn("SuiEventBus: could not read the page model", err);
+        }
+    }
+
     private ensureDialogHost(): HTMLElement {
         let host = document.getElementById("sui-dialogs");
         if (!host) {
@@ -1225,7 +1250,7 @@ export class SuiEventBus {
             if (reloadForm) return;
             e.preventDefault();
             if (action.dataset.confirm && !window.confirm(action.dataset.confirm)) return;
-            const trigger = this.parseTrigger(action);
+            const trigger = this.parseTrigger(action) ?? this.ssrFormTrigger(action);
             if (trigger) {
                 this.inferImplicitPayload(trigger, action);
                 await this.dispatch(trigger, action);
@@ -1428,6 +1453,30 @@ export class SuiEventBus {
             const panel = document.getElementById(targetId);
             if (panel) panel.hidden = false;
         }
+    }
+
+    /**
+     * The trigger of a standalone SSR action, which lives on the form and not
+     * on the button.
+     *
+     * <p>An action that is not already inside a `UiForm` renders JS-free as a
+     * `<form>` wrapping a `<button type="submit">`. The trigger goes on the
+     * form — it is the outermost element, which is where an id goes in every
+     * other node, and the form is what a browser without JS actually submits.
+     * The button carries `data-action` and nothing else.
+     *
+     * <p>So the click path, which lands on the button, found no trigger and
+     * had already called preventDefault: the native submit was cancelled and
+     * nothing took its place. Every standalone action on a hybrid page was
+     * inert, silently.
+     *
+     * <p>Only that wrapper is consulted, never any ancestor with a trigger: a
+     * button inside a clickable row must keep its own behaviour rather than
+     * inheriting the row's.
+     */
+    private ssrFormTrigger(el: HTMLElement): UiTrigger | null {
+        const form = el.closest<HTMLElement>("form.sui-ssr-form[data-trigger]");
+        return form ? this.parseTrigger(form) : null;
     }
 
     private parseTrigger(el: HTMLElement): UiTrigger | null {

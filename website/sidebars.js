@@ -19,6 +19,7 @@ const sidebars = {
             'semantic-ui/runtime',
             'semantic-ui/triggers',
             'semantic-ui/triggers-cookbook',
+            'semantic-ui/patches',
             'semantic-ui/forms',
             'semantic-ui/responsive',
             'semantic-ui/overflow',

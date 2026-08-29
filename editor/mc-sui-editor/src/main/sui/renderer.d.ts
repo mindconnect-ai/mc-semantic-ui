@@ -55,6 +55,17 @@ export declare class SuiRenderer {
     private readonly handlers;
     private itemHandler;
     private rootElement;
+    /**
+     * The model each rendered id came from, for {@link #applyPatch}'s MERGE.
+     *
+     * <p>Only what this renderer has drawn is in here. A page delivered as
+     * server-rendered HTML was never drawn by the client, so a merge against
+     * one of its nodes has nothing to merge into until something re-renders
+     * that subtree — navigating, or any other patch. That is a deliberate
+     * limit: the alternative is the server writing every node's model into the
+     * HTML, which doubles the size of every page to serve the rare merge.
+     */
+    private readonly models;
     private loadingDepth;
     private loadingIndicator;
     private morpher;
@@ -161,6 +172,21 @@ export declare class SuiRenderer {
     renderInto(element: HTMLElement, node: {
         type: string;
     } | null | undefined): void;
+    /**
+     * Seeds the model index from a tree this renderer did not draw.
+     *
+     * <p>A hybrid page arrives as finished HTML with its model parked in a
+     * `<script type="application/json">`; walking it here is what lets a MERGE
+     * work on the very first patch, before anything has been re-rendered.
+     *
+     * <p>Additive: it fills in what it walks and disturbs nothing else, so
+     * calling it on an already-live page is harmless.
+     */
+    seedModels(node: {
+        type: string;
+    } | null | undefined): this;
+    /** Walks a tree, remembering every node that has an id. */
+    private indexModel;
     /** Renders one list item. Exposed so list handlers can delegate. */
     renderItem(item: UiListItem): string;
     /**
@@ -230,6 +256,19 @@ export declare class SuiRenderer {
      * Anything else (e.g. patching a cell-template subtree, whose suffixed
      * ids never match model entries) falls back to the generic DOM path.
      */
+    /**
+     * The target with {@code op.attributes} written over it.
+     *
+     * <p>A shallow merge on purpose: naming a field replaces it whole, so
+     * {@code items} or {@code fields} can be swapped without the server
+     * describing how to reconcile a list. Deep-merging arrays is a much bigger
+     * promise than this operation is making.
+     *
+     * @return {@code null} when the target was never rendered here, which is
+     *         also logged — a merge that quietly does nothing is worse than
+     *         one that says why
+     */
+    private mergeModel;
     private applyTablePatch;
     /**
      * Resolves where an APPENDed {@code tree-node} <li> should land within
