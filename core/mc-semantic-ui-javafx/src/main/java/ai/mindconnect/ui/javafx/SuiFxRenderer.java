@@ -250,6 +250,12 @@ public class SuiFxRenderer {
     }
 
     private void replace(Node target, Node replacement) {
+        // The browser morphs a patch into the DOM and never touches what did
+        // not change. Here the subtree is rebuilt and swapped, so anything the
+        // user had going in it — a caret mid-word, a scroll position, an open
+        // pane — is on the old controls, and this is the only chance to move
+        // it across.
+        var state = FxViewState.of(target);
         var siblings = children(target.getParent());
         if (siblings.isEmpty()) {
             if (bus != null) bus.reportError(new IllegalStateException(
@@ -260,6 +266,7 @@ public class SuiFxRenderer {
         int index = list.indexOf(target);
         if (index < 0) return;
         list.set(index, replacement);
+        state.restoreInto(replacement);
     }
 
     /** The mutable child list of a node, when it has one. */
