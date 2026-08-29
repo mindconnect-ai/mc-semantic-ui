@@ -43,6 +43,12 @@ changes may land in a minor.
   are on the shared step now, and every container's title comes from the same
   one.
 
+- **A table's row name weighs the same as a list's.** A link in a table cell
+  is the row's name, exactly as `.sui-list-item-label` is in a list, and it
+  was rendering a weight lighter — which is why workflow names looked thinner
+  than agent names for no reason anyone could point at. Column headings also
+  stop wrapping: one row of labels rather than two of ragged fragments.
+
 - **The column heading stops being a band.** A filled strip in `surface-alt`
   with square corners inside a rounded card cut the card's own radius off at
   the top, which is what made it read as something stuck on rather than part

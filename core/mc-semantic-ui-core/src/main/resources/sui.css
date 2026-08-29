@@ -770,6 +770,16 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-sort-indicator { display: inline-block; min-width: 1em; opacity: .45; font-size: 11px; }
 .sui-th-sortable.is-sorted { color: var(--sui-color-text-body); }
 .sui-th-sortable.is-sorted .sui-sort-indicator { opacity: 1; color: var(--sui-color-primary); }
+/* A link in a table cell is a row's name, the same thing `.sui-list-item-label`
+   is in a list — and it was rendering a weight lighter, which is why workflow
+   names looked thinner than agent names for no reason anyone could point at. */
+.sui-table td .sui-link { font-weight: 500; }
+
+/* A column heading names a column; wrapping it turns one row of labels into
+   two of ragged fragments. The cells still wrap — it is the heading that has
+   to stay one line. */
+.sui-table thead th { white-space: nowrap; }
+
 .sui-table tbody td {
     padding: var(--sui-space-md) var(--sui-space-xl); font-size: var(--sui-text-lg); border-bottom: 1px solid var(--sui-color-border-soft);
     color: var(--sui-color-text-body);
