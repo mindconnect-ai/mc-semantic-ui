@@ -59,7 +59,9 @@
     --sui-header-nav-fg-hover:  #ffffff;
     --sui-header-nav-bg-hover:  #334155;
     --sui-header-radius:        var(--sui-radius-lg);
-    --sui-header-shadow:        0 4px 14px rgba(15, 23, 42, .25);
+    /* No default shadow: the band is separated by the strongest surface
+       step on the screen. Themes may set one. */
+    --sui-header-shadow:        none;
     /* Logo recolor: source SVGs stroke dark, so invert to white on the dark
        band. Apps with a light header or a pre-colored logo set this to "none". */
     --sui-header-logo-filter:   brightness(0) invert(1);
@@ -167,10 +169,10 @@ body {
     overflow-anchor: auto;
 }
 
-/* Subtle hover elevation on content cards (a bit of life without distracting
-   from editing surfaces like forms/detail, which deliberately don't lift). */
-.sui-list, .sui-table, .sui-tree { transition: box-shadow var(--sui-duration-base) ease; }
-.sui-list:hover, .sui-table:hover, .sui-tree:hover { box-shadow: var(--sui-shadow-pop); }
+/* No hover elevation on content cards: a page where every card rises to
+   meet the cursor is a page that never sits still. Elevation is for things
+   that float (popovers, dialogs); a card in the flow is separated from the
+   page by its surface, and that is enough. */
 
 /* ── Header ─────────────────────────────────────────────────────────────── */
 
@@ -292,7 +294,7 @@ body {
 
 /* ── Lists ──────────────────────────────────────────────────────────────── */
 
-.sui-list { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); }
+.sui-list { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); }
 /* min-height, because the bar's height was set by whatever happened to be in
    it: with a button or a search box it came to 63px, with only a title to
    59, and every screen's header sat at its own height depending on which
@@ -371,7 +373,7 @@ body {
 
 /* ── Tree ───────────────────────────────────────────────────────────────── */
 
-.sui-tree { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); padding: 8px 12px; }
+.sui-tree { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); padding: 8px 12px; }
 .sui-tree-title { font-size: var(--sui-text-xl); font-weight: 600; padding: var(--sui-space-sm) var(--sui-space-xs); }
 .sui-tree-list, .sui-tree-children { list-style: none; margin: 0; padding: 0; }
 /* Indent + guide line for nested levels. */
@@ -413,7 +415,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
 
 .sui-form, .sui-detail {
     background: var(--sui-color-surface); border-radius: var(--sui-radius-lg);
-    box-shadow: var(--sui-shadow-card); padding: var(--sui-space-2xl);
+    padding: var(--sui-space-2xl);
 }
 .sui-form h2, .sui-detail h2 { margin-bottom: var(--sui-space-xl); font-size: var(--sui-text-xl); font-weight: 600; }
 .sui-field { display: flex; flex-direction: column; gap: var(--sui-space-xs); margin-bottom: var(--sui-space-lg); }
@@ -571,7 +573,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
    Inline-block keeps the form group on the same baseline as anchor-style
    action buttons. */
 .sui-ssr-form { display: inline-block; margin: 0; }
-.sui-btn--primary   { background: var(--sui-color-action); color: var(--sui-color-on-action); box-shadow: var(--sui-shadow-sm); }
+.sui-btn--primary   { background: var(--sui-color-action); color: var(--sui-color-on-action); }
 .sui-btn--primary:hover:not(:disabled)   { background: var(--sui-color-action-hover); }
 /* Secondary = a clean outline button (inset ring avoids a layout shift since
    the base .sui-btn has border:none). */
@@ -751,7 +753,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
 
 /* ── Tables ─────────────────────────────────────────────────────────────── */
 
-.sui-table { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); overflow: hidden; }
+.sui-table { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); overflow: hidden; }
 /* A table wider than its card scrolls sideways inside it. Without this the
    card's overflow:hidden silently cut the right-hand columns off on a
    narrow window — nowrap headings make a table's minimum width real. */
@@ -998,7 +1000,6 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
     border: 1px solid var(--sui-color-border);
     border-top: none;
     border-radius: 0 0 var(--sui-radius-lg) var(--sui-radius-lg);
-    box-shadow: var(--sui-shadow-card);
     padding: var(--sui-space-xl);
 }
 /* Inside a tabbed panel the panel IS the card — direct child components
@@ -1075,7 +1076,7 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
     min-width: 160px; margin-top: 2px; padding: 4px;
     display: flex; flex-direction: column; gap: 2px;
     background: var(--sui-color-surface); border: 1px solid var(--sui-color-border);
-    border-radius: var(--sui-radius-md); box-shadow: var(--sui-shadow-card);
+    border-radius: var(--sui-radius-md); box-shadow: var(--sui-shadow-pop);
 }
 /* The `display:flex` above would otherwise beat the UA `[hidden]` rule and keep
    the dropdown permanently open — re-assert the closed state. */
@@ -1400,7 +1401,6 @@ a[data-trigger].is-loading::before,
     background: var(--sui-color-surface);
     border: 1px solid var(--sui-color-border);
     border-radius: var(--sui-radius-lg);
-    box-shadow: var(--sui-shadow-card);
     transition: width var(--sui-duration-base) ease;
 }
 .sui-menu-cb { display: none; }
@@ -1479,7 +1479,7 @@ a[data-trigger].is-loading::before,
     position: absolute; left: calc(100% + 8px); top: 0;
     min-width: 180px; padding: 6px;
     background: var(--sui-color-surface); border: 1px solid var(--sui-color-border);
-    border-radius: var(--sui-radius-md); box-shadow: var(--sui-shadow-card); z-index: 60;
+    border-radius: var(--sui-radius-md); box-shadow: var(--sui-shadow-pop); z-index: 60;
 }
 .sui-menu--rail .sui-menu-item--group:hover > .sui-menu-group > .sui-menu-sublist { display: flex; }
 .sui-menu--rail .sui-menu-sublist .sui-menu-label { display: inline; }
@@ -1637,7 +1637,6 @@ a[data-trigger].is-loading::before,
     min-height: 0;
     background: var(--sui-color-surface);
     border-radius: var(--sui-radius-lg);
-    box-shadow: var(--sui-shadow-card);
 }
 
 /* ── Auto-scroll feeds (.sui-autoscroll) ────────────────────────────────── */
