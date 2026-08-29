@@ -286,8 +286,16 @@ body {
 /* ── Lists ──────────────────────────────────────────────────────────────── */
 
 .sui-list { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); box-shadow: var(--sui-shadow-card); }
+/* min-height, because the bar's height was set by whatever happened to be in
+   it: with a button or a search box it came to 63px, with only a title to
+   59, and every screen's header sat at its own height depending on which
+   controls it carried. 30px is the height of the controls that usually set
+   it (an inline .sui-btn), so a header with them is exactly as tall as
+   before and one without them matches it. */
 .sui-list-header {
     display: flex; align-items: center; justify-content: space-between;
+    min-height: calc(30px + 2 * var(--sui-space-lg) + 1px);
+    box-sizing: border-box;
     padding: var(--sui-space-lg) var(--sui-space-xl); border-bottom: 1px solid var(--sui-color-border);
 }
 .sui-list-header h2 { font-size: var(--sui-text-xl); font-weight: 600; }
