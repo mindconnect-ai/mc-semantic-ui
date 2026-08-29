@@ -37,6 +37,12 @@ fresh empty one, so nothing has to be moved by hand at release time.
 - **A hybrid page carries its own model**, in a `<script type="application/json">`
   at the end of the body, so a `MERGE` works on a page the client never
   rendered. Only pages served with a SPA bootstrap carry it.
+- **`mc-sui-merge-demo`** — a page to poke at for the above. Hide and show a
+  panel, toggle a button's own label and style, and read what each click
+  actually put on the wire beside the `REPLACE` that would have done the same
+  thing. Served as a hybrid page, so it exercises the embedded model too. An
+  application rather than a library: it is in the repository, not on Maven
+  Central.
 
 ### Fixed
 

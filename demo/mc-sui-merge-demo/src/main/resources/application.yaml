@@ -1,0 +1,14 @@
+server:
+  port: 9093
+
+# Activates the server-side Handlebars renderer in mc-semantic-ui-core: the
+# page arrives as finished HTML and the SPA bus takes over on top of it. That
+# hybrid is the interesting case for MERGE — see SpaBootstrapFilter.
+mindconnect:
+  sui:
+    ssr:
+      enabled: true
+
+logging:
+  level:
+    ai.mindconnect: INFO

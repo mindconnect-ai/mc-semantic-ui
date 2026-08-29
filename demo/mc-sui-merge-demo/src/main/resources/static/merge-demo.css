@@ -1,0 +1,130 @@
+/*
+ * Demo chrome only. Everything structural — buttons, fields, forms — is drawn
+ * by sui.css; what is here is the page around them, plus the wire log, which
+ * is the one thing this demo has that the vocabulary does not.
+ */
+
+body {
+    background: var(--sui-bg, #f6f7f9);
+}
+
+#sui-root {
+    max-width: 68rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+}
+
+.demo-title {
+    font-size: 1.9rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.demo-subtitle {
+    font-size: 1.05rem;
+    line-height: 1.6;
+    max-width: 46rem;
+    color: var(--sui-text-muted, #5b6472);
+}
+
+.demo-note {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    max-width: 46rem;
+    padding: 0.75rem 1rem;
+    border-left: 3px solid var(--sui-accent, #2d6cdf);
+    background: var(--sui-surface-muted, #eef2f8);
+    color: var(--sui-text-muted, #5b6472);
+}
+
+.section {
+    padding: 1.5rem;
+    border: 1px solid var(--sui-border, #dde1e8);
+    border-radius: 10px;
+    background: var(--sui-surface, #fff);
+}
+
+.section-title {
+    font-size: 1.15rem;
+    font-weight: 650;
+}
+
+.section-blurb {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 46rem;
+    color: var(--sui-text-muted, #5b6472);
+}
+
+/* The panel the visibility buttons act on. Outlined so that BLANK is visibly
+   different from HIDDEN: the space it leaves behind is the whole point. */
+.panel {
+    padding: 1rem 1.25rem;
+    border: 1px dashed var(--sui-border, #c8cfda);
+    border-radius: 8px;
+    background: var(--sui-surface-muted, #fafbfd);
+}
+
+.panel-heading {
+    font-weight: 650;
+}
+
+.status {
+    font-size: 0.95rem;
+}
+
+.status-on  { color: #1a7f4b; }
+.status-off { color: #8a919c; }
+
+/* ── the wire log ─────────────────────────────────────────────────────── */
+
+.wire-empty {
+    font-size: 0.95rem;
+    color: var(--sui-text-muted, #8a919c);
+}
+
+.wire-what {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.wire-summary {
+    font-size: 0.85rem;
+    color: var(--sui-text-muted, #5b6472);
+}
+
+/* Two columns that stay side by side while there is room, and stack when
+   there is not — a phone should not scroll sideways to read JSON. */
+.wire-json {
+    display: block;
+    white-space: pre;
+    overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    padding: 0.7rem 0.85rem;
+    border-radius: 6px;
+    background: #0f1626;
+    color: #d7e0f0;
+}
+
+.wire-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sui-text-muted, #8a919c);
+}
+
+.wire-sent,
+.wire-instead {
+    flex: 1 1 22rem;
+    min-width: 0;
+}
+
+.wire-instead .wire-json {
+    /* Muted: it is the road not taken. */
+    opacity: 0.72;
+    max-height: 22rem;
+    overflow-y: auto;
+}

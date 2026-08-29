@@ -45,6 +45,7 @@
         <module>demo/mc-sui-widget-demo</module>
         <module>demo/mc-sui-shop-client-demo</module>
         <module>demo/mc-sui-file-explorer-demo</module>
+        <module>demo/mc-sui-merge-demo</module>
         <!-- No Java; in the reactor so a broken Node demo fails the build. -->
         <module>demo/mc-sui-node-demo</module>
     </modules>
