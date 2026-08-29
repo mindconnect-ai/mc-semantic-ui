@@ -254,6 +254,29 @@ class SuiFxChromeTest {
     }
 
     @Test
+    void anAttributeTheTargetDoesNotHaveIsIgnoredRatherThanFatal() {
+        // The SPA merges with Object.assign and the handler never reads the
+        // stray key, so the merge lands and the unknown field is simply
+        // ignored. This renderer goes through Jackson, which fails an unknown
+        // property by default -- so the same patch used to apply on the web
+        // and be dropped whole on the desktop. One model, one meaning.
+        var bus = new SuiFxEventBus();
+        var errors = new AtomicReference<Throwable>();
+        bus.setOnError(errors::set);
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("t", "one"))));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.merge("t",
+                    java.util.Map.of("text", "two", "enabled", false))));
+            return null;
+        });
+
+        var label = (Label) onFxThread(() -> bus.context().byId("t"));
+        assertThat(label.getText()).isEqualTo("two");
+        assertThat(errors.get()).isNull();
+    }
+
+    @Test
     void hideAndShowAreMergesOnTheDisplayAttribute() {
         // The tests above paint a display state that arrived with the node.
         // This is the case the operation exists for: toggling one on a node

@@ -176,7 +176,6 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
     }
 
     /**
-     * Emits the body-level {@code #sui-dialogs} host    /**
      * Emits the body-level {@code #sui-dialogs} host and paints each open
      * dialog ({@link UiPage#getDialogs()}) into it via the node renderer. The
      * host is always present (even when empty) so the SPA EventBus can find it

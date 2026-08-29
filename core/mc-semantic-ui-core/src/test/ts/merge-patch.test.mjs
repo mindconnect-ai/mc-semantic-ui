@@ -151,6 +151,62 @@ describe("MERGE", () => {
         assert.ok(warnings.some(w => w.includes("MERGE target has no known model")));
     });
 
+    test("a class that merely contains the marker is left alone", () => {
+        const renderer = createDefaultRenderer();
+        // The marker is stripped so a cleared display cannot leave a stale
+        // sui-hidden behind. It has to be stripped as a whole class, though:
+        // a \\b-anchored regex matches inside "sui-hidden-x", because a hyphen
+        // is a non-word character, and used to leave "-x" behind.
+        const html = renderer.render({ type: "text", id: "t", text: "x",
+                                       cssClass: "sui-hidden-x panel" });
+
+        assert.match(html, /sui-hidden-x/);
+        assert.match(html, /panel/);
+    });
+
+    test("the baked-in marker itself is still stripped", () => {
+        const renderer = createDefaultRenderer();
+        // What the server sends for a hidden node: display, plus the class it
+        // folds display into. Clearing display has to clear both.
+        renderer.render({ type: "text", id: "t", text: "x",
+                          display: "HIDDEN", cssClass: "panel sui-hidden" });
+
+        merge(renderer, "t", { display: null });
+
+        assert.doesNotMatch(element.outerHTML, /sui-hidden/);
+        assert.match(element.outerHTML, /panel/);
+    });
+
+    test("a merge on a table row stays a table row", () => {
+        const renderer = createDefaultRenderer();
+        const table = {
+            type: "table", id: "orders",
+            columns: [{ type: "column", id: "c1", dataKey: "who", label: "Who" }],
+            rows: [{ type: "row", id: "row-42", data: { who: "Ada" } }],
+        };
+        // A hybrid page: the client drew none of this, it read the model out
+        // of the page. That is what puts the *rows* in the index too.
+        renderer.seedModels(table);
+
+        const wrapper = fakeElement();
+        wrapper.getAttribute = (name) =>
+            name === "data-node" ? JSON.stringify(table) : null;
+        const row = fakeElement();
+        row.closest = (selector) =>
+            selector === '[data-sui="table"][data-node]' ? wrapper : null;
+        globalThis.document = { getElementById: () => row };
+
+        merge(renderer, "row-42", { display: "HIDDEN" });
+
+        // Without the table branch this went down the generic path, which
+        // renders a lone row — and a row outside a table is a key/value <dl>
+        // by design. The <tr> was replaced by a definition list and the cells
+        // went with it.
+        assert.doesNotMatch(row.outerHTML, /<dl/);
+        assert.match(wrapper.outerHTML, /<table/);
+        assert.match(wrapper.outerHTML, /Ada/);
+    });
+
     test("REMOVE forgets what the id was", () => {
         const renderer = createDefaultRenderer();
         renderer.render({ type: "text", id: "spinner", text: "thinking" });

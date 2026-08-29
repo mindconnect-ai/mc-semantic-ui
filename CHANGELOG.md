@@ -37,6 +37,10 @@ fresh empty one, so nothing has to be moved by hand at release time.
 - **A hybrid page carries its own model**, in a `<script type="application/json">`
   at the end of the body, so a `MERGE` works on a page the client never
   rendered. Only pages served with a SPA bootstrap carry it.
+- **[Patches & visibility](https://mindconnect-ai.github.io/mc-semantic-ui/docs/semantic-ui/patches)**
+  in the documentation — the five operations, what `MERGE` is for and is not,
+  the two ways to hide something, and where a merge finds the rest of the node
+  on each of the three delivery modes.
 - **`mc-sui-merge-demo`** — a page to poke at for the above. Hide and show a
   panel, toggle a button's own label and style, and read what each click
   actually put on the wire beside the `REPLACE` that would have done the same
@@ -46,6 +50,22 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Fixed
 
+- **A `MERGE` on a table row destroyed the row.** The table's patch handling
+  knew `REPLACE`, `APPEND` and `REMOVE`, so a merge fell through to the generic
+  path — which renders a row on its own, and a row outside a table is a
+  key/value list by design. The `<tr>` was swapped for a `<dl>` and the cells
+  went with it, while the table's own model kept the old row and reverted the
+  merge on the next patch. A merge inside a table now goes through that model,
+  the way a replace does.
+- **A class name that merely contained a visibility marker was mangled.**
+  `display` is the source of truth for visibility, so the marker it folds into
+  `cssClass` is stripped before being derived again — but by substring, not by
+  whole class. `sui-hidden-x` came out as `-x` and the node lost its styling,
+  on the server and in the browser both.
+- **JavaFX refused a merge naming a field the target does not have.** The SPA
+  ignores it; JavaFX went through Jackson, which fails an unknown property by
+  default, and dropped the whole merge. One patch has to mean the same thing on
+  both renderers, so JavaFX ignores it too — and says so.
 - **A standalone action was inert on a hybrid page.** An action that is not
   already inside a `UiForm` renders JS-free as a `<form>` wrapping a
   `<button type="submit">`, with the trigger on the form — where a browser

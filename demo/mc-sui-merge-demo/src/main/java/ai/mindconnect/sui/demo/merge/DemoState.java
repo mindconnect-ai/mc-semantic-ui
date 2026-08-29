@@ -11,6 +11,13 @@ import java.util.List;
  * What the demo remembers between clicks. One instance for the whole app —
  * this is a page to poke at, not a product, and a session per visitor would be
  * ceremony around three fields.
+ *
+ * <p>Shared, though, which means shared across request threads: a double-click
+ * or a second tab is enough to run two of these methods at once, and an
+ * ArrayDeque torn between {@code addFirst} and {@code removeLast} comes back
+ * with a corrupt list rather than an old one. So every accessor is
+ * synchronized. At this traffic it costs nothing, and being unsynchronised
+ * here was an oversight rather than a decision.
  */
 @Component
 public class DemoState {
@@ -44,33 +51,33 @@ public class DemoState {
                            String instead, int insteadBytes) {
     }
 
-    public UiNode.Display advanced() {
+    public synchronized UiNode.Display advanced() {
         return advanced;
     }
 
-    public void setAdvanced(UiNode.Display display) {
+    public synchronized void setAdvanced(UiNode.Display display) {
         this.advanced = display;
     }
 
-    public boolean notifications() {
+    public synchronized boolean notifications() {
         return notifications;
     }
 
-    public void toggleNotifications() {
+    public synchronized void toggleNotifications() {
         this.notifications = !this.notifications;
     }
 
     /** Newest first — the last thing you clicked is the one you want to read. */
-    public List<Exchange> wire() {
+    public synchronized List<Exchange> wire() {
         return List.copyOf(wire);
     }
 
-    public void record(Exchange exchange) {
+    public synchronized void record(Exchange exchange) {
         wire.addFirst(exchange);
         while (wire.size() > LOG_DEPTH) wire.removeLast();
     }
 
-    public void reset() {
+    public synchronized void reset() {
         advanced = null;
         notifications = true;
         wire.clear();

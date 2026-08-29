@@ -52,12 +52,6 @@ public class UiPatch {
         }
 
         /**
-         * Removes the target element itself from the DOM, including any
-         * surrounding {@code <li>} wrapper when the target was rendered as
-         * a list item. Used to revoke transient indicators (e.g. a
-         * "thinking …" placeholder) without leaving an empty container.
-         */
-        /**
          * Changes only the named fields of the target, leaving the rest alone.
          *
          * <p>{@link Op#REPLACE} needs the whole node, so flipping one flag
@@ -119,6 +113,12 @@ public class UiPatch {
             return merge(targetId, attributes);
         }
 
+        /**
+         * Removes the target element itself from the DOM, including any
+         * surrounding {@code <li>} wrapper when the target was rendered as
+         * a list item. Used to revoke transient indicators (e.g. a
+         * "thinking …" placeholder) without leaving an empty container.
+         */
         public static Operation remove(String targetId) {
             var o = new Operation();
             o.op = Op.REMOVE; o.targetId = targetId;

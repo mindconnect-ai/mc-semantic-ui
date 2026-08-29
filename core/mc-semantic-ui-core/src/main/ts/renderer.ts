@@ -549,6 +549,20 @@ export class SuiRenderer {
             if (idx < 0) return false;
             list[idx] = op.node as never;
             changed = true;
+        } else if (target !== wrapper && op.op === "MERGE") {
+            // A merge inside a table has to go through the table's own model
+            // for the same reason a replace does, and one more besides. The
+            // generic path would render the row on its own, and a row rendered
+            // outside a table is a key/value <dl> by design (see renderRow) —
+            // so a merge on a row would have swapped a <tr> for a definition
+            // list and taken the cells with it.
+            const ri = rows.findIndex(x => x.id === op.targetId);
+            const ci = ri < 0 ? cols.findIndex(x => x.id === op.targetId) : -1;
+            if (ri < 0 && ci < 0) return false;
+            const list = ri >= 0 ? rows : cols;
+            const idx = ri >= 0 ? ri : ci;
+            list[idx] = Object.assign({}, list[idx], op.attributes ?? {}) as never;
+            changed = true;
         } else if (target !== wrapper && op.op === "REMOVE") {
             const ri = rows.findIndex(x => x.id === op.targetId);
             const ci = ri < 0 ? cols.findIndex(x => x.id === op.targetId) : -1;

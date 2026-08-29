@@ -87,6 +87,23 @@ class SuiServerRendererTest {
     }
 
     @Test
+    void aClassThatMerelyContainsAVisibilityMarkerSurvives() {
+        // display is the source of truth for visibility, so setCssClass strips
+        // the marker the getter folds back in. By whole class though: the old
+        // substring replace turned "sui-hidden-x" into "-x" and the node lost
+        // its styling with nothing to say why.
+        var node = UiText.of("t", "x");
+        node.setCssClass("sui-hidden-x panel");
+
+        assertEquals("sui-hidden-x panel", node.getCssClass());
+
+        // The marker itself still goes, or clearing display would leave a
+        // baked-in sui-hidden behind and the node would stay invisible.
+        node.setCssClass("panel sui-hidden");
+        assertEquals("panel", node.getCssClass());
+    }
+
+    @Test
     void aStandaloneActionKeepsItsTriggerOnTheFormAndNotOnTheButton() {
         // The shape the SPA has to read. An action that is not already inside
         // a UiForm renders as a <form> wrapping a <button type="submit">: the

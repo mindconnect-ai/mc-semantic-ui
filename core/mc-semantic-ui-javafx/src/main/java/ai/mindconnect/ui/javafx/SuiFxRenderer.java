@@ -10,6 +10,7 @@ import ai.mindconnect.ui.javafx.renderers.LinkRenderer;
 import ai.mindconnect.ui.javafx.renderers.ListRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuButtonRenderer;
 import ai.mindconnect.ui.javafx.renderers.MenuRenderer;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -113,8 +114,21 @@ import java.util.Optional;
 public class SuiFxRenderer {
 
     private final Map<Class<?>, FxNodeRenderer<?>> renderers = new HashMap<>();
-    /** Only ever used to merge attribute patches; the bus keeps its own for the wire. */
-    private static final ObjectMapper MERGE_MAPPER = new ObjectMapper().findAndRegisterModules();
+    /**
+     * Only ever used to merge attribute patches; the bus keeps its own for the
+     * wire.
+     *
+     * <p>Unknown field names are ignored rather than fatal, because the SPA
+     * ignores them: it merges with Object.assign and the handler simply never
+     * reads the stray key. A patch naming a field the target does not have —
+     * {@code enabled} on a text node, say, from an endpoint that patches
+     * several kinds of node — has to mean the same thing on both renderers,
+     * and refusing the whole merge on one of them is the reading that makes
+     * the two disagree.
+     */
+    private static final ObjectMapper MERGE_MAPPER = new ObjectMapper()
+            .findAndRegisterModules()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     private FxIconResolver iconResolver = new SpriteIconResolver();
     private URI documentBase;
 
