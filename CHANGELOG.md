@@ -42,6 +42,20 @@ fresh empty one, so nothing has to be moved by hand at release time.
   drives comes up the same on the desktop.
 - **`suiI18n`**, a message catalog for the runtime's own chrome strings, with
   English and German built in and the locale following `<html lang>`.
+- **`MERGE` patch operation** — change the fields you name and leave the rest
+  alone, instead of resending a whole node to flip one flag:
+
+  ```java
+  UiPatch.Operation.display("filters", Display.HIDDEN)
+  UiPatch.Operation.merge("save", Map.of("enabled", false, "label", "Saving…"))
+  ```
+
+  An explicit `null` clears a field rather than being ignored, so a state can be
+  turned off as well as on. The merge is shallow: a named field is replaced
+  whole.
+- **A hybrid page carries its own model**, in a `<script type="application/json">`
+  at the end of the body, so a `MERGE` works on a page the client never
+  rendered. Only pages served with a SPA bootstrap carry it.
 
 ### Fixed
 
@@ -62,6 +76,14 @@ fresh empty one, so nothing has to be moved by hand at release time.
   than squeezing its row actions off-screen; `headerExtra` is drawn, without
   which a page offered no way to filter; and the detail grid keeps its term
   column, which had collapsed so far that every field name read `...`.
+- **A JavaFX repaint no longer throws away what the user was doing.** Focus, a
+  text control's caret and selection, scroll offsets, the open tab and expanded
+  panes now survive a patch. The browser gets this from its morphing library;
+  the desktop rebuilds and swaps, so typing in a field while a stream patched
+  the page above it used to cost the cursor mid-word.
+- **`display` works client-side on the web.** `cls()` read only `cssClass`,
+  while the server folds `display` into it — so setting or clearing `display`
+  from the client changed a field no client-side renderer looked at.
 
 ## [0.1.3] - 2026-08-17
 
