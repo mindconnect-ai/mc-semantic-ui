@@ -1351,6 +1351,13 @@ a[data-trigger].is-loading::before,
     display: flex; align-items: center; gap: 10px;
     padding: 6px 8px; min-height: 40px;
 }
+
+/* An app shell whose menu has no title, and whose collapse toggle lives in
+   the page header instead, still rendered this head — empty, and still 40px
+   tall. With the menu's own padding that put 52px of nothing between the
+   header and the first nav item, which is the gap you see at the top of
+   every admin screen. Nothing in it, nothing to show. */
+.sui-menu-head:not(:has(*)) { display: none; }
 .sui-menu-title {
     font-weight: 600; font-size: 15px; color: var(--sui-color-text-strong);
     white-space: nowrap; overflow: hidden;

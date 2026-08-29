@@ -55,6 +55,12 @@ changes may land in a minor.
   loudest quiet thing in the sheet, and capitals cost the word shapes that
   make a small label readable at a glance.
 
+- **An empty menu head no longer reserves 40px.** An app shell whose menu has
+  no title, and whose collapse toggle lives in the page header instead, still
+  rendered the head — empty, and still full height. With the menu's own
+  padding that was 52px of nothing between the header and the first nav item,
+  on every screen. It is 8px now.
+
 - **The content area is flush, and the sidebar is 200px.** The content used
   to sit in 20px of its own padding, so the page ended in a band of nothing
   on all four sides and the card floated in the frame instead of being it.
