@@ -618,6 +618,27 @@ export class SuiRenderer {
         return durations.reduce((max, d, i) => Math.max(max, d + (delays[i] ?? delays[0] ?? 0)), 0);
     }
 
+    /**
+     * Removes an element, letting it play out first: it takes the
+     * {@code .sui-leave} class, and is dropped when the transition the
+     * stylesheet declared for it has run. An element that is out of the
+     * document flow — a dialog host, a toast — only fades; one in the flow
+     * also collapses the space it held, so the rows below it close the gap
+     * instead of jumping into it.
+     *
+     * <p>Public because REMOVE is not the only way something leaves the
+     * page: the event bus closes a dialog on a backdrop click without ever
+     * asking the server, and that should look the same as a close the server
+     * ordered.
+     *
+     * <p>Falls back to a plain removal whenever an animation would not run
+     * or would not be wanted — reduced motion, a hidden tab, a stylesheet
+     * that declares no transition for the class.
+     */
+    removeAnimated(element: Element): void {
+        this.animateLeave(element);
+    }
+
     private animateLeave(element: Element): void {
         if (!this.shouldAnimate() || !(element instanceof HTMLElement)) {
             element.remove();

@@ -26,6 +26,20 @@ changes may land in a minor.
   `REPLACE` and `MERGE` deliberately do **not** animate: they are the
   streaming path, and a chat turn replaces the same node once per token.
 
+- **Disclosures open and close instead of snapping.** Activity summaries,
+  collapsible sections and tree nodes animate their height, via
+  `::details-content` and `interpolate-size`. Where a browser has neither, the
+  rule is ignored and they snap exactly as before — no feature query needed.
+  Menu-button popovers are deliberately left out: their content is positioned,
+  and clipping it to an animated height would break it.
+
+- **Dialogs leave the way they arrive.** A dialog dropped in with a small
+  fall; now it falls back out instead of vanishing between frames. Closing by
+  backdrop click or × goes through the same path as a close the server
+  ordered — the event bus now removes the host through the renderer's new
+  `removeAnimated()` rather than deleting it outright — so the two look the
+  same.
+
 - **Navigation cross-fades where the browser supports it.** Mounting a page
   and filling a slot — an app shell's content area — go through the View
   Transition API, so a screen change is a fade rather than a jump. Nothing

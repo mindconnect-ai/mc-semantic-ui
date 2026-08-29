@@ -1559,6 +1559,23 @@ a[data-trigger].is-loading::before,
     to   { transform: translateY(0);     opacity: 1; }
 }
 
+/* The dialog arrived with a small drop, so it leaves the same way in
+   reverse. The host carries `.sui-leave` (the renderer puts it there for a
+   server-ordered close and for a backdrop click alike) and fades the
+   backdrop; this animates the panel inside it, which is what the eye
+   actually follows. `forwards` holds the end state — without it the panel
+   snaps back to full opacity for the frame between the animation ending and
+   the host being removed. */
+.sui-leave > .sui-dialog,
+.sui-leave .sui-dialog {
+    animation: sui-dialog-out var(--sui-duration-fast) ease-in forwards;
+}
+
+@keyframes sui-dialog-out {
+    from { transform: translateY(0);    opacity: 1; }
+    to   { transform: translateY(-8px); opacity: 0; }
+}
+
 /* ── Toasts ─────────────────────────────────────────────────────────────── */
 
 /* Fixed top-right stack. Container is always present so the SPA EventBus
@@ -1738,6 +1755,41 @@ a[data-trigger].is-loading::before,
                 padding var(--sui-duration-base) var(--sui-ease-standard);
 }
 
+
+/* ── Disclosures ─────────────────────────────────────────────────────────
+   A <details> snaps: its content is there or it is not, and at the sizes
+   these are used — a tool call's output, a collapsible section, a tree node
+   — the jump is the difference between "it expanded" and "the page moved".
+
+   `::details-content` is the browser's own box around everything after the
+   summary, and `interpolate-size: allow-keywords` is what makes `auto` an
+   animatable value at all. Where either is missing the whole rule is ignored
+   and the disclosure snaps exactly as it does today, which is why this needs
+   no feature query.
+
+   Scoped to the disclosures, deliberately: `.sui-menu-button` is also a
+   <details>, but its content is a positioned popover with its own entrance,
+   and clipping it to an animated block-size would break it. */
+:root {
+    interpolate-size: allow-keywords;
+}
+
+.sui-activity::details-content,
+details.sui-section--collapsible::details-content,
+details.sui-tree-item::details-content,
+.sui-menu-group::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition: block-size var(--sui-duration-base) var(--sui-ease-standard),
+                content-visibility var(--sui-duration-base) allow-discrete;
+}
+
+.sui-activity[open]::details-content,
+details.sui-section--collapsible[open]::details-content,
+details.sui-tree-item[open]::details-content,
+.sui-menu-group[open]::details-content {
+    block-size: auto;
+}
 
 /* ── View transitions ────────────────────────────────────────────────────
    The renderer wraps the two navigation-sized swaps — mounting a page, and
