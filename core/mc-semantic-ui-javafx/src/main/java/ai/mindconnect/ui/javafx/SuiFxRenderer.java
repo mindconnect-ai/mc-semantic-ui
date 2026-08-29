@@ -445,6 +445,17 @@ public class SuiFxRenderer {
                 if (!token.isEmpty()) fx.getStyleClass().add(token);
             }
         }
+        // The web folds this into a css class and lets the stylesheet do the
+        // rest. JavaFX cannot: visible and managed are not styleable, so the
+        // class went on and nothing ever read it — a HIDDEN node stayed on
+        // screen. The two states map exactly onto the pair of properties.
+        if (node.getDisplay() == UiNode.Display.HIDDEN) {
+            fx.setVisible(false);
+            fx.setManaged(false);      // out of the layout, like display:none
+        } else if (node.getDisplay() == UiNode.Display.BLANK) {
+            fx.setVisible(false);      // keeps its space, like visibility:hidden
+        }
+
         if (node.getId() != null && !node.getId().isBlank()) {
             fx.setId(node.getId());
             ctx.index(node.getId(), fx);

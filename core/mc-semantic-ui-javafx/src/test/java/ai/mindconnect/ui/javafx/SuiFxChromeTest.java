@@ -177,26 +177,48 @@ class SuiFxChromeTest {
     }
 
     @Test
-    void aMergeCanHideAndShowAgain() {
+    void hideTakesTheNodeOutOfTheLayoutAndShowPutsItBack() {
         var bus = new SuiFxEventBus();
         onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("filters", "Filters"))));
 
         onFxThread(() -> {
-            bus.applyPatch(UiPatch.of().patch(
-                    UiPatch.Operation.display("filters", ai.mindconnect.ui.model.UiNode.Display.HIDDEN)));
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.hide("filters")));
             return null;
         });
-        assertThat(((Label) onFxThread(() -> bus.context().byId("filters"))).getStyleClass())
-                .contains("sui-hidden");
 
-        // Being able to hide something is only half a feature: a null has to
-        // clear the field rather than be ignored.
+        // Asserted on what the user sees, not on the style class: the class was
+        // being applied all along while nothing on this renderer read it, so a
+        // test that checked the class passed on a node that stayed visible.
+        var hidden = (Label) onFxThread(() -> bus.context().byId("filters"));
+        assertThat(hidden.isVisible()).isFalse();
+        assertThat(hidden.isManaged()).as("HIDDEN is display:none — out of the layout").isFalse();
+
+        // Being able to hide something is only half a feature.
         onFxThread(() -> {
-            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.display("filters", null)));
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.show("filters")));
             return null;
         });
-        assertThat(((Label) onFxThread(() -> bus.context().byId("filters"))).getStyleClass())
-                .doesNotContain("sui-hidden");
+        var shown = (Label) onFxThread(() -> bus.context().byId("filters"));
+        assertThat(shown.isVisible()).isTrue();
+        assertThat(shown.isManaged()).isTrue();
+    }
+
+    @Test
+    void blankHidesTheNodeButKeepsItsSpace() {
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.renderer().mount(UiStack.of(UiText.of("filters", "Filters"))));
+
+        onFxThread(() -> {
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.hide(
+                    "filters", ai.mindconnect.ui.model.UiNode.Display.BLANK)));
+            return null;
+        });
+
+        // The whole reason there are two ways to hide: BLANK leaves the gap so
+        // nothing around it jumps. Nothing tested the difference before.
+        var blank = (Label) onFxThread(() -> bus.context().byId("filters"));
+        assertThat(blank.isVisible()).isFalse();
+        assertThat(blank.isManaged()).as("BLANK is visibility:hidden — the space stays").isTrue();
     }
 
     @Test

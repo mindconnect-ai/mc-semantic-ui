@@ -46,7 +46,7 @@ fresh empty one, so nothing has to be moved by hand at release time.
   alone, instead of resending a whole node to flip one flag:
 
   ```java
-  UiPatch.Operation.display("filters", Display.HIDDEN)
+  UiPatch.Operation.hide("filters")                 // and show("filters")
   UiPatch.Operation.merge("save", Map.of("enabled", false, "label", "Saving…"))
   ```
 
@@ -84,6 +84,10 @@ fresh empty one, so nothing has to be moved by hand at release time.
 - **`display` works client-side on the web.** `cls()` read only `cssClass`,
   while the server folds `display` into it — so setting or clearing `display`
   from the client changed a field no client-side renderer looked at.
+- **`display` works at all on JavaFX.** The state was folded into a style class
+  and nothing on that renderer ever read it, so a `HIDDEN` node stayed on
+  screen. `HIDDEN` now takes the node out of the layout and `BLANK` leaves its
+  space behind, matching `display:none` and `visibility:hidden`.
 
 ## [0.1.3] - 2026-08-17
 

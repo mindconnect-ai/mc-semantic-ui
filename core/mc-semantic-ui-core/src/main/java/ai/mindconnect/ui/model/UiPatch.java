@@ -67,9 +67,12 @@ public class UiPatch {
          * changed:
          *
          * <pre>{@code
-         * UiPatch.of().patch(UiPatch.Operation.merge("filters",
-         *         Map.of("display", UiNode.Display.HIDDEN)));
+         * UiPatch.of().patch(UiPatch.Operation.merge("save",
+         *         Map.of("enabled", false, "label", "Saving…")));
          * }</pre>
+         *
+         * <p>For the commonest merge of all there are {@link #hide} and
+         * {@link #show}.
          *
          * <p>The client applies this against the node it already has, so it
          * needs to have rendered that node: see the renderers' notes on where
@@ -81,13 +84,38 @@ public class UiPatch {
             return o;
         }
 
+        /** Hides the target and takes it out of the layout. */
+        public static Operation hide(String targetId) {
+            return hide(targetId, UiNode.Display.HIDDEN);
+        }
+
         /**
-         * The common merge: show or hide the target without touching anything
-         * else about it. {@code null} makes it visible again.
+         * Hides the target, either way of hiding:
+         * {@link UiNode.Display#HIDDEN} takes it out of the layout,
+         * {@link UiNode.Display#BLANK} leaves its space behind so nothing
+         * around it jumps.
          */
-        public static Operation display(String targetId, UiNode.Display display) {
+        public static Operation hide(String targetId, UiNode.Display how) {
+            return visibility(targetId, how);
+        }
+
+        /** Makes the target visible again. */
+        public static Operation show(String targetId) {
+            return visibility(targetId, null);
+        }
+
+        /**
+         * Both of the above are merges of one field — this is that merge.
+         *
+         * <p>It exists rather than leaving callers to write the map because
+         * the one that matters cannot be written the obvious way:
+         * {@code Map.of("display", null)} throws, since Map.of forbids null
+         * values. Showing something again would be the awkward case, and it is
+         * the half people forget.
+         */
+        private static Operation visibility(String targetId, UiNode.Display how) {
             var attributes = new LinkedHashMap<String, Object>();
-            attributes.put("display", display);   // a null value is the point, so not Map.of
+            attributes.put("display", how);
             return merge(targetId, attributes);
         }
 
