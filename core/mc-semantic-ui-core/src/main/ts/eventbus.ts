@@ -1250,7 +1250,7 @@ export class SuiEventBus {
             if (reloadForm) return;
             e.preventDefault();
             if (action.dataset.confirm && !window.confirm(action.dataset.confirm)) return;
-            const trigger = this.parseTrigger(action);
+            const trigger = this.parseTrigger(action) ?? this.ssrFormTrigger(action);
             if (trigger) {
                 this.inferImplicitPayload(trigger, action);
                 await this.dispatch(trigger, action);
@@ -1453,6 +1453,30 @@ export class SuiEventBus {
             const panel = document.getElementById(targetId);
             if (panel) panel.hidden = false;
         }
+    }
+
+    /**
+     * The trigger of a standalone SSR action, which lives on the form and not
+     * on the button.
+     *
+     * <p>An action that is not already inside a `UiForm` renders JS-free as a
+     * `<form>` wrapping a `<button type="submit">`. The trigger goes on the
+     * form — it is the outermost element, which is where an id goes in every
+     * other node, and the form is what a browser without JS actually submits.
+     * The button carries `data-action` and nothing else.
+     *
+     * <p>So the click path, which lands on the button, found no trigger and
+     * had already called preventDefault: the native submit was cancelled and
+     * nothing took its place. Every standalone action on a hybrid page was
+     * inert, silently.
+     *
+     * <p>Only that wrapper is consulted, never any ancestor with a trigger: a
+     * button inside a clickable row must keep its own behaviour rather than
+     * inheriting the row's.
+     */
+    private ssrFormTrigger(el: HTMLElement): UiTrigger | null {
+        const form = el.closest<HTMLElement>("form.sui-ssr-form[data-trigger]");
+        return form ? this.parseTrigger(form) : null;
     }
 
     private parseTrigger(el: HTMLElement): UiTrigger | null {

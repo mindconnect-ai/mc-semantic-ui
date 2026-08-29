@@ -46,6 +46,14 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Fixed
 
+- **A standalone action was inert on a hybrid page.** An action that is not
+  already inside a `UiForm` renders JS-free as a `<form>` wrapping a
+  `<button type="submit">`, with the trigger on the form — where a browser
+  without JS needs it. But the click lands on the button, and the bus looked
+  for a trigger only there: it found none and returned, having already
+  cancelled the native submit. So the button did nothing at all, and said
+  nothing about it. It now reads the trigger off that wrapper. Only that
+  wrapper — a button inside a clickable row still keeps its own behaviour.
 - **`display` works client-side on the web.** `cls()` read only `cssClass`,
   while the server folds `display` into it — so setting or clearing `display`
   from the client changed a field no client-side renderer looked at.

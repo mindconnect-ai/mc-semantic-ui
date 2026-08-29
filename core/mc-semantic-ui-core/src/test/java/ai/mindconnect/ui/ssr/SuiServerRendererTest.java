@@ -87,6 +87,36 @@ class SuiServerRendererTest {
     }
 
     @Test
+    void aStandaloneActionKeepsItsTriggerOnTheFormAndNotOnTheButton() {
+        // The shape the SPA has to read. An action that is not already inside
+        // a UiForm renders as a <form> wrapping a <button type="submit">: the
+        // form is what a browser without JS submits, and the id goes on the
+        // outermost element the way it does for every other node. So the
+        // trigger is on the form, and the button carries data-action alone.
+        //
+        // Which is worth pinning down, because the click lands on the button.
+        // The bus used to look for a trigger there, find none, and return —
+        // having already cancelled the native submit. Every standalone action
+        // on a hybrid page was inert, silently. SuiEventBus#ssrFormTrigger
+        // reads it off this wrapper, and this test is what says the wrapper
+        // still looks like this.
+        var stack = UiStack.of(UiAction.secondary("hide", "Hide")
+                .dispatch("POST", "/api/advanced/hidden"));
+        stack.setId("controls");
+
+        var html = renderer.render(stack);
+
+        assertTrue(html.contains("<form id=\"hide\" method=\"post\" action=\"/api/advanced/hidden\""), html);
+        assertTrue(html.contains("class=\"sui-ssr-form\""), html);
+        assertTrue(html.contains("data-action=\"hide\""), html);
+        // One trigger, on the form. If this ever moves to the button, the
+        // fallback stops being needed — but nothing should carry two.
+        assertEquals(1, html.split("data-trigger", -1).length - 1, html);
+        var button = html.substring(html.indexOf("<button"));
+        assertFalse(button.contains("data-trigger"), button);
+    }
+
+    @Test
     void escapesHtmlInValues() {
         var detail = UiDetail.of("d2", "T")
                 .field(UiField.text("x", "Name", "<script>alert(1)</script>"));
