@@ -67,7 +67,17 @@ It's also the fastest way to scaffold any of the
 
 The same editor is also an embeddable **Spring Boot starter** — add the
 dependency, provide an `EditorContentStore`, and `/editor` is live inside your
-app. A standalone showcase lives in `editor/mc-sui-editor-app`:
+app:
+
+```xml
+<dependency>
+  <groupId>ai.mindconnect</groupId>
+  <artifactId>mc-sui-editor</artifactId>
+  <version>0.1.3</version>
+</dependency>
+```
+
+A standalone showcase lives in `editor/mc-sui-editor-app`:
 
 ```bash
 cd editor/mc-sui-editor-app
