@@ -520,11 +520,32 @@ export class SuiRenderer {
         return this.animatePatches && this.motionAllowed();
     }
 
-    /** Shared by every animation here: is motion wanted, and would it run? */
+    /**
+     * Shared by every animation here: is motion wanted, and would it run?
+     *
+     * <p>Asked defensively, because this is the one thing in the renderer that
+     * has to know about the environment it is in — and the string API is
+     * documented to run on a Node backend with no DOM at all. Anything that is
+     * not a browser answers "no", which is the right answer there anyway:
+     * there is no frame to paint. So a missing `window`, a `document` that
+     * throws on access, a `matchMedia` that is not a function — all of them
+     * mean the same thing, and none of them is worth an exception escaping
+     * into a patch.
+     */
     private motionAllowed(): boolean {
-        if (typeof document !== "undefined" && document.hidden) return false;
-        return !(typeof window.matchMedia === "function"
-            && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+        try {
+            // A real browser, positively: no window, no frame to paint, and
+            // nothing downstream of this gate — getComputedStyle, setTimeout,
+            // HTMLElement — exists to be reached for. Asking the other way
+            // round ("is anything missing?") let a stubbed document through
+            // and the animation then tripped over the next global it wanted.
+            if (typeof window === "undefined" || typeof document === "undefined") return false;
+            if (document.hidden) return false;
+            return !(typeof window.matchMedia === "function"
+                && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+        } catch {
+            return false;
+        }
     }
 
     /**
@@ -540,10 +561,16 @@ export class SuiRenderer {
     viewTransitions = true;
 
     private shouldViewTransition(): boolean {
-        return this.viewTransitions
-            && typeof document !== "undefined"
-            && typeof document.startViewTransition === "function"
-            && this.motionAllowed();
+        if (!this.viewTransitions) return false;
+        // Same reasoning as motionAllowed: asking about the environment must
+        // not be the thing that breaks a renderer running outside one.
+        try {
+            return typeof document !== "undefined"
+                && typeof document.startViewTransition === "function"
+                && this.motionAllowed();
+        } catch {
+            return false;
+        }
     }
 
     /**

@@ -264,7 +264,18 @@ export declare class SuiRenderer {
      * what they would have seen anyway.
      */
     private shouldAnimate;
-    /** Shared by every animation here: is motion wanted, and would it run? */
+    /**
+     * Shared by every animation here: is motion wanted, and would it run?
+     *
+     * <p>Asked defensively, because this is the one thing in the renderer that
+     * has to know about the environment it is in — and the string API is
+     * documented to run on a Node backend with no DOM at all. Anything that is
+     * not a browser answers "no", which is the right answer there anyway:
+     * there is no frame to paint. So a missing `window`, a `document` that
+     * throws on access, a `matchMedia` that is not a function — all of them
+     * mean the same thing, and none of them is worth an exception escaping
+     * into a patch.
+     */
     private motionAllowed;
     /**
      * Whether a whole-view swap should go through the View Transition API.

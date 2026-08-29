@@ -11,7 +11,15 @@ The format is [Keep a Changelog][keepachangelog]; this project follows
 [semantic versioning][semver], with the caveat that it is pre-1.0 and breaking
 changes may land in a minor.
 
-**Adding an entry:** put it under `## [Unreleased]
+**Adding an entry:** put it under `## [Unreleased]`, in the section that fits.
+The release workflow renames that heading to the version being cut and opens a
+fresh empty one, so nothing has to be moved by hand at release time.
+
+[releases]: https://github.com/mindconnect-ai/mc-semantic-ui/releases
+[keepachangelog]: https://keepachangelog.com/en/1.1.0/
+[semver]: https://semver.org/spec/v2.0.0.html
+
+## [Unreleased]
 
 ### Added
 
@@ -56,26 +64,6 @@ changes may land in a minor.
   it sets a palette. Looping indicators keep their own timing on purpose — a
   spinner that stopped would read as "finished".
 
-### Changed
-
-- **`prefers-reduced-motion` is honoured everywhere, from one place.** The two
-  partial blocks are replaced by a single one that flattens the duration
-  variables, so it covers every transition in the sheet — including ones added
-  later. The renderer also skips the patch animations outright under reduced
-  motion, and in a hidden tab, where the browser would not run them anyway.
-
-`, in the section that fits.
-The release workflow renames that heading to the version being cut and opens a
-fresh empty one, so nothing has to be moved by hand at release time.
-
-[releases]: https://github.com/mindconnect-ai/mc-semantic-ui/releases
-[keepachangelog]: https://keepachangelog.com/en/1.1.0/
-[semver]: https://semver.org/spec/v2.0.0.html
-
-## [Unreleased]
-
-### Added
-
 - **`MERGE` patch operation** — change the fields you name and leave the rest
   alone, instead of resending a whole node to flip one flag:
 
@@ -101,7 +89,23 @@ fresh empty one, so nothing has to be moved by hand at release time.
   application rather than a library: it is in the repository, not on Maven
   Central.
 
+### Changed
+
+- **`prefers-reduced-motion` is honoured everywhere, from one place.** The two
+  partial blocks are replaced by a single one that flattens the duration
+  variables, so it covers every transition in the sheet — including ones added
+  later. The renderer also skips the patch animations outright under reduced
+  motion, and in a hidden tab, where the browser would not run them anyway.
+
 ### Fixed
+
+- **Animation no longer breaks the renderer outside a browser.** Deciding
+  whether to animate is the one thing here that has to ask about its
+  environment, and the question was asked in a way that assumed the answer: the
+  gate read `window.matchMedia` without checking there was a `window`, so a
+  patch applied from a Node backend died with a `ReferenceError` instead of
+  applying. It now asks for a real browser positively, and anything else
+  simply does not animate.
 
 - **A `MERGE` on a table row destroyed the row.** The table's patch handling
   knew `REPLACE`, `APPEND` and `REMOVE`, so a merge fell through to the generic

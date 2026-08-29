@@ -106,6 +106,25 @@
                             <arguments>run build</arguments>
                         </configuration>
                     </execution>
+                    <!--
+                        The TypeScript tests, which until now ran only when
+                        somebody remembered to. They are node:test files
+                        against the compiled output in target/ts-dist, so they
+                        need no browser, no jsdom and no new dependency — just
+                        the Node this plugin already installs.
+
+                        Skipped by -DskipTests along with everything else, so
+                        `mvn install -DskipTests` still means what it says.
+                    -->
+                    <execution>
+                        <id>npm-test</id>
+                        <goals><goal>npm</goal></goals>
+                        <phase>test</phase>
+                        <configuration>
+                            <arguments>test</arguments>
+                            <skip>${skipTests}</skip>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 
