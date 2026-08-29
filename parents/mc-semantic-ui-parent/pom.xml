@@ -242,6 +242,17 @@
                 <artifactId>commonmark</artifactId>
                 <version>${commonmark.version}</version>
             </dependency>
+            <!--
+                Tables are not CommonMark, they are a GitHub extension - and the
+                browser gets them for free, because marked has GFM on by
+                default. Without this the desktop showed a table as the row of
+                pipes it is written as.
+            -->
+            <dependency>
+                <groupId>org.commonmark</groupId>
+                <artifactId>commonmark-ext-gfm-tables</artifactId>
+                <version>${commonmark.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

@@ -16,6 +16,7 @@ import ai.mindconnect.ui.model.UiNode;
 import ai.mindconnect.ui.model.UiRow;
 import ai.mindconnect.ui.model.UiTrigger;
 import ai.mindconnect.ui.model.UiTable;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Pos;
@@ -47,6 +48,20 @@ import javafx.scene.layout.VBox;
 public class TableRenderer implements FxNodeRenderer<UiTable> {
 
     private static final Pattern PLACEHOLDER = Pattern.compile("\\{([^{}]+)\\}");
+    /**
+     * What the stylesheet makes a column header and a row — measured, not
+     * guessed, and only ever used as a <em>preferred</em> height. A row that
+     * turns out taller (a wrapped line, a cell template) makes the table
+     * scroll rather than clip.
+     */
+    private static final double HEADER_HEIGHT = 26;
+    private static final double ROW_HEIGHT = 40;
+    /** Buttons stand taller than text, so a table with row actions has taller rows. */
+    private static final double ACTION_ROW_HEIGHT = 48;
+    /** An empty table still has to show the grid's "no content" line. */
+    private static final int MIN_VISIBLE_ROWS = 3;
+    /** Cell padding and the column border, which the buttons do not know about. */
+    private static final double ACTION_CELL_PADDING = 28;
     /** Only ever used to clone and substitute cell templates. */
     private static final ObjectMapper CELL_MAPPER = new ObjectMapper().findAndRegisterModules();
 
@@ -103,6 +118,13 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
         selection(node, table, ctx);
         sorting(node, table, ctx);
         rowClicks(node, table, ctx);
+
+        // A TableView's preferred height is a flat 400px whatever is in it, so
+        // a one-row table came up as a row of data over a lawn of empty grid.
+        // The web sizes a table to its rows; so does this.
+        int rows = Math.max(node.getRows().size(), MIN_VISIBLE_ROWS);
+        double rowHeight = node.getRowActions().isEmpty() ? ROW_HEIGHT : ACTION_ROW_HEIGHT;
+        table.setPrefHeight(HEADER_HEIGHT + rows * rowHeight + 2);
 
         if (node.getMaxHeight() != null) {
             parsePx(node.getMaxHeight()).ifPresent(table::setMaxHeight);
@@ -221,8 +243,11 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
     private TableColumn<UiRow, Void> rowActionColumn(UiTable node, FxRenderContext ctx) {
         var tc = new TableColumn<UiRow, Void>("");
         tc.setSortable(false);
-        // Wide enough for its buttons and no narrower: this column is the one
-        // the user came for, and a default-width column would clip them.
+        // A starting guess only. What the buttons actually need depends on
+        // their labels, their icons and the font the host styled them with,
+        // and a guess that came up short clipped "Remove" to "R…". The first
+        // cell to lay its buttons out says how wide the column really has to
+        // be — see widenFor below.
         double width = Math.max(90, 96.0 * node.getRowActions().size());
         tc.setMinWidth(width);
         tc.setPrefWidth(width);
@@ -248,6 +273,9 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
                         button.getStyleClass().add("sui-action-" + action.getAppearance().name().toLowerCase());
                     }
                     Icons.lead(button, action.getIcon(), ctx);
+                    // A button is never narrower than its own label. Whatever
+                    // the column ends up being, the text stays readable.
+                    button.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
                     button.setDisable(!action.isEnabled());
 
                     // One trigger template is shared by every row, so it is
@@ -265,9 +293,29 @@ public class TableRenderer implements FxNodeRenderer<UiTable> {
                     buttons.getChildren().add(button);
                 }
                 setGraphic(buttons);
+                widenFor(tc, buttons);
             }
         });
         return tc;
+    }
+
+    /**
+     * Grows the action column to fit the buttons in it.
+     *
+     * <p>Measured after a pulse rather than now: a cell's buttons have no
+     * useful preferred width until they are in the scene with the host's CSS
+     * applied, and the width they need is exactly what a fixed guess cannot
+     * know. It only ever grows, so the widest row wins and the column never
+     * flickers narrower.
+     */
+    private static void widenFor(TableColumn<UiRow, Void> column, HBox buttons) {
+        Platform.runLater(() -> {
+            double needed = buttons.prefWidth(-1) + ACTION_CELL_PADDING;
+            if (needed > column.getMinWidth()) {
+                column.setMinWidth(needed);
+                column.setPrefWidth(needed);
+            }
+        });
     }
 
     private void selection(UiTable node, TableView<UiRow> table, FxRenderContext ctx) {

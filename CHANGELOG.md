@@ -21,6 +21,46 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Fixed
+
+- **JavaFX: a patch inside a tab or a scroll pane no longer collapses the
+  page.** Deleting a row, or anything else that patched a node sitting in a
+  JavaFX *control* rather than a pane, swapped the node inside the control's
+  private skin container and left the control itself still pointing at the
+  node that had been taken out. The replacement got none of what the control
+  does for its content — a `ScrollPane` stretches only the node its `content`
+  property names — so the panel shrank to its bare minimum and every label in
+  it turned into an ellipsis. Patches now find the slot a node actually
+  occupies: a tab's panel, a scroll pane's content, a collapsible's body, or a
+  pane's child list.
+- **JavaFX: `APPEND` and `CLEAR` reach through a `scrollpane`.** Appending to
+  one means appending to what it scrolls, which is how a chat adds a message
+  to its transcript; before, the operation was silently dropped.
+- **JavaFX: a dialog looks like the app it came out of.** A dialog is its own
+  scene, and a scene starts from the bare JavaFX theme; it inherited only what
+  the owner had put on its *scene*, which for an app that styles its root — the
+  documented way, and what `SuiFxOverlay` itself does — is nothing. Tabs and
+  buttons in a dialog came up unstyled. The palette is now installed outright,
+  and the owner's root stylesheets are adopted as well.
+- **JavaFX: `DOWNLOAD` saves a file you can find.** It wrote the bytes to a
+  randomly named temp file and logged the path, which from the clicking end is
+  indistinguishable from nothing happening. The name now comes from
+  `Content-Disposition`, or the url if the server said nothing — the same
+  two-step the browser renderer makes — and the default handler asks where to
+  put the file instead of logging. `setDownloadHandler` still overrides it.
+- **JavaFX: markdown tables are tables.** Tables are a GitHub extension rather
+  than CommonMark, and the parser was built without it — so the desktop was the
+  one renderer of the three that showed a table as the row of pipes it is
+  written as. `markdown` now parses GFM tables and paints them as a grid, with
+  header cells, per-column alignment and inline markup inside a cell.
+- **JavaFX: a table is as tall as its rows.** A `TableView`'s preferred height
+  is a flat 400px whatever it holds, so a table of one attached file came up as
+  a row of data over a lawn of empty grid.
+- **JavaFX: a row action's label is not clipped.** The width of the row-action
+  column was a fixed guess, and "Remove" came out as "R…". The column now grows
+  to what its buttons actually measure, and a button is never narrower than its
+  own label.
+
 ## [0.1.4] - 2026-08-29
 
 ### Added

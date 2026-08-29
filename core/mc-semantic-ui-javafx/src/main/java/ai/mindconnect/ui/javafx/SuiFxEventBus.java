@@ -137,9 +137,12 @@ public class SuiFxEventBus {
     /** Live SSE streams by channel id. A stream outlives the tree it started from. */
     private final Map<String, FxStreamHandle> streams = new ConcurrentHashMap<>();
     private final Map<String, FxStreamEventHandler> streamEventHandlers = new ConcurrentHashMap<>();
-    private Consumer<File> downloadHandler = file ->
-            System.getLogger(SuiFxEventBus.class.getName())
-                    .log(System.Logger.Level.INFO, "SuiFxEventBus: downloaded to " + file);
+    /**
+     * What a finished {@code DOWNLOAD} does with the bytes. The default asks
+     * where to put them — logging the path of a temp file, which is what this
+     * used to do, is indistinguishable from the download not happening.
+     */
+    private Consumer<File> downloadHandler = this::saveAs;
 
     /**
      * The primary constructor: a bus driving {@code renderer}. If the renderer
@@ -712,6 +715,14 @@ public class SuiFxEventBus {
             }
         }
 
+        // Rendered in the mounted page's context on purpose: that is what puts
+        // the dialog's fields in the id index, so a patch can reach into an
+        // open dialog the way it reaches into the page.
+        if (renderer.context() == null) {
+            reportError(new IllegalStateException(
+                    "Cannot show a dialog before a page is mounted"));
+            return null;
+        }
         var content = renderer.context().render(dialog);
 
         var stage = new Stage();
@@ -758,15 +769,39 @@ public class SuiFxEventBus {
         return stage;
     }
 
-    /** Gives the dialog the same stylesheets as the window it came from. */
+    /**
+     * Gives the dialog the look of the window it came from.
+     *
+     * <p>A dialog is its own scene, and a scene starts from nothing but the
+     * JavaFX default theme — which is why an unstyled one comes up looking
+     * like a different application altogether.
+     *
+     * <p>Copying the owner scene's stylesheets is not enough on its own.
+     * {@link SuiFxOverlay} loads {@code sui-fx.css} onto <em>itself</em>, and
+     * {@link SuiFxStyles#install(Parent)} exists precisely so an app can do the
+     * same on a root of its own — in both cases the scene's own list is empty
+     * and there is nothing to inherit. So the palette is installed outright,
+     * and the owner is then asked for both lists: what it put on its scene, and
+     * what it put on its root.
+     */
     private void inheritStylesheets(Stage dialogStage) {
-        Window owner = Window.getWindows().stream()
-                .filter(w -> w.isShowing() && w != dialogStage)
-                .findFirst()
-                .orElse(null);
+        var scene = dialogStage.getScene();
+        SuiFxStyles.install(scene);
+
+        // The window the user is actually working in: a second window of the
+        // same app must not decide how this dialog looks.
+        Window owner = frontWindow(dialogStage);
         if (owner instanceof Stage ownerStage && ownerStage.getScene() != null) {
             dialogStage.initOwner(ownerStage);
-            dialogStage.getScene().getStylesheets().addAll(ownerStage.getScene().getStylesheets());
+            var from = ownerStage.getScene();
+            adopt(scene, from.getStylesheets());
+            if (from.getRoot() != null) adopt(scene, from.getRoot().getStylesheets());
+        }
+    }
+
+    private static void adopt(Scene scene, List<String> stylesheets) {
+        for (var sheet : stylesheets) {
+            if (!scene.getStylesheets().contains(sheet)) scene.getStylesheets().add(sheet);
         }
     }
 
@@ -813,12 +848,18 @@ public class SuiFxEventBus {
         });
 
         registerBehavior(UiTrigger.Behavior.DOWNLOAD.name(), ctx ->
-                sendAsync(ctx, HttpResponse.BodyHandlers.ofByteArray())
-                        .thenAccept(bytes -> {
+                exchange(ctx, HttpResponse.BodyHandlers.ofByteArray())
+                        .thenAccept(response -> {
                             try {
-                                var file = Files.createTempFile("sui-download-", "").toFile();
-                                Files.write(file.toPath(), bytes);
-                                onFxThread(() -> downloadHandler.accept(file));
+                                // A temp *file* cannot keep the name the server
+                                // gave, and the name is most of what makes a
+                                // download useful — so it gets a folder of its
+                                // own and keeps it.
+                                var folder = Files.createTempDirectory("sui-download-");
+                                var file = folder.resolve(
+                                        downloadName(response, ctx.trigger().getUrl()));
+                                Files.write(file, response.body());
+                                onFxThread(() -> downloadHandler.accept(file.toFile()));
                             } catch (Exception e) {
                                 reportError(e);
                             }
@@ -1010,6 +1051,85 @@ public class SuiFxEventBus {
         return response.headers().firstValue(name).orElse(fallback);
     }
 
+    /** {@code filename="report.pdf"} and its {@code filename*=UTF-8''…} twin. */
+    private static final java.util.regex.Pattern ATTACHMENT_NAME = java.util.regex.Pattern.compile(
+            "filename\\*?=(?:UTF-8'')?[\"']?([^\"';]+)[\"']?", java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * What to call a downloaded file: {@code Content-Disposition} if the server
+     * said, otherwise the last segment of the url — the same two-step the
+     * browser renderer makes, so the same click saves the same name on either.
+     */
+    private static String downloadName(HttpResponse<?> response, String url) {
+        var matcher = ATTACHMENT_NAME.matcher(header(response, "Content-Disposition", ""));
+        if (matcher.find()) return safeName(decode(matcher.group(1)));
+
+        var path = url == null ? "" : url;
+        int query = path.indexOf('?');
+        if (query >= 0) path = path.substring(0, query);
+        int slash = path.lastIndexOf('/');
+        return safeName(decode(slash >= 0 ? path.substring(slash + 1) : path));
+    }
+
+    private static String decode(String value) {
+        if (value == null || value.indexOf('%') < 0) return value;
+        try {
+            return java.net.URLDecoder.decode(value, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException notEscaped) {
+            return value;
+        }
+    }
+
+    /**
+     * A name a server chose is not allowed to say where the file goes: strip it
+     * to a bare file name, so {@code ../../.ssh/authorized_keys} cannot come
+     * back as a path.
+     */
+    private static String safeName(String name) {
+        if (name == null) return "download";
+        var cleaned = name.trim().replace('\\', '/').replaceAll("[\\p{Cntrl}]", "");
+        int slash = cleaned.lastIndexOf('/');
+        if (slash >= 0) cleaned = cleaned.substring(slash + 1);
+        return cleaned.isBlank() || ".".equals(cleaned) || "..".equals(cleaned) ? "download" : cleaned;
+    }
+
+    /**
+     * The default {@link #setDownloadHandler(Consumer) download handler}: asks
+     * where the file should go and puts it there.
+     *
+     * <p>A browser drops a download into a folder everyone knows and shows it
+     * in a list. A desktop window has neither, so it asks — which also makes
+     * the download visible, and a download nobody can see is one that did not
+     * happen as far as the person who clicked is concerned.
+     */
+    private void saveAs(File downloaded) {
+        var chooser = new javafx.stage.FileChooser();
+        chooser.setTitle("Save " + downloaded.getName());
+        chooser.setInitialFileName(downloaded.getName());
+        var downloads = new File(System.getProperty("user.home", "."), "Downloads");
+        if (downloads.isDirectory()) chooser.setInitialDirectory(downloads);
+
+        var target = chooser.showSaveDialog(frontWindow(null));
+        if (target == null) return;   // the user said no; nothing to report
+        try {
+            Files.copy(downloaded.toPath(), target.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
+            reportError(e);
+        }
+    }
+
+    /**
+     * The window to hang a chooser or a dialog off: the focused one when there
+     * is one, so a second window of the same app cannot answer for it.
+     */
+    private static Window frontWindow(Window exclude) {
+        return Window.getWindows().stream()
+                .filter(w -> w.isShowing() && w != exclude)
+                .min(java.util.Comparator.comparing(w -> w.isFocused() ? 0 : 1))
+                .orElse(null);
+    }
+
     /**
      * Built-in {@code UPLOAD} behaviour: POSTs the picked files to the
      * trigger's url as {@code multipart/form-data} and routes the response
@@ -1113,7 +1233,17 @@ public class SuiFxEventBus {
         }
     }
 
+    /** Sends a trigger's request and hands back the body alone. */
     private <T> java.util.concurrent.CompletableFuture<T> sendAsync(
+            FxTriggerContext ctx, HttpResponse.BodyHandler<T> bodyHandler) {
+        return exchange(ctx, bodyHandler).thenApply(HttpResponse::body);
+    }
+
+    /**
+     * The same request, response and all — a download needs the headers to
+     * learn what the file is called.
+     */
+    private <T> java.util.concurrent.CompletableFuture<HttpResponse<T>> exchange(
             FxTriggerContext ctx, HttpResponse.BodyHandler<T> bodyHandler) {
 
         var trigger = ctx.trigger();
@@ -1135,7 +1265,6 @@ public class SuiFxEventBus {
         builder.header("Accept", "application/json");
 
         return http.sendAsync(builder.build(), bodyHandler)
-                .thenApply(HttpResponse::body)
                 .whenComplete((ok, err) -> {
                     if (err != null) reportError(err);
                 });
