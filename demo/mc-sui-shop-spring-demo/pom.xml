@@ -11,7 +11,7 @@
         <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>mc-sui-shop-demo</artifactId>
+    <artifactId>mc-sui-shop-spring-demo</artifactId>
     <packaging>jar</packaging>
     <description>
         Demo Spring Boot app: product admin (CRUD + pagination + search)

@@ -104,5 +104,5 @@ app.use(express.static(resolve(here, "public")));
 
 const port = process.env.PORT ?? 3000;
 app.listen(port, () => {
-  console.log(`mc-sui-node-demo running at http://localhost:${port}/`);
+  console.log(`mc-sui-shop-node-demo running at http://localhost:${port}/`);
 });

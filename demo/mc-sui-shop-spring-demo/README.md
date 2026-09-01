@@ -24,7 +24,7 @@ JavaScript at all** — every interaction is a plain HTML link or form post.
 
 ```bash
 # 1. Postgres (podman, defensive down + up — mirrors admin-ui-app's start-keycloak.sh)
-cd semantic-ui/demo/mc-sui-shop-demo
+cd semantic-ui/demo/mc-sui-shop-spring-demo
 cp .env.docker.example .env.docker   # if not already there
 ./start-postgres.sh
 

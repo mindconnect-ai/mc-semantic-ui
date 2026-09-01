@@ -1,4 +1,4 @@
-# mc-sui-node-demo
+# mc-sui-shop-node-demo
 
 A **pure Node.js / Express** demo for semantic-ui — a simplified version of the
 shop demo showing just the product list. It proves the point that semantic-ui's
@@ -26,7 +26,7 @@ cd semantic-ui/core/mc-semantic-ui-core
 npm install && npm run build
 
 # 2. Start the Node demo
-cd ../demo/mc-sui-node-demo
+cd ../demo/mc-sui-shop-node-demo
 npm install
 npm start
 # then open http://localhost:3000

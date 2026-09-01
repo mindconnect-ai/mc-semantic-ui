@@ -11,7 +11,7 @@
         <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
     </parent>
 
-    <artifactId>mc-sui-node-demo</artifactId>
+    <artifactId>mc-sui-shop-node-demo</artifactId>
     <!--
         No Java, no artifact to publish: packaging is `pom` so Maven skips the
         compiler and jar plugins entirely. This module exists in the reactor for

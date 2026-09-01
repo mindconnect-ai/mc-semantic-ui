@@ -5,13 +5,13 @@ sidebar_position: 11
 
 # End-to-end demo: the shop
 
-`demo/mc-sui-shop-demo` is a full Spring Boot CRUD application against Postgres —
+`demo/mc-sui-shop-spring-demo` is a full Spring Boot CRUD application against Postgres —
 the most complete worked example of semantic-ui in action.
 
 ## Run it
 
 ```bash
-cd semantic-ui/demo/mc-sui-shop-demo
+cd semantic-ui/demo/mc-sui-shop-spring-demo
 cp .env.docker.example .env.docker
 ./start-postgres.sh
 mvn spring-boot:run

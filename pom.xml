@@ -41,13 +41,13 @@
         <module>editor/mc-sui-editor-standalone-app</module>
         <module>editor/mc-sui-editor-app</module>
         <module>client/mc-sui-javafx-browser</module>
-        <module>demo/mc-sui-shop-demo</module>
+        <module>demo/mc-sui-shop-spring-demo</module>
         <module>demo/mc-sui-widget-demo</module>
         <module>demo/mc-sui-shop-client-demo</module>
         <module>demo/mc-sui-file-explorer-demo</module>
         <module>demo/mc-sui-merge-demo</module>
         <!-- No Java; in the reactor so a broken Node demo fails the build. -->
-        <module>demo/mc-sui-node-demo</module>
+        <module>demo/mc-sui-shop-node-demo</module>
     </modules>
 
 </project>
