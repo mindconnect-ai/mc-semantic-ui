@@ -1,0 +1,19 @@
+/* The demo shell around the semantic-ui content — banner and page frame only.
+   Everything inside #app is styled by the package's own sui.css. */
+body {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+}
+
+.demo-banner {
+    padding: 10px 20px;
+    background: #1a3a5c;
+    color: #fff;
+    font-size: 14px;
+}
+
+main {
+    padding: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+}

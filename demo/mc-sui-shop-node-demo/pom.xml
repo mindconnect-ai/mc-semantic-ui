@@ -17,17 +17,16 @@
         compiler and jar plugins entirely. This module exists in the reactor for
         one reason — to make the build fail when the Node demo breaks.
 
-        Until now it had no pom at all and no <module> entry, so nothing ever
-        built or checked it. Its client-copy script hard-codes a path into the
-        core module, which means a directory move elsewhere in the repo can
-        break it silently; that is exactly what a reactor build catches.
+        It is also the repo's only consumer of the client as an npm package
+        rather than as JAR resources, so it is where a broken "exports" map, a
+        missing type declaration or an asset that no longer bundles shows up —
+        none of which the Java tests can see.
     -->
     <packaging>pom</packaging>
     <description>
-        Pure Node.js / Express demo — serves a semantic-ui product list as plain
-        JSON, no Java backend. Built here only to keep it honest: `npm install`
-        must resolve and the core client assets must still be where the demo
-        expects them.
+        Pure Node.js / Express + Vite demo — serves a semantic-ui product list as
+        plain JSON, no Java backend. Built here to keep it honest: the client
+        package must resolve, typecheck against its own declarations, and bundle.
     </description>
 
     <build>
@@ -48,22 +47,50 @@
                         </configuration>
                     </execution>
                     <!--
-                        The real check: copy-client resolves the core module's
-                        compiled TypeScript and stylesheets into public/sui/ and
-                        exits non-zero when it can't find them. Bound to `test`
-                        rather than `compile` so it runs in a plain `mvn test`
-                        too — the demo has no unit tests, and this is the
-                        closest thing it has to one.
+                        The real checks, bound to `test` rather than `compile`
+                        so a plain `mvn test` runs them too — the demo has no
+                        unit tests, and these are the closest thing it has.
+
+                        typecheck compiles both halves against the client's own
+                        .d.ts files: it fails if the package's types stop
+                        describing the JSON the demo builds. Nothing else in the
+                        repo checks that the published declarations are usable.
                     -->
                     <execution>
-                        <id>npm-copy-client</id>
+                        <id>npm-typecheck</id>
                         <phase>test</phase>
                         <goals><goal>npm</goal></goals>
                         <configuration>
-                            <arguments>run copy-client</arguments>
+                            <arguments>run typecheck</arguments>
+                        </configuration>
+                    </execution>
+                    <!--
+                        build runs check-client first (its prebuild hook), then
+                        has Vite resolve every bare specifier and bundle the
+                        renderer, the stylesheet and the icon sprite. A broken
+                        "exports" entry or an asset that no longer resolves
+                        fails here and nowhere else.
+                    -->
+                    <execution>
+                        <id>npm-build</id>
+                        <phase>test</phase>
+                        <goals><goal>npm</goal></goals>
+                        <configuration>
+                            <arguments>run build</arguments>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!-- `vite build` writes dist/ outside target/; keep `mvn clean` honest. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset><directory>dist</directory></fileset>
+                    </filesets>
+                </configuration>
             </plugin>
         </plugins>
     </build>
