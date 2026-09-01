@@ -78,7 +78,7 @@
     <build>
         <plugins>
             <!--
-                Runs the showcase: mvn -f core/mc-semantic-ui-javafx/pom.xml javafx:run
+                Runs the showcase: mvn -f javafx/mc-semantic-ui-javafx/pom.xml javafx:run
                 It lives in src/main/java on purpose — it is the module's
                 worked example, and it doubles as a manual smoke test for
                 anything the headless unit tests cannot assert (focus, dialogs,
