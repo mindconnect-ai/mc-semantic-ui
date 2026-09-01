@@ -1,6 +1,6 @@
 {
   "name": "@mindconnect-ai/mc-semantic-ui-ext-json",
-  "version": "0.2.1",
+  "version": "0.2.2-SNAPSHOT",
   "description": "JSON-viewer extension for mc-semantic-ui — adds the `json-viewer` node type",
   "keywords": [
     "mc-semantic-ui",
@@ -37,7 +37,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@mindconnect-ai/mc-semantic-ui-core": "0.2.1"
+    "@mindconnect-ai/mc-semantic-ui-core": "0.2.2-SNAPSHOT"
   },
   "devDependencies": {
     "@mindconnect-ai/mc-semantic-ui-core": "file:../../core/mc-semantic-ui-core",
