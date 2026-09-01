@@ -23,12 +23,14 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
-- **A detail and a form can carry a header icon**, as a table and a list
-  already could. They had none at all — no field in the model, and neither
+- **A detail, a form and a section can carry a header icon**, as a table and a
+  list already could. They had none at all — no field in the model, and neither
   renderer drew one — so setting an icon on a form looked like a rendering bug
   rather than an absent feature, especially next to siblings that managed it.
-  `UiDetail.icon("info")` and `UiForm.icon("pencil")`, drawn before the title in
-  both the SPA and the SSR output.
+  `UiDetail.icon("info")`, `UiForm.icon("pencil")` and
+  `UiSection.icon("settings")`, drawn before the title in both the SPA and the
+  SSR output. A section's *tabs* could already carry icons; its own heading
+  could not.
 
 - **The TypeScript model names the fields Java actually sends.** Nine node
   interfaces were missing what every `UiNode` carries — `title`, `display`, and

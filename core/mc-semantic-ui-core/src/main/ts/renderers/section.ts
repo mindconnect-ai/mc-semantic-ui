@@ -27,7 +27,7 @@ function renderSectionBody(node: UiSection, r: SuiRenderer): string {
     // it as tabs would produce empty buttons and hide every panel except
     // the first — which manifests as "no chat input shown". Detect that
     // shape and emit all panels visible.
-    const titleHtml = node.title ? `<h2>${escapeHtml(node.title)}</h2>` : "";
+    const titleHtml = node.title ? `<h2>${node.icon ? renderIcon(node.icon) : ""}${escapeHtml(node.title)}</h2>` : "";
     const stackOnly = node.sections.length > 0
         && node.sections.every(s => !s.title && !s.href);
     if (stackOnly) {

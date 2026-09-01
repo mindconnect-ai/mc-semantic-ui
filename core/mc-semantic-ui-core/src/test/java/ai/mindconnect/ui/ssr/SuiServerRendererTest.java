@@ -978,6 +978,11 @@ class SuiServerRendererTest {
                         .field(UiField.text("name", "Name", "x")));
         assertTrue(form.contains("<use href=\"/sui/icons.svg#pencil\">"), form);
 
+        String section = renderer.render(
+                UiSection.of("s", "Settings").icon("settings")
+                        .section("tab1", "General", UiText.of("t", "hi")));
+        assertTrue(section.contains("<use href=\"/sui/icons.svg#settings\">"), section);
+
         // No icon, no empty element in the way of the title.
         String plain = renderer.render(UiDetail.of("d2", "Plain"));
         assertTrue(plain.contains("<h2>Plain</h2>"), plain);

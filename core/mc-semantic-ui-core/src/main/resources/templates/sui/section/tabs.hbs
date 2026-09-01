@@ -12,7 +12,7 @@
   the outer UiSection to pass in.
 --}}
 <div class="sui-section{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}">
-  {{#if title}}<h2>{{title}}</h2>{{/if}}
+  {{#if title}}<h2>{{#if icon}}{{{icon icon}}}{{/if}}{{title}}</h2>{{/if}}
   {{#if (stackOnly this)}}
     {{!-- Stack mode: no titles, no hrefs → just emit every panel without
          a tab bar so all of them are visible. Pattern used by the chat

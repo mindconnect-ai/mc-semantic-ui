@@ -667,6 +667,8 @@ export interface UiSectionEntry extends UiNodeBase {
 }
 export interface UiSection extends UiNodeBase {
     type: "section";
+    /** Icon token shown before the title, as on a table, list, detail or form. */
+    icon?: string;
     sections: UiSectionEntry[];
     initialSection?: string;
     collapseSummary?: string;
