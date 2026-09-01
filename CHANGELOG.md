@@ -21,6 +21,39 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **Applications decide what a live stream looks like.** `onStreamStateChange`
+  publishes the stream registry whenever it changes — a stream opened, closed,
+  changed state, or had its page mounted or unmounted. Listen for state rather
+  than for events: a stream also changes meaning when its page goes away, which
+  no SSE event announces. The listener fires once on registration, so it does
+  not start out blind.
+
+- **`UiPage.ActiveStream.returnLabel`** lets a page name its own destination —
+  a session title, a document name — for status surfaces that link back to it.
+
+- **A stream can be open without being busy.** `StreamHandle.state` gained
+  `"idle"`. A stream opened per session rather than per unit of work is open
+  almost all the time, so "a socket exists" stopped being a usable stand-in for
+  "something is running". A reconnect starts idle, the first event promotes it,
+  and `done` returns it to idle; a POST stream still starts as running, because
+  there the request itself is the work.
+
+### Removed
+
+- **The framework no longer draws the stream status toast.** It built its own
+  `#sui-stream-status-toast` on the body and shipped `stream.running`,
+  `stream.answerReady` and `stream.openChat` — a layer that moves bytes cannot
+  know it is carrying a *chat*. Rendering, wording and dismissal now belong to
+  the application; use `onStreamStateChange` to drive whatever surface you
+  want. The `.sui-stream-status` styles went with it.
+
+  **Breaking:** an application that relied on the framework-drawn toast loses
+  it silently on upgrade, along with any translation it had set for those three
+  keys. Reaping is unaffected — a finished stream is still closed and dropped
+  from the registry after a grace period, now independently of any rendering.
+
 ## [0.2.2] - 2026-09-01
 
 ### Added
