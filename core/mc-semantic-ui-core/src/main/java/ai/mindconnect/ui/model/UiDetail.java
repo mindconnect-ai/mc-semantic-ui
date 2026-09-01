@@ -10,10 +10,14 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class UiDetail extends UiNode {
     private List<UiField>  fields  = new ArrayList<>();
+
+    /** Icon token shown before the title, as on a table or a list. */
+    private String icon;
     private List<UiAction> actions = new ArrayList<>();
     private List<UiLink>   links   = new ArrayList<>();
 
     public UiDetail field(UiField field)    { fields.add(field);   return this; }
+    public UiDetail icon(String iconToken)  { this.icon = iconToken; return this; }
     public UiDetail action(UiAction action) { actions.add(action); return this; }
     public UiDetail link(UiLink link)       { links.add(link);     return this; }
 

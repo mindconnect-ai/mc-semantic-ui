@@ -1,6 +1,7 @@
 import type { UiDetail } from "../model.js";
 import { escapeHtml } from "../renderer.js";
 import { cls, evt } from "./util.js";
+import { renderIcon } from "./icon.js";
 import { renderActions, renderLinks } from "./shared.js";
 
 export function renderDetail(node: UiDetail): string {
@@ -11,7 +12,7 @@ export function renderDetail(node: UiDetail): string {
         </div>`
     ).join("");
     return `<div class="${cls("sui-detail", node)}"${evt(node)} id="${escapeHtml(node.id)}">
-        ${node.title ? `<h2>${escapeHtml(node.title)}</h2>` : ""}
+        ${node.title ? `<h2>${node.icon ? renderIcon(node.icon) : ""}${escapeHtml(node.title)}</h2>` : ""}
         <dl class="sui-detail-grid">${fields}</dl>
         <div class="sui-form-footer">
             ${renderActions(node.actions || [])}

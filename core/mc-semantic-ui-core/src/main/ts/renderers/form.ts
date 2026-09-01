@@ -2,6 +2,7 @@ import type { UiForm, UiAction } from "../model.js";
 import { escapeHtml, type SuiRenderer } from "../renderer.js";
 import { cls, evt } from "./util.js";
 import { renderField } from "./field.js";
+import { renderIcon } from "./icon.js";
 import { renderActions, renderLinks } from "./shared.js";
 
 export function renderForm(node: UiForm, r: SuiRenderer): string {
@@ -33,7 +34,7 @@ export function renderForm(node: UiForm, r: SuiRenderer): string {
         : "";
     return `<form class="${cls("sui-form", node)}"${evt(node)} id="${escapeHtml(node.id)}" data-sui="form"${reload}${methodAttr} data-node='${nodeJson}'>
         ${methodOverride}
-        ${node.title ? `<h2>${escapeHtml(node.title)}</h2>` : ""}
+        ${node.title ? `<h2>${node.icon ? renderIcon(node.icon) : ""}${escapeHtml(node.title)}</h2>` : ""}
         ${node.formError ? `<div class="sui-form-error" role="alert">${escapeHtml(node.formError)}</div>` : ""}
         ${fields}
         ${content}
