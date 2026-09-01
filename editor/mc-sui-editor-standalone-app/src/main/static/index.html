@@ -18,6 +18,26 @@
         No backend: projects and pages live in localStorage.
     -->
     <div id="app"></div>
+
+    <!--
+        The editor imports the core renderer by package name, so one source
+        works under a bundler, from jsDelivr's /+esm, and raw like here. This
+        tells the browser where the name lives.
+
+        Relative on purpose: this app is backend-free and gets served from
+        wherever it is copied — GitHub Pages under a path prefix, a file:// URL,
+        a subfolder of somebody's site. An absolute /sui/ would resolve against
+        the origin and 404 in every one of those.
+    -->
+    <script type="importmap">
+        {
+          "imports": {
+            "@mindconnect-ai/mc-semantic-ui-core": "./sui/renderer.js",
+            "@mindconnect-ai/mc-semantic-ui-core/": "./sui/"
+          }
+        }
+    </script>
+
     <script type="module" src="./shell.js"></script>
 </body>
 </html>

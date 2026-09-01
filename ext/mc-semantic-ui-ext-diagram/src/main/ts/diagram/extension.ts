@@ -1,4 +1,4 @@
-import type { SuiRenderer } from "/sui/renderer.js";
+import type { SuiRenderer } from "@mindconnect-ai/mc-semantic-ui-core";
 
 // escapeHtml is inlined (not imported from the core bundle) so the compiled
 // extension.js has NO runtime import of /sui/renderer.js. That keeps the bundle

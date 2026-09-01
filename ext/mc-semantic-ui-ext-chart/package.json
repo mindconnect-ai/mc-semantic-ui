@@ -1,13 +1,47 @@
 {
-  "name": "mc-semantic-ui-ext-chart",
-  "version": "0.0.1",
-  "description": "Chart extension for the Semantic UI renderer — adds the chart node type and draws it as SVG",
+  "name": "@mindconnect-ai/mc-semantic-ui-ext-chart",
+  "version": "0.2.1-SNAPSHOT",
+  "description": "Chart extension for mc-semantic-ui \u2014 adds the `chart` node type and draws it as SVG",
+  "keywords": [
+    "mc-semantic-ui",
+    "server-driven-ui",
+    "chart"
+  ],
+  "homepage": "https://github.com/mindconnect-ai/mc-semantic-ui",
+  "bugs": "https://github.com/mindconnect-ai/mc-semantic-ui/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindconnect-ai/mc-semantic-ui.git",
+    "directory": "ext/mc-semantic-ui-ext-chart"
+  },
+  "license": "Apache-2.0",
+  "author": "David Beisert <beisdog@web.de>",
   "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/chart/extension.d.ts",
+  "main": "./dist/chart/extension.js",
+  "exports": {
+    ".": {
+      "types": "./dist/chart/extension.d.ts",
+      "default": "./dist/chart/extension.js"
+    },
+    "./package.json": "./package.json",
+    "./chart.css": "./dist/chart/chart.css"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/build-dist.mjs",
     "typecheck": "tsc --noEmit"
   },
+  "peerDependencies": {
+    "@mindconnect-ai/mc-semantic-ui-core": "0.2.1-SNAPSHOT"
+  },
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "@mindconnect-ai/mc-semantic-ui-core": "file:../../core/mc-semantic-ui-core"
   }
 }

@@ -1,5 +1,17 @@
-import type { SuiRenderer } from "/sui/renderer.js";
-import { escapeHtml } from "/sui/renderer.js";
+import type { SuiRenderer } from "@mindconnect-ai/mc-semantic-ui-core";
+
+// escapeHtml is inlined (not imported from the core bundle) so the compiled
+// extension.js has NO runtime import at all. That keeps the bundle portable:
+// it loads from a CDN, from under a path prefix, or straight off a Spring app
+// with nothing to resolve and no import map to declare. The `import type`
+// above is erased at compile time. Same trick as the chart and diagram
+// extensions.
+const HTML_ESCAPE: Record<string, string> =
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+function escapeHtml(value: unknown): string {
+    if (value == null) return "";
+    return String(value).replace(/[&<>"']/g, ch => HTML_ESCAPE[ch]!);
+}
 
 /**
  * Wire shape of the {@code json-viewer} node, mirroring the Java

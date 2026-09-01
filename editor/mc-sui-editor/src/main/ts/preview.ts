@@ -22,7 +22,7 @@ import type { UiNodeJson } from "./types.js";
 // resolves to genuine types; the emitted import path is unchanged and the
 // browser loads it from the sibling /sui/ at runtime (Spring host, standalone,
 // or a sub-path deploy — /sui-editor/… and /sui/… stay siblings everywhere).
-import { SuiRenderer, installDefaultHandlers } from "../sui/renderer.js";
+import { SuiRenderer, installDefaultHandlers } from "@mindconnect-ai/mc-semantic-ui-core";
 
 const SELECTED_CLASS = "sui-editor-selected";
 

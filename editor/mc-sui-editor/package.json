@@ -1,13 +1,52 @@
 {
-  "name": "mc-sui-editor",
-  "version": "0.0.1",
-  "description": "Semantic UI WYSIWYG editor — TypeScript frontend",
+  "name": "@mindconnect-ai/mc-sui-editor",
+  "version": "0.2.1-SNAPSHOT",
+  "description": "Visual editor for mc-semantic-ui UiNode trees \u2014 the <sui-editor> custom element and its panes",
+  "keywords": [
+    "mc-semantic-ui",
+    "editor",
+    "server-driven-ui",
+    "web-component"
+  ],
+  "homepage": "https://github.com/mindconnect-ai/mc-semantic-ui",
+  "bugs": "https://github.com/mindconnect-ai/mc-semantic-ui/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindconnect-ai/mc-semantic-ui.git",
+    "directory": "editor/mc-sui-editor"
+  },
+  "license": "Apache-2.0",
+  "author": "David Beisert <beisdog@web.de>",
   "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/editor.d.ts",
+  "main": "./dist/editor.js",
+  "exports": {
+    ".": {
+      "types": "./dist/editor.d.ts",
+      "default": "./dist/editor.js"
+    },
+    "./element": {
+      "types": "./dist/sui-editor-element.d.ts",
+      "default": "./dist/sui-editor-element.js"
+    },
+    "./editor.css": "./dist/editor.css",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/build-dist.mjs",
     "typecheck": "tsc --noEmit"
   },
+  "peerDependencies": {
+    "@mindconnect-ai/mc-semantic-ui-core": "0.2.1-SNAPSHOT"
+  },
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "@mindconnect-ai/mc-semantic-ui-core": "file:../../core/mc-semantic-ui-core"
   }
 }
