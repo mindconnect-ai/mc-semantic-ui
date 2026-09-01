@@ -35,6 +35,8 @@ public class UiSection extends UiNode {
 
     private List<UiSectionEntry> sections     = new ArrayList<>();
     private String               initialSection;
+    /** Icon token shown before the title, as on a table, list, detail or form. */
+    private String               icon;
     /** Tab-bar overflow behaviour. Defaults to {@link TabOverflow#WRAP}. */
     private TabOverflow          tabOverflow;
     /**
@@ -46,6 +48,8 @@ public class UiSection extends UiNode {
     private String      collapseSummary;
     /** Initial open/closed state when {@link #collapseSummary} is set. */
     private boolean     collapseOpen;
+
+    public UiSection icon(String iconToken)   { this.icon = iconToken; return this; }
 
     public UiSection section(String id, String title, UiNode content) {
         sections.add(UiSectionEntry.of(id, title, content));
