@@ -13,7 +13,8 @@ name: release
 # hours the version can never be removed. So npm is published last of the two:
 # if it fails, the Central draft is still unpressed and nothing is public.
 #
-# Required repository secrets (Settings → Secrets and variables → Actions):
+# Required secrets. They live on the mindconnect-ai organisation, not on this
+# repository (Settings → Security → Secrets and variables → Actions):
 #   MAVEN_GPG_PRIVATE_KEY   armored private key: gpg --armor --export-secret-keys <KEY_ID>
 #   MAVEN_GPG_PASSPHRASE    that key's passphrase
 #   CENTRAL_TOKEN_USERNAME  Central Portal user token — username half
@@ -67,6 +68,7 @@ jobs:
       # Trusted publishing needs npm >= 11.5.1 on Node >= 22.14. Node 24 ships
       # an npm 11, but which one moves with the runner image, so it is pinned
       # here rather than assumed.
+      #
       # Deliberately without `registry-url`: that has setup-node write an .npmrc
       # naming ${NODE_AUTH_TOKEN}, and with no secret set npm would then
       # authenticate as nobody instead of falling through to trusted

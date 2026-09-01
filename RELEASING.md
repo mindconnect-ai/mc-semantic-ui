@@ -85,7 +85,9 @@ Run it from **Actions → release → Run workflow**. Both inputs are optional �
 blank means "drop `-SNAPSHOT`" and "bump the patch level".
 
 This needs no GPG and no `settings.xml` on your laptop. It needs these
-repository secrets, once (**Settings → Secrets and variables → Actions**):
+secrets, once. They live on the **organisation**, not the repository —
+**github.com/organizations/mindconnect-ai → Settings → Security → Secrets and
+variables → Actions**:
 
 | Secret | Value |
 | --- | --- |
@@ -94,6 +96,11 @@ repository secrets, once (**Settings → Secrets and variables → Actions**):
 | `CENTRAL_TOKEN_USERNAME` | Central Portal user token — username half |
 | `CENTRAL_TOKEN_PASSWORD` | Central Portal user token — password half |
 | `NPM_TOKEN` | only until trusted publishing is set up — see [npm](#4-npm) |
+
+Set each one's **Repository access** to *Selected repositories* →
+`mc-semantic-ui`. Not *Private repositories*: this repo is public, so that
+option would leave the secret unreachable and the failure would only surface
+mid-release, as an authentication error with no obvious cause.
 
 You still create the GPG key once yourself (see below) — but after exporting it
 into the secret, you never need it locally again.
