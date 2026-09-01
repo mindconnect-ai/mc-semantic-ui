@@ -746,6 +746,67 @@ If an action inside a `<form data-sui="form">` omits `payload`, the bus infers
 it from the surrounding form id — so a bare `.dispatch("GET", "/products")`
 search still picks up the form's `?q=…`.
 
+## Naming the handler instead of the URL
+
+Everything above spells the URL out as a string. That works, but nothing ties
+it to the code that answers it: no go-to-definition, no rename, no compiler
+check. In a UI of any size, "which controller serves this button?" becomes a
+grep.
+
+If your backend is Spring MVC, `UiActions` derives the trigger from the handler
+itself:
+
+```java
+import static ai.mindconnect.ui.mvc.UiActions.trigger;
+import static org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder.on;
+
+UiAction.danger("delete", "Delete")
+        .onClick(trigger(on(ProductController.class).delete(product.id())));
+```
+
+`on(...)` records the call on a proxy; the path **and** the HTTP verb are then
+read off the handler's own mapping:
+
+```java
+@DeleteMapping("/{id}")
+public UiPatch delete(@PathVariable UUID id) { … }
+// → DELETE /api/products/<id>
+```
+
+Rename the handler and every caller follows. Change its `@DeleteMapping` path
+and the button follows. Pass the wrong argument list and the build stops
+instead of the button.
+
+Three entry points:
+
+| Method                            | Gives you                                            |
+|-----------------------------------|------------------------------------------------------|
+| `trigger(call)`                   | `UiTrigger.api(verb, url)`                            |
+| `trigger(call, payloadNodeId)`    | the same, with a form as the payload                  |
+| `streaming(call, payloadNodeId)`  | `UiTrigger.stream(…)`, for handlers returning an emitter |
+
+`@RequestParam`s become the query string, and values are URL-encoded on the way
+out — one thing fewer to remember per call site:
+
+```java
+trigger(on(NoteController.class).add(id, "two words"))
+// → POST /api/notes/<id>?text=two%20words
+```
+
+:::note
+This is for **actions** — the POSTs and DELETEs behind buttons. Page addresses
+stay literal: they are bookmarked, linked and read by people, and deriving them
+buys nothing.
+
+Two constraints come from the recording proxy: the controller class and the
+called method must not be `final`, and the return type must be proxyable, so a
+`String`-returning handler (a view-name forward) cannot be referenced this way.
+Both are navigation endpoints in practice.
+
+Spring MVC is an `optional` dependency of `mc-semantic-ui-core` — using
+`UiActions` needs it on the classpath, nothing else does.
+:::
+
 ## Placeholder substitution
 
 Row actions, cell templates and pagination share a trigger template across many
@@ -807,6 +868,23 @@ table.paginate(page, size, total, UiTrigger.go("/admin/products?page={page}"));
 Cell templates substitute **every** string field of the cloned subtree, and
 suffix nested ids with `__<rowId>` to keep the DOM unique.
 
+### Placeholders when the URL is derived
+
+A row supplies its own id, so a derived URL has to keep the literal `{id}`
+rather than a value. `UiActions.ROW_ID` is the sentinel that renders back as
+the placeholder — passing it still type-checks in the position it belongs to:
+
+```java
+import static ai.mindconnect.ui.mvc.UiActions.ROW_ID;
+
+table.rowAction(UiAction.danger("delete", "Delete")
+        .onClick(trigger(on(ProductController.class).delete(ROW_ID))));
+// → DELETE /api/products/{id}
+```
+
+The substitution runs after URL-encoding, so the braces reach the renderer
+intact — a `%7Bid%7D` would match no row value at all.
+
 ## Custom behaviours
 
 The four network behaviours, `INVOKE` and `PATCH` are just the built-ins. Apps
@@ -846,5 +924,6 @@ an `INVOKE` handler instead to process the `File` objects client-side.
 
 - [Rendering modes](./rendering-modes.md) — SSR / SPA / patch flow
 - [Building an app](./building-an-app.md) — triggers in a full CRUD screen
+- [Spring Boot quickstart](./quickstart-spring-boot.md) — where `UiActions` fits in
 - [Node.js quickstart](./quickstart-node.md) — the trigger JSON is language-agnostic
 - [Shop demo](./shop-demo.md) — server-driven and client-only variants

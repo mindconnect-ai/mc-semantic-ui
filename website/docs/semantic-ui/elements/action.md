@@ -95,6 +95,11 @@ busy for the duration of its own request — leave `loading` alone for that. Set
 explicitly only when the *server* owns the state and pushes `loading: true` in a
 patch.
 
+**The URL need not be a string.** On Spring MVC, `UiActions.trigger(on(X.class)
+.method(args))` derives an `onClick`'s path and verb from the handler itself, so
+renaming it updates the button and a wrong argument list fails the build. See
+[Naming the handler instead of the URL](../triggers.md#naming-the-handler-instead-of-the-url).
+
 **Actions live in containers.** [`form`](./form.md), [`table`](./table.md)
 (`actions` and per-row `rowActions`), [`detail`](./detail.md) and
 [`list`](./list.md) items all take a list of actions — that's where most of them
@@ -104,5 +109,6 @@ belong, rather than loose in a stack.
 
 - **[Triggers & actions](../triggers.md)** — every behaviour an `onClick` can have.
 - **[Triggers cookbook](../triggers-cookbook.md)** — working recipes.
+- **[Naming the handler instead of the URL](../triggers.md#naming-the-handler-instead-of-the-url)** — derive the trigger from a Spring MVC method.
 - **[`link`](./link.md)** — plain navigation without button semantics.
 - **[`menu-button`](./menu-button.md)** — several actions behind one control.
