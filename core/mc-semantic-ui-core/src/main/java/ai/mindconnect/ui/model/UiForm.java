@@ -12,6 +12,9 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class UiForm extends UiNode {
     private List<UiField>  fields  = new ArrayList<>();
+
+    /** Icon token shown before the title, as on a table or a list. */
+    private String icon;
     private List<UiAction> actions = new ArrayList<>();
     private List<UiLink>   links   = new ArrayList<>();
     /**
@@ -48,6 +51,7 @@ public class UiForm extends UiNode {
     private boolean reloadOnSubmit;
 
     public UiForm field(UiField field)    { fields.add(field);   return this; }
+    public UiForm icon(String iconToken)  { this.icon = iconToken; return this; }
     public UiForm action(UiAction action) { actions.add(action); return this; }
     public UiForm link(UiLink link)       { links.add(link);     return this; }
 

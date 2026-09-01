@@ -957,4 +957,30 @@ class SuiServerRendererTest {
         // The trigger is still emitted; it is the switch that is suppressed.
         assertTrue(html.contains("mayLeave"), html);
     }
+    /**
+     * A detail and a form draw a header icon, as a table and a list already
+     * did. They had no icon at all — not in the model, not in either renderer —
+     * so setting one on a form looked like a rendering bug rather than an
+     * absent feature.
+     */
+    @Test
+    void rendersHeaderIconOnDetailAndForm() {
+        String detail = renderer.render(
+                UiDetail.of("d", "Session").icon("info")
+                        .field(UiField.text("sid", "Session ID", "abc")));
+        assertTrue(detail.contains("<h2><svg"), detail);
+        assertTrue(detail.contains("<use href=\"/sui/icons.svg#info\">"), detail);
+        // Before the title, not after it: the icon labels the heading.
+        assertTrue(detail.indexOf("icons.svg#info") < detail.indexOf("Session"), detail);
+
+        String form = renderer.render(
+                UiForm.of("f", "Edit").icon("pencil")
+                        .field(UiField.text("name", "Name", "x")));
+        assertTrue(form.contains("<use href=\"/sui/icons.svg#pencil\">"), form);
+
+        // No icon, no empty element in the way of the title.
+        String plain = renderer.render(UiDetail.of("d2", "Plain"));
+        assertTrue(plain.contains("<h2>Plain</h2>"), plain);
+    }
+
 }

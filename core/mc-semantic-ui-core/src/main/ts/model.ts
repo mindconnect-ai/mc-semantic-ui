@@ -458,6 +458,8 @@ export interface Pagination {
 
 export interface UiForm extends UiNodeBase {
     type: "form";
+    /** Icon token shown before the title, as on a table or a list. */
+    icon?: string;
     fields: UiField[];
     actions?: UiAction[];
     links?: UiLink[];
@@ -487,6 +489,8 @@ export interface UiForm extends UiNodeBase {
 
 export interface UiDetail extends UiNodeBase {
     type: "detail";
+    /** Icon token shown before the title, as on a table or a list. */
+    icon?: string;
     fields: UiField[];
     actions?: UiAction[];
     links?: UiLink[];

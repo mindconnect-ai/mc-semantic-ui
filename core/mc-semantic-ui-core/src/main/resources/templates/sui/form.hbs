@@ -18,7 +18,7 @@
 <form class="sui-form{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui="form"
       {{#if reloadOnSubmit}}data-sui-reload="true" {{/if}}method="{{formMethod this}}" action="{{formActionUrl this}}">
   {{#if (formNeedsMethodOverride this)}}<input type="hidden" name="_method" value="{{formMethodOverride this}}">{{/if}}
-  {{#if title}}<h2>{{title}}</h2>{{/if}}
+  {{#if title}}<h2>{{#if icon}}{{{icon icon}}}{{/if}}{{title}}</h2>{{/if}}
   {{#if formError}}<div class="sui-form-error" role="alert">{{formError}}</div>{{/if}}
   {{#each fields}}{{> field this}}{{/each}}
   {{#each content}}{{{render this}}}{{/each}}
@@ -31,7 +31,7 @@
 {{!-- Form without actions: render as an inert <form> wrapper. Rare, but
      avoids dropping the whole node when the model has no primary action. --}}
 <form class="sui-form{{#if cssClass}} {{cssClass}}{{/if}}" id="{{id}}" data-sui="form"{{#if reloadOnSubmit}} data-sui-reload="true"{{/if}}>
-  {{#if title}}<h2>{{title}}</h2>{{/if}}
+  {{#if title}}<h2>{{#if icon}}{{{icon icon}}}{{/if}}{{title}}</h2>{{/if}}
   {{#if formError}}<div class="sui-form-error" role="alert">{{formError}}</div>{{/if}}
   {{#each fields}}{{> field this}}{{/each}}
   {{#each content}}{{{render this}}}{{/each}}
