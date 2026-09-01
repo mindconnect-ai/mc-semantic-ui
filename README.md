@@ -326,7 +326,7 @@ Long-form comparison matrix lives in [`doc/concept.md`](doc/concept.md).
 <dependency>
   <groupId>ai.mindconnect</groupId>
   <artifactId>mc-semantic-ui-core</artifactId>
-  <version>0.2.1</version>
+  <version>0.2.2</version>
 </dependency>
 ```
 

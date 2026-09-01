@@ -1,6 +1,6 @@
 {
   "name": "@mindconnect-ai/mc-sui-editor",
-  "version": "0.2.2-SNAPSHOT",
+  "version": "0.2.2",
   "description": "Visual editor for mc-semantic-ui UiNode trees — the <sui-editor> custom element and its panes",
   "keywords": [
     "mc-semantic-ui",
@@ -43,7 +43,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@mindconnect-ai/mc-semantic-ui-core": "0.2.2-SNAPSHOT"
+    "@mindconnect-ai/mc-semantic-ui-core": "0.2.2"
   },
   "devDependencies": {
     "@mindconnect-ai/mc-semantic-ui-core": "file:../../core/mc-semantic-ui-core",
