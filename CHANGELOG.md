@@ -21,6 +21,24 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **A button can name the method it calls.** `UiActions.trigger(on(X.class).delete(id))`
+  derives a trigger's path and HTTP verb from the handler's own
+  `@RequestMapping`, so a component no longer spells the URL out as a string.
+  The compiler then checks the arguments, renaming a handler updates its
+  callers, and "go to definition" lands on the code that runs.
+
+  `streaming(...)` is the SSE variant, and `ROW_ID` is a sentinel for the
+  `{id}` a `UiTable` row action leaves for the client to fill. Values are
+  URL-encoded on the way out — something every caller writing URLs by hand had
+  to remember for itself.
+
+  Actions only. Page addresses are bookmarked, linked and read by people, so
+  they stay literal. Spring MVC stays an optional dependency: nothing else in
+  the model needs it.
+
+
 ## [0.2.1] - 2026-09-01
 
 ### Added
