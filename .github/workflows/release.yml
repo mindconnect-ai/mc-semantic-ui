@@ -79,6 +79,23 @@ jobs:
           node-version: '24'
       - run: npm install -g npm@^11.5.1
 
+      # Every npm package in the repo shares the flat version, exactly as the
+      # poms do. Listed once here and reused by the publish step below; a new
+      # package is added in one place.
+      - name: List the npm packages
+        id: pkgs
+        run: |
+          {
+            echo 'dirs<<EOF'
+            echo core/mc-semantic-ui-core
+            echo ext/mc-semantic-ui-ext-chart
+            echo ext/mc-semantic-ui-ext-diagram
+            echo ext/mc-semantic-ui-ext-json
+            echo ext/mc-semantic-ui-ext-markdown
+            echo editor/mc-sui-editor
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
       # Fail before anything is uploaded. A release that dies at the npm step
       # has already put a draft on Central and pushed a tag, and unpicking that
       # by hand is the situation this check exists to avoid.
@@ -166,7 +183,22 @@ jobs:
       # from this commit, so it has to say so. `npm version` rather than sed:
       # it edits the one field and carries the lockfile along.
       - name: Set release version in the npm packages
-        run: npm --prefix core/mc-semantic-ui-core version "${{ steps.v.outputs.release }}" --no-git-tag-version
+        run: |
+          set -euo pipefail
+          echo "${{ steps.pkgs.outputs.dirs }}" | while read -r d; do
+            [ -n "$d" ] || continue
+            VER="${{ steps.v.outputs.release }}"
+            npm --prefix "$d" version "$VER" --no-git-tag-version
+            # The extensions and the editor pin the core as a peer at the
+            # exact version, since they are painters for that renderer and are
+            # released together. `npm version` does not touch that field, so a
+            # published extension would otherwise name a peer that never
+            # existed. `npm pkg get` answers {} where there is no such key,
+            # which is how the core skips this.
+            if [ "$(npm --prefix "$d" pkg get "peerDependencies.@mindconnect-ai/mc-semantic-ui-core")" != "{}" ]; then
+              npm --prefix "$d" pkg set "peerDependencies.@mindconnect-ai/mc-semantic-ui-core=$VER"
+            fi
+          done
 
       # Keep the copy-paste dependency snippets on the version people can
       # actually pull. Targets only a <version> that follows an mc-* artifactId,
@@ -233,9 +265,17 @@ jobs:
       # --provenance signs the package using the OIDC token the id-token
       # permission allows, so npm can show which commit and workflow built it.
       # It works under both auth paths.
-      - name: Publish the client to npm
-        working-directory: core/mc-semantic-ui-core
-        run: npm publish --provenance --access public
+      - name: Publish the client and its extensions to npm
+        run: |
+          set -euo pipefail
+          # The core goes first: the others declare it as a peer at this exact
+          # version, and a consumer installing them the same minute should not
+          # find that peer missing.
+          echo "${{ steps.pkgs.outputs.dirs }}" | while read -r d; do
+            [ -n "$d" ] || continue
+            echo "── publishing $d"
+            ( cd "$d" && npm publish --provenance --access public )
+          done
 
       - name: Commit release version and tag
         run: |
@@ -246,7 +286,22 @@ jobs:
         run: find . -name pom.xml -exec sed -i "s|<version>${{ steps.v.outputs.release }}</version>|<version>${{ steps.v.outputs.next }}</version>|g" {} +
 
       - name: Open next development version in the npm packages
-        run: npm --prefix core/mc-semantic-ui-core version "${{ steps.v.outputs.next }}" --no-git-tag-version
+        run: |
+          set -euo pipefail
+          echo "${{ steps.pkgs.outputs.dirs }}" | while read -r d; do
+            [ -n "$d" ] || continue
+            VER="${{ steps.v.outputs.next }}"
+            npm --prefix "$d" version "$VER" --no-git-tag-version
+            # The extensions and the editor pin the core as a peer at the
+            # exact version, since they are painters for that renderer and are
+            # released together. `npm version` does not touch that field, so a
+            # published extension would otherwise name a peer that never
+            # existed. `npm pkg get` answers {} where there is no such key,
+            # which is how the core skips this.
+            if [ "$(npm --prefix "$d" pkg get "peerDependencies.@mindconnect-ai/mc-semantic-ui-core")" != "{}" ]; then
+              npm --prefix "$d" pkg set "peerDependencies.@mindconnect-ai/mc-semantic-ui-core=$VER"
+            fi
+          done
 
       # In the same commit as the version bump, so main always has somewhere to
       # write the next entry — the moment it does not, people stop writing them.

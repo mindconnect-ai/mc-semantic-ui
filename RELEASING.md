@@ -32,9 +32,12 @@ so a new app or demo never ships to Central by accident.
 javadoc, GPG-signs everything, and uploads to the Central Portal, where the
 bundle waits as a draft until somebody presses Publish.
 
-**The client → npm**, as `@mindconnect-ai/mc-semantic-ui-core`. Cut from the
-same commit and carrying the same version, because the JAR and the tarball ship
-the identical `dist/` and SSR and SPA markup have to match.
+**The client, its extensions and the editor → npm**, under
+`@mindconnect-ai/`. Six packages, cut from the same commit and carrying the
+same version as the poms, because each JAR and its tarball ship the identical
+`dist/` and SSR and SPA markup have to match. The extensions and the editor
+name the core as a peer at that exact version, and the workflow rewrites that
+pin along with everything else.
 
 The two differ in how final they are: Central holds a draft nobody sees, while
 an npm publish is live the moment it returns and cannot be withdrawn after 72

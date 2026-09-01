@@ -23,6 +23,31 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- **The extensions and the editor are npm packages too.**
+  `@mindconnect-ai/mc-semantic-ui-ext-chart`, `-diagram`, `-json`, `-markdown`
+  and `@mindconnect-ai/mc-sui-editor`, cut from the same commit and carrying
+  the same version as the core they paint for.
+
+  All four extensions are now **import-free**: nothing to resolve, so one file
+  works from a CDN, from under a path prefix, from a bundler, and straight off
+  a Spring app with no import map. `json` and `markdown` used to import
+  `escapeHtml` from an absolute `/sui/renderer.js`, which resolves against the
+  origin rather than the app — the reason those two were the only ones missing
+  from the docs site, where the core lives under a path prefix. They inline it
+  now, as `chart` and `diagram` already did.
+
+  The editor does import the renderer at run time, because it builds one for
+  its preview pane, so it names the package instead of a path. A bundler
+  resolves that itself and jsDelivr's `/+esm` rewrites it; a page serving the
+  file raw declares an import map, which the bundled `editor.html` and the
+  standalone app now do.
+
+  Consequences worth knowing: the editor no longer carries a checked-in copy of
+  the core's `.d.ts` under `src/main/sui/`, and the Maven step that staged it is
+  gone — types come from the package. Extensions declare the core as a peer
+  dependency at the exact version, so a mismatched pair is an install warning
+  rather than a puzzling runtime failure.
+
 - **The client is an npm package.** `@mindconnect-ai/mc-semantic-ui-core` carries
   the compiled renderer, its type declarations, the three stylesheets and the
   icon sprite, so a Vite or webpack project can `npm install` it instead of

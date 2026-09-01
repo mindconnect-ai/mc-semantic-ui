@@ -97,19 +97,29 @@
                 <artifactId>maven-resources-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>copy-ts-dist</id>
+                        <id>copy-dist</id>
                         <phase>process-classes</phase>
                         <goals><goal>copy-resources</goal></goals>
                         <configuration>
                             <outputDirectory>${project.build.outputDirectory}/META-INF/resources/sui-ext</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>target/ts-dist</directory>
+                                    <directory>dist</directory>
                                 </resource>
                             </resources>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- `npm run build` writes dist/ outside target/; keep `mvn clean` honest. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset><directory>dist</directory></fileset>
+                    </filesets>
+                </configuration>
             </plugin>
         </plugins>
     </build>

@@ -1,14 +1,46 @@
 {
-  "name": "mc-semantic-ui-ext-json",
-  "version": "0.0.1",
-  "private": true,
+  "name": "@mindconnect-ai/mc-semantic-ui-ext-json",
+  "version": "0.2.1-SNAPSHOT",
+  "description": "JSON-viewer extension for mc-semantic-ui \u2014 adds the `json-viewer` node type",
+  "keywords": [
+    "mc-semantic-ui",
+    "server-driven-ui",
+    "json"
+  ],
+  "homepage": "https://github.com/mindconnect-ai/mc-semantic-ui",
+  "bugs": "https://github.com/mindconnect-ai/mc-semantic-ui/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindconnect-ai/mc-semantic-ui.git",
+    "directory": "ext/mc-semantic-ui-ext-json"
+  },
+  "license": "Apache-2.0",
+  "author": "David Beisert <beisdog@web.de>",
   "type": "module",
-  "description": "Browser-side renderer for the semantic-ui json-viewer node.",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/jsonviewer/extension.d.ts",
+  "main": "./dist/jsonviewer/extension.js",
+  "exports": {
+    ".": {
+      "types": "./dist/jsonviewer/extension.d.ts",
+      "default": "./dist/jsonviewer/extension.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/build-dist.mjs",
     "typecheck": "tsc --noEmit"
   },
+  "peerDependencies": {
+    "@mindconnect-ai/mc-semantic-ui-core": "0.2.1-SNAPSHOT"
+  },
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "@mindconnect-ai/mc-semantic-ui-core": "file:../../core/mc-semantic-ui-core"
   }
 }

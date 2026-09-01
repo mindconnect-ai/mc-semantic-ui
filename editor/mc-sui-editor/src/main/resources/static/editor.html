@@ -14,6 +14,28 @@
     JS is the single source of truth — no flash of half-baked HTML.
   -->
   <div id="sui-editor-root"></div>
+
+  <!--
+    The editor imports the core renderer by package name, so one source serves
+    every way of loading it: a bundler resolves the name itself, jsDelivr's
+    /+esm rewrites it to a CDN URL, and a browser loading the file raw — which
+    is what a Spring app does — is told here where it lives.
+
+    Must come before the module that needs it; an import map declared after the
+    first module import is ignored.
+
+    The trailing-slash entry is not a duplicate of the first: it maps subpaths
+    (…/eventbus, …/model), which the exact-name entry does not cover.
+  -->
+  <script type="importmap">
+    {
+      "imports": {
+        "@mindconnect-ai/mc-semantic-ui-core": "/sui/renderer.js",
+        "@mindconnect-ai/mc-semantic-ui-core/": "/sui/"
+      }
+    }
+  </script>
+
   <script type="module" src="/sui-editor/editor.js"></script>
 </body>
 </html>

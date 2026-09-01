@@ -1,13 +1,47 @@
 {
-  "name": "mc-semantic-ui-ext-diagram",
-  "version": "0.0.1",
-  "description": "Diagram extension for the Semantic UI renderer — UiDiagram SVG Web Component",
+  "name": "@mindconnect-ai/mc-semantic-ui-ext-diagram",
+  "version": "0.2.1-SNAPSHOT",
+  "description": "Diagram extension for mc-semantic-ui \u2014 adds the `diagram` node type, drawn as SVG from server-computed positions",
+  "keywords": [
+    "mc-semantic-ui",
+    "server-driven-ui",
+    "diagram"
+  ],
+  "homepage": "https://github.com/mindconnect-ai/mc-semantic-ui",
+  "bugs": "https://github.com/mindconnect-ai/mc-semantic-ui/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindconnect-ai/mc-semantic-ui.git",
+    "directory": "ext/mc-semantic-ui-ext-diagram"
+  },
+  "license": "Apache-2.0",
+  "author": "David Beisert <beisdog@web.de>",
   "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/diagram/extension.d.ts",
+  "main": "./dist/diagram/extension.js",
+  "exports": {
+    ".": {
+      "types": "./dist/diagram/extension.d.ts",
+      "default": "./dist/diagram/extension.js"
+    },
+    "./package.json": "./package.json",
+    "./diagram.css": "./dist/diagram/diagram.css"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/build-dist.mjs",
     "typecheck": "tsc --noEmit"
   },
+  "peerDependencies": {
+    "@mindconnect-ai/mc-semantic-ui-core": "0.2.1-SNAPSHOT"
+  },
   "devDependencies": {
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "@mindconnect-ai/mc-semantic-ui-core": "file:../../core/mc-semantic-ui-core"
   }
 }
