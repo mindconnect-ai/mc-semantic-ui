@@ -98,10 +98,10 @@ is a sweet spot, and where it explicitly isn't.
 | `editor/mc-sui-editor`                | Embeddable visual editor (Tree + Property panel + Live preview)            |
 | `editor/mc-sui-editor-app`            | Standalone demo for the editor with sample content                         |
 | `editor/mc-sui-editor-standalone-app` | Backend-free editor SPA: projects/pages in localStorage, live preview, exports to static / Spring Boot / Node |
-| `demo/mc-sui-shop-demo`               | End-to-end demo app: Postgres-backed product CRUD                          |
+| `demo/mc-sui-shop-spring-demo`               | End-to-end demo app: Postgres-backed product CRUD                          |
 | `demo/mc-sui-shop-client-demo`        | Backend-free shop: list + detail dialog + upload, driven by client triggers |
 | `demo/mc-sui-file-explorer-demo`      | File explorer over the real filesystem, with drag-and-drop `UiUpload`      |
-| `demo/mc-sui-node-demo`               | Pure Node.js / Express demo — product list served as plain JSON, no Java   |
+| `demo/mc-sui-shop-node-demo`               | Pure Node.js / Express demo — product list served as plain JSON, no Java   |
 | `demo/mc-sui-widget-demo`             | Static, backend-free showcase of every widget (plain JS `UiNode` literals) |
 
 ## The core idea in one example
@@ -184,7 +184,7 @@ app.get("/products", (req, res) => {
 });
 ```
 
-That is the whole backend. See [`demo/mc-sui-node-demo`](demo/mc-sui-node-demo)
+That is the whole backend. See [`demo/mc-sui-shop-node-demo`](demo/mc-sui-shop-node-demo)
 for the runnable version.
 
 Three things happen for free. The first needs the JVM renderer; the other two
@@ -366,10 +366,10 @@ The editor is embeddable into your application.
 
 ## End-to-end demo: the shop
 
-`demo/mc-sui-shop-demo` is a full Spring Boot CRUD against Postgres:
+`demo/mc-sui-shop-spring-demo` is a full Spring Boot CRUD against Postgres:
 
 ```bash
-cd demo/mc-sui-shop-demo
+cd demo/mc-sui-shop-spring-demo
 cp .env.docker.example .env.docker
 ./start-postgres.sh
 mvn spring-boot:run
@@ -469,7 +469,7 @@ mc-semantic-ui/                            — repo root (the build reactor)
 │   └── mc-sui-editor-app/                 — standalone showcase
 │
 └── demo/
-    └── mc-sui-shop-demo/                  — full Postgres-backed shop
+    └── mc-sui-shop-spring-demo/                  — full Postgres-backed shop
 ```
 
 ## Status

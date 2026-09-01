@@ -645,10 +645,17 @@ export class SuiEventBus {
             host.id = "sui-dialogs";
             host.className = "sui-dialogs";
             document.body.appendChild(host);
-            this.installListenersOn(host);
-            // inScope() consults this so events from within dialogs are handled.
-            this.dialogListenerHost = host;
         }
+        // Wire whichever host we ended up with, not only one we just made. A
+        // server-rendered page arrives with this element already in the markup
+        // and possibly with a dialog open inside it; finding one is no reason
+        // to leave it inert — that dialog could not be closed and nothing in it
+        // could be clicked. Re-wiring is harmless: installListenersOn passes
+        // the same bound handlers every time, and addEventListener ignores a
+        // duplicate.
+        this.installListenersOn(host);
+        // inScope() consults this so events from within dialogs are handled.
+        this.dialogListenerHost = host;
         return host;
     }
 
@@ -956,7 +963,7 @@ export class SuiEventBus {
         dragleave: (e: Event) => void;
         drop: (e: Event) => void;
     } | null = null;
-    /** Dialog-host element we've attached listeners to; null when no dialog open. */
+    /** Dialog-host element we've attached listeners to; null until it is wired. */
     private dialogListenerHost: HTMLElement | null = null;
 
     private installListenersOn(target: HTMLElement): void {

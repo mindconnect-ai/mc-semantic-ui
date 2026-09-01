@@ -65,9 +65,9 @@ not move with the directory.
   `ext/mc-semantic-ui-ext-diagram` (`diagram`),
   `ext/mc-semantic-ui-ext-chart` (`chart`) — each adds node types
 - `editor/mc-sui-editor` (+ `-app`, `-standalone-app`) — embeddable visual editor
-- `demo/mc-sui-shop-demo` (Postgres CRUD), `mc-sui-widget-demo`,
+- `demo/mc-sui-shop-spring-demo` (Postgres CRUD), `mc-sui-widget-demo`,
   `mc-sui-file-explorer-demo`, `mc-sui-shop-client-demo`,
-  `mc-sui-node-demo` (no Java — `packaging: pom`, builds its npm side only)
+  `mc-sui-shop-node-demo` (no Java — `packaging: pom`, builds its npm side only)
 - `website/` — Docusaurus docs (live in this repo; no separate deploy)
 
 ## Build & run
@@ -79,7 +79,7 @@ mvn -pl core/mc-semantic-ui-core test -Dtest=SuiServerRendererTest
 
 # apps
 mvn -f editor/mc-sui-editor-app/pom.xml spring-boot:run   # http://localhost:8080/editor
-mvn -f demo/mc-sui-shop-demo/pom.xml    spring-boot:run   # needs Postgres; see its README
+mvn -f demo/mc-sui-shop-spring-demo/pom.xml    spring-boot:run   # needs Postgres; see its README
 
 # docs
 cd website && npm install && npm run start

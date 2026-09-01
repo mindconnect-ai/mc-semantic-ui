@@ -1,13 +1,68 @@
 {
-  "name": "mc-semantic-ui-core",
-  "version": "0.0.1",
-  "description": "Semantic UI core \u2014 model types and pluggable renderer (Web Components, no build tool required)",
+  "name": "@mindconnect-ai/mc-semantic-ui-core",
+  "version": "0.2.1-SNAPSHOT",
+  "description": "mc-semantic-ui core — the UiNode model and a pluggable renderer that turns it into HTML. Plain ESM, no build tool required.",
+  "keywords": [
+    "mc-semantic-ui",
+    "server-driven-ui",
+    "hypermedia",
+    "renderer",
+    "ssr",
+    "spa",
+    "ui-schema"
+  ],
+  "homepage": "https://github.com/mindconnect-ai/mc-semantic-ui",
+  "bugs": "https://github.com/mindconnect-ai/mc-semantic-ui/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindconnect-ai/mc-semantic-ui.git",
+    "directory": "core/mc-semantic-ui-core"
+  },
+  "license": "Apache-2.0",
+  "author": "David Beisert <beisdog@web.de>",
   "type": "module",
+  "files": [
+    "dist"
+  ],
+  "types": "./dist/renderer.d.ts",
+  "main": "./dist/renderer.js",
+  "exports": {
+    ".": {
+      "types": "./dist/renderer.d.ts",
+      "default": "./dist/renderer.js"
+    },
+    "./eventbus": {
+      "types": "./dist/eventbus.d.ts",
+      "default": "./dist/eventbus.js"
+    },
+    "./model": {
+      "types": "./dist/model.d.ts",
+      "default": "./dist/model.js"
+    },
+    "./bff": {
+      "types": "./dist/bff.d.ts",
+      "default": "./dist/bff.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n.d.ts",
+      "default": "./dist/i18n.js"
+    },
+    "./sui.css": "./dist/sui.css",
+    "./sui-dark.css": "./dist/sui-dark.css",
+    "./sui-sbb.css": "./dist/sui-sbb.css",
+    "./icons.svg": "./dist/icons.svg",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && node scripts/build-dist.mjs",
+    "build:dist": "node scripts/build-dist.mjs",
     "build:icons": "node scripts/build-icons.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --test src/test/ts/*.test.mjs"
+    "test": "node --test src/test/ts/*.test.mjs",
+    "prepack": "npm run build"
   },
   "devDependencies": {
     "lucide-static": "^1.24.0",

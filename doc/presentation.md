@@ -1175,13 +1175,13 @@ mc-semantic-ui/
 ├── ext/mc-semantic-ui-ext-chart/        ← chart extension
 ├── editor/mc-sui-editor/            ← embeddable visual editor
 ├── editor/mc-sui-editor-app/        ← standalone editor showcase
-└── demo/mc-sui-shop-demo/           ← Postgres-backed product CRUD
+└── demo/mc-sui-shop-spring-demo/           ← Postgres-backed product CRUD
 ```
 
 **Run it:**
 
 ```bash
-cd demo/mc-sui-shop-demo
+cd demo/mc-sui-shop-spring-demo
 ./start-postgres.sh && mvn spring-boot:run
 # then http://localhost:8080
 ```

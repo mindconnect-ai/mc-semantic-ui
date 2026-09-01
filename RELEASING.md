@@ -189,6 +189,15 @@ the passphrase never has to be written into `settings.xml` or the POM.
    mvn versions:set -DnewVersion=0.1.0 -DgenerateBackupPoms=false
    ```
 
+   `core/mc-semantic-ui-core/package.json` carries the same version by hand —
+   it is the npm side of the same client, and the two must agree. Nothing
+   publishes it to a registry yet, so a stale value breaks nothing today; set
+   it anyway, so the first npm release does not inherit a lie.
+
+   ```bash
+   npm --prefix core/mc-semantic-ui-core version 0.1.0 --no-git-tag-version
+   ```
+
 2. **Build, sign and upload:**
 
    ```bash
@@ -214,6 +223,7 @@ the passphrase never has to be written into `settings.xml` or the POM.
    git commit -am "release 0.1.0"
    git tag v0.1.0
    mvn versions:set -DnewVersion=0.2.0-SNAPSHOT -DgenerateBackupPoms=false
+   npm --prefix core/mc-semantic-ui-core version 0.2.0-SNAPSHOT --no-git-tag-version
    git commit -am "back to snapshot 0.2.0-SNAPSHOT"
    git push && git push --tags
    ```

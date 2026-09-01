@@ -273,7 +273,7 @@ type-safe backend teams.
 - **`editor/mc-sui-editor-app`** — standalone showcase for the
   editor with sample content covering every node type.
 
-- **`demo/mc-sui-shop-demo`** — end-to-end demo: Postgres-backed
+- **`demo/mc-sui-shop-spring-demo`** — end-to-end demo: Postgres-backed
   product CRUD demonstrating SSR + SPA mode switching, theme picker,
   cell templates, multi-row selection, toasts, dialogs.
 

@@ -4,9 +4,13 @@ title: 'Quickstart: Node.js backend'
 
 # Quickstart — Node.js backend + browser client
 
-The wire format is **plain JSON**, so there is **no semantic-ui code on the
-server** — your Node backend just returns the `UiPage` shape, and the browser
-renderer paints it. (SSR to HTML is JVM-only; a Node backend uses the SPA path.)
+The wire format is **plain JSON**, so a Node backend can get away with
+returning the `UiPage` shape and letting the browser renderer paint it — that
+is the whole of steps 1–4 below.
+
+It can also do more than that. The renderer ships as an npm package and
+`render()` returns an HTML string without touching the DOM, so the same Node
+process can render a page server-side; see [step 6](#6-render-on-the-server).
 
 ## 1. Emit the tree from Express
 
@@ -129,11 +133,103 @@ app.get(/.*/, (req, res, next) =>
   req.accepts("html") ? res.sendFile(resolve("public/index.html")) : next());
 ```
 
-:::note Why Spring Boot doesn't need this
-With SSR enabled the Java side answers the document request with real HTML from
-the same controller — see [server-side rendering](./server-side-rendering.md#reloading-a-deep-url).
-Node has no server renderer, so the shell is what answers instead.
+:::note Serving the shell, or the page itself
+Answering with the shell is the simple option: the client boots, asks the same
+URL for JSON, and the user lands where they linked to. The cost is one extra
+round trip and an empty first paint.
+
+With SSR enabled the Java side instead answers the document request with real
+HTML from the same controller — see
+[server-side rendering](./server-side-rendering.md#reloading-a-deep-url). Node
+can do that too; [step 6](#6-render-on-the-server) replaces the `sendFile` above
+with a rendered page.
 :::
+
+## 6. Render on the server
+
+Step 5 sends the shell and lets the client fetch. If you want the content in the
+response instead — for a faster first paint, or because a crawler has to read it
+— render it here. `SuiRenderer.render()` returns an HTML string and touches no
+DOM, so it runs in plain Node with no jsdom:
+
+```bash
+npm install @mindconnect-ai/mc-semantic-ui-core
+```
+
+```js
+import { createDefaultRenderer, setIconSpriteUrl } from "@mindconnect-ai/mc-semantic-ui-core";
+
+// In Node `import.meta.url` is a file: URL, so the icon renderer's default
+// would put an absolute path off this machine's disk into every page it sends.
+setIconSpriteUrl("/sui/icons.svg");
+
+const renderer = createDefaultRenderer();
+
+function document(page, meta) {
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>${meta.title}</title>
+<meta name="description" content="${meta.description}">
+<link rel="canonical" href="${meta.canonical}">
+<link rel="stylesheet" href="/sui/sui.css"></head>
+<body>
+<div id="sui-root">${renderer.render(page.node)}</div>
+<script type="application/json" id="sui-model">${JSON.stringify(page.node).replace(/<\//g, "<\\/")}</script>
+<script type="module" src="/app.js"></script>
+</body></html>`;
+}
+
+app.get("/products", (req, res) => {
+  const page = productListPage(req.query.q);
+  if (req.accepts("html")) return res.type("html").send(document(page, metaFor(req)));
+  res.json(page);
+});
+```
+
+Because this is the renderer the browser runs, there is nothing to keep in
+step: the server's markup and the SPA's are the same code's output.
+
+Two pieces of that template are load-bearing:
+
+- **`<div id="sui-root">`** is what the bus attaches to.
+- **`<script id="sui-model">`** is the tree the bus seeds its model index from.
+  A `MERGE` patch changes a few fields of a node and leaves the rest alone, so
+  the client has to know what the rest were — and it never drew this page.
+
+Then have the client **take the page over instead of fetching it again**;
+re-fetching would throw away what you just paid for:
+
+```js
+const host = document.getElementById("sui-root");
+const renderer = installDefaultHandlers(new SuiRenderer(host));
+const bus = new SuiEventBus(renderer, host);   // seeds from #sui-model
+if (host.childElementCount === 0) bus.navigate(location.pathname + location.search);
+```
+
+### If you are doing this for SEO
+
+One distinction decides whether your pages are discoverable at all:
+
+| Node | Markup | A crawler |
+|---|---|---|
+| `link` | `<a href="/products/p-1">` | follows it |
+| `action` | `<button data-trigger=…>` | never sees it |
+
+Googlebot runs JavaScript, but it does not click buttons. **Navigation that
+should be indexed belongs in `link` nodes** — including a table's
+`cellTemplate` — while `action` stays for mutations. Get this wrong and every
+page renders beautifully and none of them links to another.
+
+The rest is the ordinary checklist, and none of it lives in `UiPage`: the model
+describes the UI, not how it is indexed. Derive a `<title>` and
+`<meta description>` per URL, set a query-free `<link rel="canonical">` so
+`?q=…` views are not indexed as pages of their own, and return a real `404`
+rather than a `200` carrying an apology — a search engine that indexes a
+soft-404 keeps it.
+
+You do **not** need the no-JS action rendering the JVM side does (`GET` as a
+real anchor, `DELETE` as a form). That is for people browsing without
+JavaScript; no crawler submits forms.
 
 ## What you need — and what you don't
 
@@ -142,8 +238,12 @@ Node has no server renderer, so the shell is what answers instead.
   the rest.
 - **Not needed:** the Java library, an ORM, or any framework. The shape is the
   contract — Go, Python, Rust and a static `.json` file all work the same way.
-- **Not available outside the JVM:** server-rendered HTML. That path uses the
-  Java Handlebars renderer, which is why the reload section above exists.
+- **Optional, and Node-only among the non-JVM backends:** rendering the page
+  server-side, because the renderer is an npm package. A Go or Python backend
+  stays on the SPA path, or shells out to Node for the render.
+- **Still JVM-only:** the Handlebars templates and the no-JS action rendering
+  that turns a `GET` into an anchor and a `DELETE` into a form. Node renders the
+  same nodes, but its buttons need the bus.
 
 ## The client is identical
 
@@ -156,15 +256,25 @@ not a `UiPage` envelope.
 
 ## Runnable demo
 
-A complete version lives in `demo/mc-sui-node-demo` — a pure Node.js / Express
-server that holds products in memory and serves the list (search, per-row
-delete, detail dialog) as `UiPage` JSON, reusing the unchanged `SuiRenderer`:
+A complete version lives in `demo/mc-sui-shop-node-demo` — TypeScript and Vite
+over a pure Node.js / Express server that holds products in memory and serves
+the list (search, per-row delete, detail dialog) both ways: as `UiPage` JSON for
+the bus, and server-rendered for a browser navigation, with per-page title,
+description and canonical.
 
 ```bash
 # build the core client bundle once, then run the Node demo
 cd core/mc-semantic-ui-core && npm install && npm run build
-cd ../demo/mc-sui-node-demo && npm install && npm start
+cd ../../demo/mc-sui-shop-node-demo && npm install && npm run dev
 # open http://localhost:3000
+```
+
+`npm run dev` runs Express with Vite as middleware — one process, one port, hot
+reload. `npm start` builds the bundle and serves it instead. To see what a
+crawler sees, ask for HTML and read the response:
+
+```bash
+curl -s -H "Accept: text/html" http://localhost:3000/products/p-1
 ```
 
 It's the cross-language counterpart to the Java [shop demo](./shop-demo.md).

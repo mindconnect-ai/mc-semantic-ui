@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ai.mindconnect</groupId>
+        <artifactId>mc-semantic-ui-parent</artifactId>
+        <version>0.2.1-SNAPSHOT</version>
+        <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mc-sui-shop-node-demo</artifactId>
+    <!--
+        No Java, no artifact to publish: packaging is `pom` so Maven skips the
+        compiler and jar plugins entirely. This module exists in the reactor for
+        one reason — to make the build fail when the Node demo breaks.
+
+        It is also the repo's only consumer of the client as an npm package
+        rather than as JAR resources, so it is where a broken "exports" map, a
+        missing type declaration or an asset that no longer bundles shows up —
+        none of which the Java tests can see.
+    -->
+    <packaging>pom</packaging>
+    <description>
+        Pure Node.js / Express + Vite demo — serves a semantic-ui product list as
+        plain JSON, no Java backend. Built here to keep it honest: the client
+        package must resolve, typecheck against its own declarations, and bundle.
+    </description>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>install-node-and-npm</id>
+                        <goals><goal>install-node-and-npm</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>npm-install</id>
+                        <goals><goal>npm</goal></goals>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                    <!--
+                        The real checks, bound to `test` rather than `compile`
+                        so a plain `mvn test` runs them too — the demo has no
+                        unit tests, and these are the closest thing it has.
+
+                        typecheck compiles both halves against the client's own
+                        .d.ts files: it fails if the package's types stop
+                        describing the JSON the demo builds. Nothing else in the
+                        repo checks that the published declarations are usable.
+                    -->
+                    <execution>
+                        <id>npm-typecheck</id>
+                        <phase>test</phase>
+                        <goals><goal>npm</goal></goals>
+                        <configuration>
+                            <arguments>run typecheck</arguments>
+                        </configuration>
+                    </execution>
+                    <!--
+                        build runs check-client first (its prebuild hook), then
+                        has Vite resolve every bare specifier and bundle the
+                        renderer, the stylesheet and the icon sprite. A broken
+                        "exports" entry or an asset that no longer resolves
+                        fails here and nowhere else.
+                    -->
+                    <execution>
+                        <id>npm-build</id>
+                        <phase>test</phase>
+                        <goals><goal>npm</goal></goals>
+                        <configuration>
+                            <arguments>run build</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- `vite build` writes dist/ outside target/; keep `mvn clean` honest. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset><directory>dist</directory></fileset>
+                    </filesets>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

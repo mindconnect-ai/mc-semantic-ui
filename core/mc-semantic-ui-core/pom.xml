@@ -78,10 +78,12 @@
         <plugins>
             <!--
                 Run the TypeScript compile alongside javac. The TS sources live
-                under src/main/ts/ and emit into target/ts-dist/, which we then
-                fold into the JAR under META-INF/resources/sui/ so any
-                Spring-Boot consumer picks them up automatically as static
-                resources at /sui/*.
+                under src/main/ts/ and emit into target/ts-dist/; `npm run
+                build` then assembles dist/ from that plus the stylesheets and
+                the icon sprite, and the resources-plugin below folds dist/ into
+                the JAR under META-INF/resources/sui/ so any Spring-Boot
+                consumer picks it up automatically as static resources
+                at /sui/*.
             -->
             <plugin>
                 <groupId>com.github.eirslett</groupId>
@@ -129,13 +131,14 @@
             </plugin>
 
             <!--
-                Pack the TS output and the default stylesheet into the JAR so
-                consumers get them for free: the resources land under
-                META-INF/resources/sui/* and Spring Boot serves them at /sui/*.
-                src/main/resources/sui.css is already picked up by the default
-                resource-copy, but we redirect it from the JAR root to the
-                /sui/ subfolder so consumers can <link rel="stylesheet"
-                href="/sui/sui.css"> alongside the JS imports.
+                Pack the client into the JAR so consumers get it for free: it
+                lands under META-INF/resources/sui/* and Spring Boot serves it
+                at /sui/*.
+
+                The source is dist/, assembled by scripts/build-dist.mjs during
+                `npm run build` above — the very folder published to npm. One
+                script decides what "the client" is, so the JAR and the npm
+                tarball cannot drift apart.
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -149,23 +152,28 @@
                             <outputDirectory>${project.build.outputDirectory}/META-INF/resources/sui</outputDirectory>
                             <resources>
                                 <resource>
-                                    <directory>target/ts-dist</directory>
-                                </resource>
-                                <resource>
-                                    <directory>src/main/resources</directory>
-                                    <includes>
-                                        <include>sui.css</include>
-                                        <include>sui-dark.css</include>
-                                        <include>sui-sbb.css</include>
-                                        <!-- Curated icon sprite (generated + committed by
-                                             scripts/build-icons.mjs). Served at /sui/icons.svg. -->
-                                        <include>icons.svg</include>
-                                    </includes>
+                                    <directory>dist</directory>
                                 </resource>
                             </resources>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!--
+                dist/ sits outside target/ because npm's "files" and "exports"
+                have to name a path a consumer can read, and nobody expects a
+                package to publish out of target/. `mvn clean` should still
+                mean what it says, so it is cleaned explicitly.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <configuration>
+                    <filesets>
+                        <fileset><directory>dist</directory></fileset>
+                    </filesets>
+                </configuration>
             </plugin>
         </plugins>
     </build>

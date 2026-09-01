@@ -71,7 +71,7 @@ mergeDir(resolve(EXT_CHART, "src/main/resources/META-INF/resources/sui-ext"),
 // ── the backend-free apps, folded into the site ─────────────────────────────
 // These back the /widget-demo, /editor and /shop-client-demo links the docs
 // point at, and the <iframe> embeds on the editor page. Only apps that need no
-// server can go here — mc-sui-shop-demo wants Postgres and stays local.
+// server can go here — mc-sui-shop-spring-demo wants Postgres and stays local.
 copyDir(resolve(repo, "demo/mc-sui-widget-demo/target/dist"),
         resolve(STATIC, "widget-demo"),
         "demo/mc-sui-widget-demo/target/dist (run: mvn -pl demo/mc-sui-widget-demo package)");

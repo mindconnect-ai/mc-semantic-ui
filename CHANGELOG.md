@@ -23,6 +23,26 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- **The client is an npm package.** `@mindconnect-ai/mc-semantic-ui-core` carries
+  the compiled renderer, its type declarations, the three stylesheets and the
+  icon sprite, so a Vite or webpack project can `npm install` it instead of
+  copying files out of a JAR:
+
+  ```ts
+  import { SuiRenderer, installDefaultHandlers } from "@mindconnect-ai/mc-semantic-ui-core";
+  import { SuiEventBus } from "@mindconnect-ai/mc-semantic-ui-core/eventbus";
+  import "@mindconnect-ai/mc-semantic-ui-core/sui.css";
+  ```
+
+  Nothing changes for a Spring consumer: the JAR still serves the same client
+  at `/sui/*`. It is now literally the same client — both channels ship the one
+  folder the build assembles, so they cannot drift apart, which matters because
+  SSR and SPA markup have to match. The npm version tracks the Maven version
+  exactly, cut from the same commit.
+
+  Not published yet — this is the packaging; the release workflow still only
+  uploads to Maven Central.
+
 - **A detail, a form and a section can carry a header icon**, as a table and a
   list already could. They had none at all — no field in the model, and neither
   renderer drew one — so setting an icon on a form looked like a rendering bug
@@ -51,6 +71,15 @@ fresh empty one, so nothing has to be moved by hand at release time.
   the two is right is a question about the wire format.
 
 ### Fixed
+
+- **A server-rendered dialog can be closed again.** On a hybrid page the server
+  sends the dialog host as part of the markup, and the bus wired its listeners
+  only when it had created that element itself. Finding one already there, it
+  left it alone — so a dialog the server had opened could not be dismissed, its
+  × did nothing, and no control inside it responded. It is now wired whether it
+  was found or made. Anyone rendering `UiPage.dialogs` server-side has been
+  living with an unclosable modal; a purely client-driven page was never
+  affected, because there the bus builds the host itself.
 
 - **The app shell scrolls its content again, not the window.** `.sui-shell`
   said `min-height: 100dvh`, which fills the window but lets the shell grow

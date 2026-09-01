@@ -98,6 +98,13 @@ jobs:
       - name: Set release version
         run: find . -name pom.xml -exec sed -i "s|<version>${{ steps.v.outputs.current }}</version>|<version>${{ steps.v.outputs.release }}</version>|g" {} +
 
+      # The core's package.json is the npm side of the same client and shares
+      # the flat version. Nothing publishes it to a registry yet, but it is cut
+      # from this commit, so it has to say so. `npm version` rather than sed:
+      # it edits the one field and carries the lockfile along.
+      - name: Set release version in the npm packages
+        run: npm --prefix core/mc-semantic-ui-core version "${{ steps.v.outputs.release }}" --no-git-tag-version
+
       # Keep the copy-paste dependency snippets on the version people can
       # actually pull. Targets only a <version> that follows an mc-* artifactId,
       # so third-party versions (spring-boot, …) are untouched. Docusaurus can't
@@ -158,6 +165,9 @@ jobs:
 
       - name: Open next development version
         run: find . -name pom.xml -exec sed -i "s|<version>${{ steps.v.outputs.release }}</version>|<version>${{ steps.v.outputs.next }}</version>|g" {} +
+
+      - name: Open next development version in the npm packages
+        run: npm --prefix core/mc-semantic-ui-core version "${{ steps.v.outputs.next }}" --no-git-tag-version
 
       # In the same commit as the version bump, so main always has somewhere to
       # write the next entry — the moment it does not, people stop writing them.
