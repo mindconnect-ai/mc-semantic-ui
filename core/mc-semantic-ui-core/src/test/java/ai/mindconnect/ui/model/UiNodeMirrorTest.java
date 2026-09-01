@@ -70,24 +70,20 @@ class UiNodeMirrorTest {
      * fields: {@code UiAction.href}, {@code UiMenuItem.style} /
      * {@code appearance} / {@code loading}.
      */
-    private static final Map<String, Set<String>> ACCEPTED_GAPS = Map.ofEntries(
-            Map.entry("UiColumn",   Set.of("title", "display")),
-            Map.entry("UiRow",      Set.of("title", "display")),
-            Map.entry("UiText",     Set.of("title", "display")),
-            Map.entry("UiIcon",     Set.of("onClick", "onDblClick", "onHover",
-                                           "onLeave", "onChange", "onInput", "display")),
-            Map.entry("UiSpinner",  Set.of("display")),
-            Map.entry("UiProgress", Set.of("display")),
-            Map.entry("UiMenuItem", Set.of("style", "appearance", "loading")),
-            Map.entry("UiAction",   Set.of("title", "cssClass", "display", "href")),
-            Map.entry("UiField",    Set.of("title", "cssClass", "display")),
-            Map.entry("UiLink",     Set.of("title", "display")),
-            // UiPage is the one real disagreement rather than an omission: Java
-            // models it as a UiNode subtype, TypeScript as a plain envelope
-            // with no discriminator at all. Reconciling that is a decision
-            // about the wire format, not a missing line.
-            Map.entry("UiPage",     Set.of("id", "title", "cssClass", "display", "onClick",
-                                           "onDblClick", "onHover", "onLeave", "onChange", "onInput")));
+    /**
+     * What is left of the divergence, and it is not an omission: Java models
+     * UiPage as a UiNode subtype with the discriminator "page", TypeScript as a
+     * plain envelope carrying no discriminator at all. So a Java server writes
+     * id, title, cssClass, display and the six triggers on a page, and the
+     * mirror says none of them exist.
+     *
+     * <p>Closing it means deciding which of the two is right — whether a page
+     * is a node — and that is a change to the wire format, not a missing line.
+     * Recorded until somebody makes that call.
+     */
+    private static final Map<String, Set<String>> ACCEPTED_GAPS = Map.of(
+            "UiPage", Set.of("id", "title", "cssClass", "display", "onClick",
+                             "onDblClick", "onHover", "onLeave", "onChange", "onInput"));
 
     /** Types whose TypeScript shape deliberately carries no discriminator. */
     private static final Set<String> NO_DISCRIMINATOR = Set.of("UiPage");
@@ -154,7 +150,13 @@ class UiNodeMirrorTest {
         BeanDescription description = mapper.getSerializationConfig()
                 .introspect(mapper.constructType(type));
         Set<String> names = new LinkedHashSet<>();
-        description.findProperties().forEach(p -> names.add(p.getName()));
+        description.findProperties().stream()
+                // couldSerialize(), not just "is a property": UiAction has a
+                // setHref that rewrites onClick, a builder convenience with no
+                // getter behind it. Jackson never writes such a field, so the
+                // mirror has no business declaring one.
+                .filter(com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition::couldSerialize)
+                .forEach(p -> names.add(p.getName()));
         return names;
     }
 

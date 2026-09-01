@@ -83,6 +83,11 @@ export interface UiNodeBase {
 
 export interface UiField {
     type: "field";
+    cssClass?: string;
+    /** Inherited from UiNode: a label the container may show. */
+    title?: string;
+    /** Inherited from UiNode. Omitted = visible; see UiNodeBase.display. */
+    display?: "HIDDEN" | "BLANK";
     id: string;
     label: string;
     /** Semantic input kind: TEXT / SELECT / DATE / … Renamed from {@code type}
@@ -143,6 +148,11 @@ export interface UiField {
 
 export interface UiAction {
     type: "action";
+    cssClass?: string;
+    /** Inherited from UiNode: a label the container may show. */
+    title?: string;
+    /** Inherited from UiNode. Omitted = visible; see UiNodeBase.display. */
+    display?: "HIDDEN" | "BLANK";
     id: string;
     label: string;
     style?: ActionStyle;
@@ -181,6 +191,10 @@ export interface UiAction {
 
 export interface UiLink {
     type: "link";
+    /** Inherited from UiNode: a label the container may show. */
+    title?: string;
+    /** Inherited from UiNode. Omitted = visible; see UiNodeBase.display. */
+    display?: "HIDDEN" | "BLANK";
     /** Optional DOM id — matches the Java UiNode.id field for editor selection. */
     id?: string;
     rel?: string;
@@ -232,6 +246,10 @@ export interface UiListItem {
  */
 export interface UiTableColumn {
     type: "column";
+    /** Inherited from UiNode: a label the container may show. */
+    title?: string;
+    /** Inherited from UiNode. Omitted = visible; see UiNodeBase.display. */
+    display?: "HIDDEN" | "BLANK";
     id: string;
     label?: string;
     dataKey?: string;
@@ -271,6 +289,10 @@ export interface UiTableColumn {
 /** Bare text node. Used inside cellTemplate or anywhere a label belongs. */
 export interface UiText {
     type: "text";
+    /** Inherited from UiNode: a label the container may show. */
+    title?: string;
+    /** Inherited from UiNode. Omitted = visible; see UiNodeBase.display. */
+    display?: "HIDDEN" | "BLANK";
     id?: string;
     text?: string;
     cssClass?: string;
@@ -303,6 +325,14 @@ export interface UiText {
  */
 export interface UiIcon {
     type: "icon";
+    onClick?: UiTrigger;
+    onDblClick?: UiTrigger;
+    onHover?: UiTrigger;
+    onLeave?: UiTrigger;
+    onChange?: UiTrigger;
+    onInput?: UiTrigger;
+    /** Inherited from UiNode. Omitted = visible; see UiNodeBase.display. */
+    display?: "HIDDEN" | "BLANK";
     id?: string;
     /** Icon token: semantic alias (`"delete"`) or raw sprite id (`"trash-2"`). */
     name: string;
@@ -319,6 +349,8 @@ export interface UiIcon {
  */
 export interface UiSpinner {
     type: "spinner";
+    /** Inherited from UiNode. Omitted = visible; see UiNodeBase.display. */
+    display?: "HIDDEN" | "BLANK";
     id?: string;
     /** Glyph size. Defaults to `"MD"`. */
     size?: "SM" | "MD" | "LG";
@@ -350,6 +382,8 @@ export interface UiSpinner {
  */
 export interface UiProgress {
     type: "progress";
+    /** Inherited from UiNode. Omitted = visible; see UiNodeBase.display. */
+    display?: "HIDDEN" | "BLANK";
     id?: string;
     /** Current progress; undefined renders an indeterminate animation. */
     value?: number;
@@ -385,6 +419,10 @@ export interface UiProgress {
  */
 export interface UiTableRow {
     type: "row";
+    /** Inherited from UiNode: a label the container may show. */
+    title?: string;
+    /** Inherited from UiNode. Omitted = visible; see UiNodeBase.display. */
+    display?: "HIDDEN" | "BLANK";
     id?: string;
     data?: Record<string, unknown>;
     cssClass?: string;
@@ -578,6 +616,9 @@ export interface UiTree extends UiNodeBase {
  */
 export interface UiMenuItem extends UiNodeBase {
     type: "menu-item";
+    style?: ActionStyle;
+    appearance?: ActionAppearance;
+    loading?: boolean;
     label?: string;
     /** Leading icon token — the only visible affordance in the rail. See {@link UiIcon}. */
     icon?: string;
