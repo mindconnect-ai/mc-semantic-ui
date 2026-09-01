@@ -934,6 +934,8 @@ export interface UiPageActiveStream {
     resumeUrl: string;
     label?: string;
     returnHref?: string;
+    /** What the owning page calls itself, for surfaces that link back to it. */
+    returnLabel?: string;
 }
 
 // ── Patches (mirrors UiPatch.java) ──────────────────────────────────────────

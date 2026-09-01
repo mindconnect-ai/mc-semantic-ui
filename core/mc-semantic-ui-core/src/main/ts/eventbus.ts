@@ -147,7 +147,17 @@ export interface StreamHandle {
     readonly channelId: string;
     readonly returnHref: string;
     readonly label: string;
-    state: "running" | "completed" | "errored";
+    /** What the owning page calls itself; empty when it did not say. */
+    readonly returnLabel: string;
+    /**
+     * {@code "idle"} = the connection is open but nothing is being produced
+     * on it. A stream that outlives the work it carries — one opened per
+     * SESSION rather than per unit of work — is open almost all the time, so
+     * "a socket exists" stopped being a usable stand-in for "something is
+     * running". Only a stream that has actually delivered an event since the
+     * last {@code done} counts as running.
+     */
+    state: "idle" | "running" | "completed" | "errored";
     /** Raw SSE event records buffered while the owning page is detached. */
     bufferedEvents: { event: string; data: string }[];
     /** {@code true} while the owning page's DOM is mounted in the renderer root. */
@@ -161,6 +171,18 @@ export interface StreamHandle {
     /** Cancels the underlying fetch reader. */
     abort: () => void;
 }
+
+/**
+ * Notified whenever the stream registry changes — a stream opened, closed,
+ * changed state, or had its page mounted/unmounted.
+ *
+ * <p>The framework does not render stream status itself. What "an agent is
+ * running" should look like — a toast, a badge, a spinner in a header, or
+ * nothing at all — is an application decision, and so is the wording: this
+ * layer moves bytes and cannot know whether it is carrying a chat, a report
+ * or an import.
+ */
+export type StreamStateListener = (streams: readonly StreamHandle[]) => void;
 
 /**
  * Loading-indicator policy. {@code "auto"} (default) wraps every dispatch
@@ -225,7 +247,12 @@ export class SuiEventBus {
      */
     private readonly streams = new Map<string, StreamHandle>();
     /** DOM id of the toast element that shows the "Agent running…" indicator. */
-    private statusToastId: string | null = null;
+    /** How long a finished stream stays listed before it is dropped. */
+    private static readonly STREAM_REAP_DELAY_MS = 5000;
+
+    private readonly streamStateListeners: StreamStateListener[] = [];
+    /** Pending removals of finished streams, keyed by channel. */
+    private readonly streamReapers = new Map<string, ReturnType<typeof setTimeout>>();
     private rewriter: UrlRewriter = (u) => u;
     private responseHandler: ResponseHandler = defaultResponseHandler;
     private navigateHandler: NavigateHandler | null = null;
@@ -279,6 +306,26 @@ export class SuiEventBus {
     /** Registers (or replaces) a stream-event handler used by the {@code STREAM} behaviour. */
     onStreamEvent(name: string, handler: StreamEventHandler): this {
         this.streamEventHandlers.set(name, handler);
+        return this;
+    }
+
+    /**
+     * Registers a listener for stream-registry changes, so the application
+     * can render whatever status surface it wants. Called immediately with
+     * the current state, so a listener registered after streams already
+     * exist does not start out blind.
+     *
+     * <p>Listen for state, not for events: a stream also changes what it
+     * means when its page is mounted or unmounted, which no SSE event
+     * announces.
+     */
+    onStreamStateChange(listener: StreamStateListener): this {
+        this.streamStateListeners.push(listener);
+        try {
+            listener(this.streamSnapshot());
+        } catch (err) {
+            console.error("SuiEventBus: stream-state listener failed", err);
+        }
         return this;
     }
 
@@ -456,14 +503,19 @@ export class SuiEventBus {
             channelId: entry.channelId,
             returnHref: entry.returnHref ?? (window.location.pathname + window.location.search),
             label: entry.label ?? "Agent",
-            state: "running",
+            returnLabel: entry.returnLabel ?? "",
+            // Idle until proven otherwise: this stream was opened because the
+            // page named it, not because work was submitted. The first event
+            // promotes it. A POST stream (see streamBehavior) still starts as
+            // "running" — there the request itself IS the work.
+            state: "idle",
             bufferedEvents: [],
             pageAttached: this.findStreamTarget(entry.channelId) != null,
             lastSeq: 0,
             abort: () => abortController.abort(),
         };
         this.streams.set(entry.channelId, handle);
-        this.updateStatusToast();
+        this.notifyStreamState();
 
         // Reuse the regular streaming loop. A synthetic BehaviorContext is
         // enough — the patch handler only reads {bus} from closure.
@@ -471,7 +523,7 @@ export class SuiEventBus {
         void this.consumeSse(res.body, ctx, handle).catch(err => {
             console.warn(`SuiEventBus: reconnect ${entry.channelId} aborted`, err);
             handle.state = "errored";
-            this.updateStatusToast();
+            this.notifyStreamState();
         });
     }
 
@@ -516,7 +568,7 @@ export class SuiEventBus {
                 }
             }
         }
-        this.updateStatusToast();
+        this.notifyStreamState();
     }
 
     /**
@@ -544,65 +596,53 @@ export class SuiEventBus {
         };
     }
 
+    /** An immutable view of the registry, for listeners. */
+    private streamSnapshot(): readonly StreamHandle[] {
+        return Object.freeze(Array.from(this.streams.values()));
+    }
+
     /**
-     * Renders or removes the floating "Agent running…" status toast based on
-     * the current stream registry. Click navigates back to the originating
-     * page; on completion the toast briefly switches to "Antwort fertig"
-     * before auto-dismissing.
+     * Publishes the registry to the application and reaps whatever has
+     * finished. Replaces the status toast this class used to draw: rendering
+     * is the application's call, but the LIFECYCLE is not — a terminal stream
+     * still holds an open connection and a registry slot, and the slot would
+     * block the reconnect meant to replace it.
      */
-    private updateStatusToast(): void {
-        const detached = Array.from(this.streams.values()).filter(s => !s.pageAttached);
-        const running = detached.filter(s => s.state === "running");
-        const completed = detached.filter(s => s.state === "completed" || s.state === "errored");
-
-        // No detached streams → drop the toast if it was shown.
-        if (running.length === 0 && completed.length === 0) {
-            if (this.statusToastId) {
-                document.getElementById(this.statusToastId)?.remove();
-                this.statusToastId = null;
+    private notifyStreamState(): void {
+        for (const handle of this.streams.values()) {
+            if (handle.state === "completed" || handle.state === "errored") {
+                this.scheduleReap(handle);
             }
-            return;
         }
-
-        // Pick what to display: prefer "running" (urgent), else "completed".
-        const showRunning = running.length > 0;
-        const focus = showRunning ? running[0] : completed[0];
-        const label = showRunning
-            ? t("stream.running", { label: focus.label })
-            : t("stream.answerReady", { label: focus.label });
-
-        let toast = this.statusToastId ? document.getElementById(this.statusToastId) : null;
-        if (!toast) {
-            toast = document.createElement("div");
-            toast.id = "sui-stream-status-toast";
-            toast.className = "sui-toast sui-toast--info sui-stream-status";
-            // Position bottom-right — independent of the regular toast
-            // container so it stays put while regular toasts come and go.
-            toast.setAttribute("role", "status");
-            this.statusToastId = toast.id;
-            document.body.appendChild(toast);
+        const snapshot = this.streamSnapshot();
+        for (const listener of this.streamStateListeners) {
+            try {
+                listener(snapshot);
+            } catch (err) {
+                // A broken listener must never break the stream machinery.
+                console.error("SuiEventBus: stream-state listener failed", err);
+            }
         }
-        toast.innerHTML = "";
-        const text = document.createElement("span");
-        text.textContent = label;
-        toast.appendChild(text);
-        const link = document.createElement("button");
-        link.type = "button";
-        link.className = "sui-toast-link";
-        link.textContent = t("stream.openChat");
-        link.addEventListener("click", () => { void this.doNavigate(focus.returnHref); });
-        toast.appendChild(link);
+    }
 
-        // Completed streams self-dismiss after a few seconds so the toast
-        // doesn't stick around once acknowledged.
-        if (!showRunning) {
-            setTimeout(() => {
-                // Drop the completed stream from the registry and re-render
-                // the toast (which removes it once the registry is empty).
-                this.streams.delete(focus.channelId);
-                this.updateStatusToast();
-            }, 5000);
-        }
+    /**
+     * Drops a finished stream after a grace period. The delay is not
+     * cosmetic: it gives the application a window in which the finished
+     * stream is still listed, which is what a "your answer is ready" surface
+     * needs to have something to show.
+     */
+    private scheduleReap(handle: StreamHandle): void {
+        if (this.streamReapers.has(handle.channelId)) return;
+        const timer = setTimeout(() => {
+            this.streamReapers.delete(handle.channelId);
+            // Close it, don't just forget it: the connection may still be
+            // open, and an untracked one would be joined by a second on the
+            // next applyPage.
+            try { handle.abort(); } catch { /* already gone */ }
+            this.streams.delete(handle.channelId);
+            this.notifyStreamState();
+        }, SuiEventBus.STREAM_REAP_DELAY_MS);
+        this.streamReapers.set(handle.channelId, timer);
     }
 
     /**
@@ -1692,6 +1732,9 @@ export class SuiEventBus {
             channelId,
             returnHref,
             label,
+            // A POST stream carries no page identity of its own; the toast
+            // falls back to generic wording for it.
+            returnLabel: "",
             state: "running",
             bufferedEvents: [],
             pageAttached: this.findStreamTarget(channelId) != null,
@@ -1699,7 +1742,7 @@ export class SuiEventBus {
             abort: () => abortController.abort(),
         };
         this.streams.set(channelId, handle);
-        this.updateStatusToast();
+        this.notifyStreamState();
 
         // Fire-and-forget the reader. We deliberately do NOT await it from
         // here — the dispatch caller (showLoading wrapper, click handler)
@@ -1709,7 +1752,7 @@ export class SuiEventBus {
         void this.consumeSse(res.body, ctx, handle).catch(err => {
             console.warn(`SuiEventBus: stream ${channelId} aborted`, err);
             handle.state = "errored";
-            this.updateStatusToast();
+            this.notifyStreamState();
         });
     }
 
@@ -1744,7 +1787,17 @@ export class SuiEventBus {
                     // events we already saw.
                     if (eventId != null && eventId > handle.lastSeq) handle.lastSeq = eventId;
                     const data = dataLines.join("\n");
+                    // An event means work is being produced; "done" ends that
+                    // without ending the stream. A finished turn the user is
+                    // not looking at becomes "completed" so the status toast
+                    // can offer the answer.
+                    if (eventName === "done") {
+                        handle.state = handle.pageAttached ? "idle" : "completed";
+                    } else if (handle.state === "idle") {
+                        handle.state = "running";
+                    }
                     await this.dispatchStreamEvent(eventName, data, ctx, handle);
+                    this.notifyStreamState();
                 }
             }
         } finally {
@@ -1752,7 +1805,10 @@ export class SuiEventBus {
             // Mark the stream completed if it wasn't already errored; status
             // toast picks this up on its next update.
             if (handle.state === "running") handle.state = "completed";
-            this.updateStatusToast();
+            // An idle stream that ends carries nothing to report. Drop it, or
+            // its registry entry would block the reconnect that replaces it.
+            if (handle.state === "idle") this.streams.delete(handle.channelId);
+            this.notifyStreamState();
         }
     }
 

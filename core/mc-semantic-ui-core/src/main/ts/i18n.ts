@@ -23,9 +23,6 @@
  */
 
 const DEFAULTS: Record<string, string> = {
-    "stream.running": "{label} running…",
-    "stream.answerReady": "{label}: answer ready",
-    "stream.openChat": "Open chat",
     "error.network.title": "Connection error",
     "error.network.message": "The backend is unreachable. Please check the connection and try again.",
     "error.http.title": "Error",
@@ -34,9 +31,6 @@ const DEFAULTS: Record<string, string> = {
 
 const BUNDLES: Record<string, Record<string, string>> = {
     de: {
-        "stream.running": "{label} läuft…",
-        "stream.answerReady": "{label}: Antwort bereit",
-        "stream.openChat": "Zum Chat",
         "error.network.title": "Verbindungsfehler",
         "error.network.message": "Das Backend ist nicht erreichbar. Bitte prüfen Sie die Verbindung und versuchen Sie es erneut.",
         "error.http.title": "Fehler",

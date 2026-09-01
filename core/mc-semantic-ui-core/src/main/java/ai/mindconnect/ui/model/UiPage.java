@@ -76,14 +76,27 @@ public class UiPage extends UiNode {
         private String label;
         /** Where the user can navigate to see this stream's owning page. */
         private String returnHref;
+        /**
+         * What to call that destination, in the page's own words — a session
+         * title, a document name. The framework has no idea what it is
+         * streaming, so a status surface that names the destination must be
+         * told; without this it can only fall back to generic wording.
+         */
+        private String returnLabel;
 
         public static ActiveStream of(String channelId, String resumeUrl,
                                       String label, String returnHref) {
+            return of(channelId, resumeUrl, label, returnHref, null);
+        }
+
+        public static ActiveStream of(String channelId, String resumeUrl,
+                                      String label, String returnHref, String returnLabel) {
             var s = new ActiveStream();
             s.channelId = channelId;
             s.resumeUrl = resumeUrl;
             s.label = label;
             s.returnHref = returnHref;
+            s.returnLabel = returnLabel;
             return s;
         }
     }
