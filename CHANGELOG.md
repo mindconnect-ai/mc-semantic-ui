@@ -40,8 +40,8 @@ fresh empty one, so nothing has to be moved by hand at release time.
   SSR and SPA markup have to match. The npm version tracks the Maven version
   exactly, cut from the same commit.
 
-  Not published yet — this is the packaging; the release workflow still only
-  uploads to Maven Central.
+  The release workflow publishes it alongside the Maven artifacts, so the
+  version you find on npm and the one on Central are cut from the same commit.
 
 - **A detail, a form and a section can carry a header icon**, as a table and a
   list already could. They had none at all — no field in the model, and neither

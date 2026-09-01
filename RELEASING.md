@@ -26,10 +26,20 @@ in the parent, and each library module overrides it to `false` in its own
 `<properties>`. A module is therefore **not** published unless you opt it in —
 so a new app or demo never ships to Central by accident.
 
-## One publish target
+## Two publish targets
 
-**Releases → Maven Central.** `mvn deploy -Prelease` builds sources + javadoc,
-GPG-signs everything, and uploads to the Central Portal.
+**The Java artifacts → Maven Central.** `mvn deploy -Prelease` builds sources +
+javadoc, GPG-signs everything, and uploads to the Central Portal, where the
+bundle waits as a draft until somebody presses Publish.
+
+**The client → npm**, as `@mindconnect-ai/mc-semantic-ui-core`. Cut from the
+same commit and carrying the same version, because the JAR and the tarball ship
+the identical `dist/` and SSR and SPA markup have to match.
+
+The two differ in how final they are: Central holds a draft nobody sees, while
+an npm publish is live the moment it returns and cannot be withdrawn after 72
+hours. That is why the workflow publishes to npm last — if it fails, the
+Central draft is still unpressed and nothing is public.
 
 **Snapshots are not published anywhere.** They stay on the machine that built
 them (`mvn install`); the parent sets `maven.deploy.skip=true`, so a plain
@@ -74,8 +84,10 @@ Release.
 Run it from **Actions → release → Run workflow**. Both inputs are optional —
 blank means "drop `-SNAPSHOT`" and "bump the patch level".
 
-This needs no GPG and no `settings.xml` on your laptop. It needs four
-repository secrets, once (**Settings → Secrets and variables → Actions**):
+This needs no GPG and no `settings.xml` on your laptop. It needs these
+secrets, once. They live on the **organisation**, not the repository —
+**github.com/organizations/mindconnect-ai → Settings → Security → Secrets and
+variables → Actions**:
 
 | Secret | Value |
 | --- | --- |
@@ -83,6 +95,12 @@ repository secrets, once (**Settings → Secrets and variables → Actions**):
 | `MAVEN_GPG_PASSPHRASE` | that key's passphrase |
 | `CENTRAL_TOKEN_USERNAME` | Central Portal user token — username half |
 | `CENTRAL_TOKEN_PASSWORD` | Central Portal user token — password half |
+| `NPM_TOKEN` | only until trusted publishing is set up — see [npm](#4-npm) |
+
+Set each one's **Repository access** to *Selected repositories* →
+`mc-semantic-ui`. Not *Private repositories*: this repo is public, so that
+option would leave the secret unreachable and the failure would only surface
+mid-release, as an authentication error with no obvious cause.
 
 You still create the GPG key once yourself (see below) — but after exporting it
 into the secret, you never need it locally again.
@@ -178,6 +196,44 @@ export MAVEN_GPG_PASSPHRASE='your-passphrase'
 
 The `maven-gpg-plugin` reads `MAVEN_GPG_PASSPHRASE` from the environment — so
 the passphrase never has to be written into `settings.xml` or the POM.
+
+### 4. npm
+
+Two things, and the second one retires the first.
+
+**The organisation.** `@mindconnect-ai` has to exist on npmjs.com before
+anything can be published into that scope — **Add Organization**, free for
+public packages.
+
+**A token, for the first publish only.** npm can authenticate this workflow
+without any secret, through trusted publishing over OIDC — but a trusted
+publisher is configured on a package's settings page, and that page does not
+exist until the package does. So the first version goes up with a token, and
+after that the token is not needed again.
+
+Profile picture → **Access Tokens** → **Generate New Token**, a *granular*
+one:
+
+| Field | Value |
+| --- | --- |
+| Packages and scopes | Read and write, limited to the `@mindconnect-ai` scope |
+| Organizations | Read and write on `mindconnect-ai` — the first publish creates a package in the scope, which needs it |
+| Bypass two-factor authentication | tick it, or CI fails if your account requires 2FA to publish |
+| Expiration | mandatory; a granular token always expires |
+
+Copy it once — npm never shows it again — and put it in the `NPM_TOKEN`
+repository secret.
+
+**Then switch to OIDC and delete the token.** Once the package is on npm, open
+its settings there and add a trusted publisher: this GitHub organisation, this
+repository, and the workflow **filename** `release.yml` (not a path). Delete
+the `NPM_TOKEN` secret afterwards.
+
+Nothing in the workflow changes. It writes an `.npmrc` only when the secret is
+there and otherwise lets npm authenticate over OIDC, and the `id-token: write`
+permission it needs is already granted. That expiring token is the reason to
+bother: left in place, it will one day break a release for no reason anybody
+remembers.
 
 ---
 

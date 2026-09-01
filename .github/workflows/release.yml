@@ -2,17 +2,36 @@ name: release
 
 # Manual, deliberate releases only — never on every merge. You pick the moment;
 # this cuts the -SNAPSHOT to a real version, publishes the libraries to Maven
-# Central, tags it, then opens the next -SNAPSHOT on main.
+# Central and the client to npm, tags it, then opens the next -SNAPSHOT on main.
 #
-# Central is the only publish target. Snapshots are not published anywhere —
-# they stay local (`mvn install`); see the parent POM's maven.deploy.skip.
+# Snapshots are not published anywhere — they stay local (`mvn install`); see
+# the parent POM's maven.deploy.skip.
 #
-# Required repository secrets (Settings → Secrets and variables → Actions):
+# The two registries differ in how final they are, and the step order reflects
+# it. Central receives a *draft* that nobody sees until someone presses Publish
+# in the portal. npm goes live the moment the command returns, and after 72
+# hours the version can never be removed. So npm is published last of the two:
+# if it fails, the Central draft is still unpressed and nothing is public.
+#
+# Required secrets. They live on the mindconnect-ai organisation, not on this
+# repository (Settings → Security → Secrets and variables → Actions):
 #   MAVEN_GPG_PRIVATE_KEY   armored private key: gpg --armor --export-secret-keys <KEY_ID>
 #   MAVEN_GPG_PASSPHRASE    that key's passphrase
 #   CENTRAL_TOKEN_USERNAME  Central Portal user token — username half
 #   CENTRAL_TOKEN_PASSWORD  Central Portal user token — password half
-# See RELEASING.md. Without them the release fails at the Central upload.
+#   NPM_TOKEN               only until trusted publishing is set up — see below
+# See RELEASING.md. Without them the release fails at the upload.
+#
+# npm auth, in the order this workflow tries it:
+#
+#   1. NPM_TOKEN, if the secret exists. Needed for the FIRST publish of a
+#      package: npm can only be told about a trusted publisher through the
+#      package's settings page, which does not exist before the package does.
+#   2. Trusted publishing (OIDC), when the secret is gone. Configure it on
+#      npmjs.com once the package is there — GitHub org, repository, workflow
+#      *filename* (release.yml) — then delete NPM_TOKEN. Nothing here changes;
+#      the `id-token: write` permission and the Node version below are already
+#      what it needs.
 on:
   workflow_dispatch:
     inputs:
@@ -32,12 +51,56 @@ on:
 
 permissions:
   contents: write   # push the version-bump commits and the tag
+  id-token: write   # mint the OIDC token npm signs provenance with, and
+                    # authenticates trusted publishing by once NPM_TOKEN is gone
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
+      # For the `npm version` and `npm publish` steps only. The TypeScript build
+      # uses its own Node, installed by frontend-maven-plugin and pinned in the
+      # parent POM — these two are unrelated, and unifying them would tie the
+      # publish toolchain to whatever version the build happens to want.
+      #
+      # Trusted publishing needs npm >= 11.5.1 on Node >= 22.14. Node 24 ships
+      # an npm 11, but which one moves with the runner image, so it is pinned
+      # here rather than assumed.
+      #
+      # Deliberately without `registry-url`: that has setup-node write an .npmrc
+      # naming ${NODE_AUTH_TOKEN}, and with no secret set npm would then
+      # authenticate as nobody instead of falling through to trusted
+      # publishing. Auth is written in one place, the step below.
+      - name: Set up Node for npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install -g npm@^11.5.1
+
+      # Fail before anything is uploaded. A release that dies at the npm step
+      # has already put a draft on Central and pushed a tag, and unpicking that
+      # by hand is the situation this check exists to avoid.
+      - name: Set up and check npm auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "npm $(npm --version) on node $(node --version)"
+          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
+            # Assigned, not interpolated into echo: a failing command
+            # substitution only trips `set -e` in an assignment, and a token
+            # that cannot authenticate has to stop the release here.
+            who=$(npm whoami)
+            echo "NPM_TOKEN is set; publishing as $who"
+          else
+            # An OIDC publish cannot be rehearsed, so this only says which path
+            # will be taken; a misconfigured trusted publisher surfaces at the
+            # publish itself.
+            echo "No NPM_TOKEN — the publish will rely on trusted publishing (OIDC)."
+          fi
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -157,6 +220,22 @@ jobs:
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_TOKEN_PASSWORD }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
         run: mvn -B -ntp -DskipTests deploy -Prelease
+
+      # The client, to npm. This is the irreversible one: it is live the moment
+      # the command returns, and after 72 hours the version can never be
+      # removed. It runs here, while Central still holds nothing but an
+      # unpressed draft, so a failure leaves nothing public anywhere.
+      #
+      # dist/ is what gets published, and the Maven build above already
+      # assembled it during compile. prepack rebuilds it regardless, so the
+      # tarball carries the same bytes as the JAR.
+      #
+      # --provenance signs the package using the OIDC token the id-token
+      # permission allows, so npm can show which commit and workflow built it.
+      # It works under both auth paths.
+      - name: Publish the client to npm
+        working-directory: core/mc-semantic-ui-core
+        run: npm publish --provenance --access public
 
       - name: Commit release version and tag
         run: |
