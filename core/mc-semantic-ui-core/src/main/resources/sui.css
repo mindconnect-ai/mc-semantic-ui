@@ -698,9 +698,17 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-shell {
     display: flex; flex-direction: column;
     min-height: 100dvh;              /* fill the window by default */
+    /* …and never more than it. Without the cap the shell grows with its
+       content, the window scrolls, and the header and the menu ride off the
+       top — while .sui-shell-body's `overflow: hidden` and
+       .sui-shell-content's `overflow: auto` sit there waiting for a height to
+       push against. They only engage once something bounds the shell, so every
+       page that did not cap it for itself scrolled the wrong element. */
+    max-height: 100dvh;
 }
-/* Embedded variant: take the height the container gives us. */
-.sui-shell--fit { min-height: 0; height: 100%; }
+/* Embedded variant: take the height the container gives us — including the
+   freedom to be taller than the window, hence the cap comes off too. */
+.sui-shell--fit { min-height: 0; max-height: none; height: 100%; }
 
 .sui-shell > .sui-header { flex: none; margin-bottom: 0; border-radius: 0; box-shadow: none; }
 
@@ -718,6 +726,27 @@ a.sui-tree-label:hover { text-decoration: underline; }
     overflow-y: auto;
 }
 .sui-shell-body > .sui-menu--right { border-right: none; border-left: 1px solid var(--sui-color-border); }
+
+/* A menu that floats needs to look like it floats.
+   The rule above flattens the menu into the shell — no radius, no shadow,
+   just a hairline — which is right while it pushes the content aside. It also
+   outranks `.sui-menu--responsive`'s own elevation inside the media query,
+   because a media query adds no specificity and one class loses to two. So the
+   drawer's shadow was reset before it ever landed, and it read as pasted onto
+   the page rather than lying over it.
+   Stated here, at the same weight and later in the file, so it wins by order.
+   The ground is restated for the same reason: a floating panel you can see
+   through is not a panel. */
+.sui-shell-body > .sui-menu--overlay {
+    background: var(--sui-color-surface);
+    box-shadow: 4px 0 16px rgb(15 23 42 / .18);
+}
+@media (max-width: 768px) {
+    .sui-shell-body > .sui-menu--responsive {
+        background: var(--sui-color-surface);
+        box-shadow: 4px 0 16px rgb(15 23 42 / .18);
+    }
+}
 
 /* No inset. The content area used to sit in 20px of its own padding, so the
    page ended in a band of nothing on all four sides and the card floated in

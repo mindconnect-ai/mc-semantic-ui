@@ -21,6 +21,34 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Fixed
+
+- **The app shell scrolls its content again, not the window.** `.sui-shell`
+  said `min-height: 100dvh`, which fills the window but lets the shell grow
+  past it as soon as the content is taller. Then the *window* scrolled and
+  carried the header and the menu off the top — while the shell's own
+  `overflow: hidden` on the body and `overflow: auto` on the content pane sat
+  waiting for a height to push against. They only engage once something bounds
+  the shell, so every page that did not cap it for itself scrolled the wrong
+  element, and the ones that behaved did so because they had capped it
+  themselves.
+
+  Measured on a shell with forty rows in a 285px window: the shell was 2058px
+  tall, the document scrolled, and the header ended at −1772px. It is now 285px,
+  the document does not scroll, the content pane does, and the header stays at
+  0. `.sui-shell--fit`, the embedded variant, keeps its freedom to be taller
+  than the window.
+
+- **A floating menu looks like it floats.** `.sui-shell-body > .sui-menu`
+  flattens the menu into the shell — no radius, no shadow — which is right
+  while it pushes the content aside. It also outranked the elevation that
+  `.sui-menu--responsive` sets for the mobile drawer: two classes against one,
+  and a media query adds no specificity, so the shadow was reset before it ever
+  landed and the drawer read as pasted onto the page rather than lying over it.
+  Both the overlay and the responsive drawer now state their ground and their
+  elevation where it wins by order rather than by weight.
+
+
 ## [0.2.0] - 2026-08-29
 
 ### Added
