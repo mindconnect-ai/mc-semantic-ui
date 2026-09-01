@@ -1,6 +1,6 @@
 {
   "name": "@mindconnect-ai/mc-semantic-ui-core",
-  "version": "0.3.0",
+  "version": "0.3.1-SNAPSHOT",
   "description": "mc-semantic-ui core — the UiNode model and a pluggable renderer that turns it into HTML. Plain ESM, no build tool required.",
   "keywords": [
     "mc-semantic-ui",
