@@ -25,6 +25,10 @@ pnpm-debug.log*
 *.tsbuildinfo
 # Shared Node install (frontend-maven-plugin installDirectory at repo root)
 .node/
+# Build output that lives outside target/: the assembled npm package contents
+# (scripts/build-dist.mjs) and Vite bundles. Each module's pom adds it to
+# maven-clean-plugin, so `mvn clean` removes it too.
+dist/
 
 # Docusaurus (website/)
 website/node_modules/

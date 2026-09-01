@@ -82,6 +82,26 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- **The client is an npm package.** `@mindconnect-ai/mc-semantic-ui-core` carries
+  the compiled renderer, its type declarations, the three stylesheets and the
+  icon sprite, so a Vite or webpack project can `npm install` it instead of
+  copying files out of a JAR:
+
+  ```ts
+  import { SuiRenderer, installDefaultHandlers } from "@mindconnect-ai/mc-semantic-ui-core";
+  import { SuiEventBus } from "@mindconnect-ai/mc-semantic-ui-core/eventbus";
+  import "@mindconnect-ai/mc-semantic-ui-core/sui.css";
+  ```
+
+  Nothing changes for a Spring consumer: the JAR still serves the same client
+  at `/sui/*`. It is now literally the same client — both channels ship the one
+  folder the build assembles, so they cannot drift apart, which matters because
+  SSR and SPA markup have to match. The npm version tracks the Maven version
+  exactly, cut from the same commit.
+
+  Not published yet — this is the packaging; the release workflow still only
+  uploads to Maven Central.
+
 - **The two patch operations that add and remove an element now animate.**
   `APPEND` fades its new elements in with a small lift; `REMOVE` fades its
   target out and collapses the space it held before dropping it, so a row
