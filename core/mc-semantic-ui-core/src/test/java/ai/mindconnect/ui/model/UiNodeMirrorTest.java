@@ -71,22 +71,12 @@ class UiNodeMirrorTest {
      * {@code appearance} / {@code loading}.
      */
     /**
-     * What is left of the divergence, and it is not an omission: Java models
-     * UiPage as a UiNode subtype with the discriminator "page", TypeScript as a
-     * plain envelope carrying no discriminator at all. So a Java server writes
-     * id, title, cssClass, display and the six triggers on a page, and the
-     * mirror says none of them exist.
-     *
-     * <p>Closing it means deciding which of the two is right — whether a page
-     * is a node — and that is a change to the wire format, not a missing line.
-     * Recorded until somebody makes that call.
+     * Empty, and meant to stay that way. An entry here is a field a Java
+     * server sends that a TypeScript consumer cannot name — visible debt, not
+     * a place to put things.
      */
-    private static final Map<String, Set<String>> ACCEPTED_GAPS = Map.of(
-            "UiPage", Set.of("id", "title", "cssClass", "display", "onClick",
-                             "onDblClick", "onHover", "onLeave", "onChange", "onInput"));
+    private static final Map<String, Set<String>> ACCEPTED_GAPS = Map.of();
 
-    /** Types whose TypeScript shape deliberately carries no discriminator. */
-    private static final Set<String> NO_DISCRIMINATOR = Set.of("UiPage");
 
     /**
      * Where the mirror deliberately picked another name. Both are table-only
@@ -121,8 +111,7 @@ class UiNodeMirrorTest {
                 continue;
             }
 
-            if (!NO_DISCRIMINATOR.contains(javaName)
-                    && !body.contains("type: \"" + discriminator + "\"")) {
+            if (!body.contains("type: \"" + discriminator + "\"")) {
                 problems.add(tsName + " should declare `type: \"" + discriminator
                         + "\"` — that is the discriminator Jackson writes");
             }
