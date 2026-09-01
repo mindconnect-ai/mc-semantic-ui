@@ -21,6 +21,26 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **The TypeScript model names the fields Java actually sends.** Nine node
+  interfaces were missing what every `UiNode` carries — `title`, `display`, and
+  on `UiIcon` the six event triggers — plus `cssClass` on `UiAction` and
+  `UiField`, and `style` / `appearance` / `loading` on `UiMenuItem`, which in
+  Java inherits them from `UiAction`. A server sent them, the declarations said
+  they did not exist, and a consumer naming one got a compile error for a field
+  that was right there in the JSON.
+
+  Purely additive and all optional, so nothing that compiled before stops
+  compiling. `id` deliberately stays optional where it already was — making
+  these extend `UiNodeBase` would have tightened it and broken callers that
+  build a text or a row without one.
+
+  One divergence is left and is recorded in the mirror test rather than
+  papered over: Java models `UiPage` as a `UiNode` subtype with the
+  discriminator `"page"`, TypeScript as a plain envelope with none. Which of
+  the two is right is a question about the wire format.
+
 ### Fixed
 
 - **The app shell scrolls its content again, not the window.** `.sui-shell`
