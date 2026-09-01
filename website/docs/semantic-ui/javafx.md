@@ -409,12 +409,12 @@ silence, and can register your own.
 ## Run the demo
 
 ```bash
-mvn -pl core/mc-semantic-ui-javafx javafx:run
+mvn -pl javafx/mc-semantic-ui-javafx javafx:run
 ```
 
 Ten tabs covering every supported node, a long-running handler with live
 progress, drag-and-drop upload, and an embedded HTTP server whose endpoints
 answer with `UiPatch` JSON.
 
-See the [module README](https://github.com/mindconnect-ai/mc-semantic-ui/tree/main/core/mc-semantic-ui-javafx)
+See the [module README](https://github.com/mindconnect-ai/mc-semantic-ui/tree/main/javafx/mc-semantic-ui-javafx)
 for the current limitations.

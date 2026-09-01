@@ -38,17 +38,23 @@ Keep `SuiServerRendererTest` green — it locks the SSR markup for every node.
 
 ## Modules
 
-Libraries live under `core/` and `ext/`; everything else is an application.
-A node type and the ability to render it belong together, so the core owns
-only the types it can draw itself — anything needing its own painter is an
-extension.
+Libraries live under `core/`, `ext/` and `javafx/`; everything else is an
+application. A node type and the ability to render it belong together, so the
+core owns only the types it can draw itself — anything needing its own painter
+is an extension.
+
+`javafx/` is its own folder because the desktop renderer is a third way of
+drawing the same tree, not a part of the web one: it shares no code with
+`core/`, only the model, and it drags in a per-platform toolkit that nothing
+else wants. The artifactIds are unchanged — the coordinates on Maven Central do
+not move with the directory.
 
 - `core/mc-semantic-ui-core` — `UiNode` model + dual renderer (the heart)
-- `core/mc-semantic-ui-javafx` — third renderer, a JavaFX desktop client;
-  it paints the whole vocabulary bar one. `core/mc-semantic-ui-javafx-iframe`
+- `javafx/mc-semantic-ui-javafx` — third renderer, a JavaFX desktop client;
+  it paints the whole vocabulary bar one. `javafx/mc-semantic-ui-javafx-iframe`
   adds that one, `iframe`, alone: it needs `javafx-web`'s per-platform WebKit,
   and nothing else does
-- `core/mc-semantic-ui-javafx-markdown`, `core/mc-semantic-ui-javafx-json` —
+- `javafx/mc-semantic-ui-javafx-markdown`, `javafx/mc-semantic-ui-javafx-json` —
   JavaFX painters for the `markdown` and `json-viewer` extension types; each is
   its own module so an app pays only for what it shows
 - `client/mc-sui-javafx-browser` — a browser for `UiNode` servers; knows no

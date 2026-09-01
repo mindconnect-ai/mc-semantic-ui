@@ -86,10 +86,10 @@ is a sweet spot, and where it explicitly isn't.
 | Module                                | What it is                                                                 |
 |---------------------------------------|----------------------------------------------------------------------------|
 | `core/mc-semantic-ui-core`            | UiNode model + dual renderer (Handlebars SSR + TypeScript SPA bus + CSS)   |
-| `core/mc-semantic-ui-javafx`          | Third renderer: the same tree as a native JavaFX desktop client ([README](core/mc-semantic-ui-javafx/README.md)) |
-| `core/mc-semantic-ui-javafx-iframe`   | `iframe` for the JavaFX renderer, alone in its own artifact because a WebView drags in a per-platform WebKit build |
-| `core/mc-semantic-ui-javafx-markdown` | Paints `markdown` on the desktop, as controls rather than in a WebView |
-| `core/mc-semantic-ui-javafx-json`     | Paints `json-viewer` as pretty-printed, selectable text |
+| `javafx/mc-semantic-ui-javafx`          | Third renderer: the same tree as a native JavaFX desktop client ([README](javafx/mc-semantic-ui-javafx/README.md)) |
+| `javafx/mc-semantic-ui-javafx-iframe`   | `iframe` for the JavaFX renderer, alone in its own artifact because a WebView drags in a per-platform WebKit build |
+| `javafx/mc-semantic-ui-javafx-markdown` | Paints `markdown` on the desktop, as controls rather than in a WebView |
+| `javafx/mc-semantic-ui-javafx-json`     | Paints `json-viewer` as pretty-printed, selectable text |
 | `client/mc-sui-javafx-browser`        | A browser for `UiNode` servers: type a url, render what comes back ([README](client/mc-sui-javafx-browser/README.md)) |
 | `ext/mc-semantic-ui-ext-json`         | `UiJsonViewer` — collapsible JSON view (browser-side, auto-config)         |
 | `ext/mc-semantic-ui-ext-markdown`     | `UiMarkdown` — Markdown → HTML (browser-side, auto-config)                 |

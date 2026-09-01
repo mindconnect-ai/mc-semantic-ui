@@ -44,7 +44,7 @@ It is not a browser-in-a-window and not a web view. `UiTable` becomes a real
 ## Run the demo
 
 ```bash
-mvn -pl core/mc-semantic-ui-javafx javafx:run    # from the repo root
+mvn -pl javafx/mc-semantic-ui-javafx javafx:run    # from the repo root
 ```
 
 Ten tabs covering every supported node, a long-running handler with live
@@ -143,7 +143,7 @@ Honest list, not a roadmap:
 ## Tests
 
 ```bash
-mvn -pl core/mc-semantic-ui-javafx test
+mvn -pl javafx/mc-semantic-ui-javafx test
 ```
 
 25 tests. They need a windowing system: OpenJFX ships no headless backend, so on

@@ -26,10 +26,10 @@
         <module>core/mc-semantic-ui-core</module>
         <!-- Third renderer: the same UiNode tree as a JavaFX rich client.
              Its tests skip themselves on a machine without a display. -->
-        <module>core/mc-semantic-ui-javafx</module>
-        <module>core/mc-semantic-ui-javafx-iframe</module>
-        <module>core/mc-semantic-ui-javafx-markdown</module>
-        <module>core/mc-semantic-ui-javafx-json</module>
+        <module>javafx/mc-semantic-ui-javafx</module>
+        <module>javafx/mc-semantic-ui-javafx-iframe</module>
+        <module>javafx/mc-semantic-ui-javafx-markdown</module>
+        <module>javafx/mc-semantic-ui-javafx-json</module>
         <module>ext/mc-semantic-ui-ext-json</module>
         <module>ext/mc-semantic-ui-ext-markdown</module>
         <module>ext/mc-semantic-ui-ext-diagram</module>

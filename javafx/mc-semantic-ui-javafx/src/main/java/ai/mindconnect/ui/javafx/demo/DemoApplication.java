@@ -49,7 +49,7 @@ import java.util.Map;
  *
  * <p>Run it with:
  * <pre>{@code
- * mvn -f core/mc-semantic-ui-javafx/pom.xml javafx:run
+ * mvn -f javafx/mc-semantic-ui-javafx/pom.xml javafx:run
  * }</pre>
  *
  * <p>From an IDE, start {@link DemoLauncher} rather than this class — see
