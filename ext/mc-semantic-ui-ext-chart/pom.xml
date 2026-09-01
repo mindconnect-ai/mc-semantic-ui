@@ -25,11 +25,11 @@
         <sui.publish.skip>false</sui.publish.skip>
     </properties>
     <description>
-        Semantic UI chart extension — draws the core `chart` node instead of the
-        placeholder the core emits. Unlike the diagram extension it adds no node
-        type: UiChart already lives in the core, so this module supplies only the
-        two painters (browser + server) and the stylesheet. SVG output, no
-        charting library, and the server-rendered variant needs no JavaScript.
+        Semantic UI chart extension — adds the `chart` node type: UiChart, the
+        two painters that draw it (a TypeScript one for the browser, a
+        Handlebars template for the server) and the stylesheet. Unlike the
+        diagram extension it renders server-side as well, so a page carrying a
+        chart needs no JavaScript. SVG output, no charting library.
     </description>
 
     <dependencies>
