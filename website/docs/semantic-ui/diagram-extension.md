@@ -98,7 +98,7 @@ Add the module; Spring Boot registers the Jackson subtype automatically:
 <dependency>
   <groupId>ai.mindconnect</groupId>
   <artifactId>mc-semantic-ui-ext-diagram</artifactId>
-  <version>0.2.2</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 

@@ -22,7 +22,7 @@ was web-shaped to begin with; the browser was simply the first renderer.
 <dependency>
   <groupId>ai.mindconnect</groupId>
   <artifactId>mc-semantic-ui-javafx</artifactId>
-  <version>0.2.2</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 
@@ -234,7 +234,7 @@ One node type, one module:
 <dependency>
     <groupId>ai.mindconnect</groupId>
     <artifactId>mc-semantic-ui-javafx-iframe</artifactId>
-<version>0.2.2</version>
+<version>0.3.0</version>
 </dependency>
 ```
 
@@ -274,7 +274,7 @@ own artifact so an app pays only for what it shows.
 <dependency>
   <groupId>ai.mindconnect</groupId>
   <artifactId>mc-semantic-ui-javafx-markdown</artifactId>
-  <version>0.2.2</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 
@@ -300,7 +300,7 @@ selection and its own scrollbars, deaf to the palette around it.
 <dependency>
   <groupId>ai.mindconnect</groupId>
   <artifactId>mc-semantic-ui-javafx-json</artifactId>
-  <version>0.2.2</version>
+  <version>0.3.0</version>
 </dependency>
 ```
 
