@@ -67,6 +67,19 @@ public UiPage products(@RequestParam(defaultValue = "") String q) {
 
 That's a working, styled, responsive table with a confirmed row action.
 
+:::tip Name the handler, not the URL
+`"DELETE /products/{id}"` above is a string: rename the handler behind it and
+nothing tells you. On Spring MVC you can point at the method instead and let
+the path and verb be derived from its mapping —
+
+```java
+.onClick(trigger(on(ProductController.class).delete(ROW_ID)))
+```
+
+`ROW_ID` is the sentinel for the `{id}` each row fills in. See
+**[Naming the handler instead of the URL](./triggers.md#naming-the-handler-instead-of-the-url)**.
+:::
+
 ## 4. Pick a mode
 
 - **No-JS / SSR** — with the flag from step 2 set, a browser hitting `/products`
