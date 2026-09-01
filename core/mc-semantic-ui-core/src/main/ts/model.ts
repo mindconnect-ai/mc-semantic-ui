@@ -869,6 +869,29 @@ export type UiNode =
 // ── Page wrapper (mirrors UiPage.java) ──────────────────────────────────────
 
 export interface UiPage {
+    /**
+     * Jackson writes this on every page — UiPage extends UiNode on the Java
+     * side, so the wire format carries the discriminator and, when they are
+     * set, the fields every node has.
+     *
+     * It is deliberately not a member of the {@link UiNode} union all the
+     * same: neither renderer dispatches a page as a node. The SPA unwraps it
+     * in `applyPage`, the server has its own `renderPage` entry point, and no
+     * `page` handler is registered in either. Putting it in the union would
+     * promise something that falls through to the unknown-type dump.
+     */
+    type: "page";
+    /** Optional, exactly as on the Java side — a page rarely has one. */
+    id?: string;
+    title?: string;
+    cssClass?: string;
+    display?: "HIDDEN" | "BLANK";
+    onClick?: UiTrigger;
+    onDblClick?: UiTrigger;
+    onHover?: UiTrigger;
+    onLeave?: UiTrigger;
+    onChange?: UiTrigger;
+    onInput?: UiTrigger;
     navigate?: string;
     node?: UiNode;
     /** Transient toasts to surface alongside the page content. */

@@ -106,6 +106,9 @@ export function productListPage(query?: string): UiPage {
         .map(p => ({ type: "row", id: p.id, data: { ...p } }));
 
     return {
+        // Jackson writes this on every page a Java server sends, so a Node one
+        // that speaks the same wire format writes it too.
+        type: "page",
         // The search term belongs in the URL the bus pushes, so a filtered list
         // survives a reload and can be shared.
         navigate: query ? `/products?q=${encodeURIComponent(query)}` : "/products",

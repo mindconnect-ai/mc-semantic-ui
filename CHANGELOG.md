@@ -23,6 +23,25 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- **`UiPage` says what Java sends.** The last divergence the mirror test was
+  holding: Java models a page as a `UiNode` subtype, so Jackson writes
+  `{"type":"page", …}` and, when they are set, the fields every node has.
+  TypeScript described a plain envelope with none of that, so a consumer could
+  not name `type` on a value that always carries it.
+
+  Java is the wire format's source of truth, so the mirror follows: `type` is
+  there, and `id`, `title`, `cssClass`, `display` and the six triggers are
+  optional exactly as they are in Java. The drift inventory is empty now.
+
+  **`type: "page"` is required**, because a server always sends it — code that
+  builds a `UiPage` by hand in TypeScript has to add it.
+
+  `UiPage` deliberately does *not* join the `UiNode` union. Neither renderer
+  dispatches a page as a node: the bus unwraps it in `applyPage`, the server has
+  its own `renderPage` entry point, and no `page` handler is registered in
+  either. Putting it in the union would promise something that falls through to
+  the unknown-type dump.
+
 - **The extensions and the editor are npm packages too.**
   `@mindconnect-ai/mc-semantic-ui-ext-chart`, `-diagram`, `-json`, `-markdown`
   and `@mindconnect-ai/mc-sui-editor`, cut from the same commit and carrying
