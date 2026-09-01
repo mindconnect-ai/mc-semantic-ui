@@ -1,6 +1,6 @@
 {
   "name": "@mindconnect-ai/mc-semantic-ui-ext-chart",
-  "version": "0.2.2",
+  "version": "0.2.3-SNAPSHOT",
   "description": "Chart extension for mc-semantic-ui — adds the `chart` node type and draws it as SVG",
   "keywords": [
     "mc-semantic-ui",
@@ -38,7 +38,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@mindconnect-ai/mc-semantic-ui-core": "0.2.2"
+    "@mindconnect-ai/mc-semantic-ui-core": "0.2.3-SNAPSHOT"
   },
   "devDependencies": {
     "@mindconnect-ai/mc-semantic-ui-core": "file:../../core/mc-semantic-ui-core",
