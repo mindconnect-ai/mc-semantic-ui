@@ -72,8 +72,9 @@ app.get("/admin/products", async (req, res) => {
 </Tabs>
 
 The `UiPage`'s `navigate` value (`/admin/products`) is the URL the event bus
-uses for history and deep-linking. (SSR to HTML is JVM-only — a Node backend
-serves the SPA path; see the [Node.js quickstart](./quickstart-node.md).)
+uses for history and deep-linking. (A Node backend can serve the SPA path or
+render the page itself — the renderer is an npm package; see the
+[Node.js quickstart](./quickstart-node.md#6-render-on-the-server).)
 
 ## 2. The shell — `index.html`
 

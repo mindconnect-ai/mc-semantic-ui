@@ -13,6 +13,15 @@ The thesis is unchanged: there is exactly one `UiNode` tree. Only its
 serialisation differs — JSON for the SPA, HTML for SSR. Controllers produce the
 same tree and don't know which one will be used.
 
+:::note Not only on the JVM
+This page describes the Java renderer, which is the one that also renders
+actions as plain anchors and forms so a page works with JavaScript switched
+off. A Node backend can render server-side as well — the browser renderer is an
+npm package and its `render()` returns a string — and gets the same markup
+minus that JS-free action handling. See the
+[Node.js quickstart](./quickstart-node.md#6-render-on-the-server).
+:::
+
 ## When SSR is the right trade-off
 
 - **First paint without a JS round-trip** — the initial page arrives as plain

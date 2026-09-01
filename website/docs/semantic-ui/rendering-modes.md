@@ -16,6 +16,11 @@ The controller assembles the UiNode tree; `SuiServerRenderer` turns it into HTML
 on the JVM. The browser gets a finished page — no JavaScript required, forms and
 links work natively.
 
+A Node backend can render too: the browser renderer is an npm package whose
+`render()` returns a string, so it runs server-side unchanged. It produces the
+same markup but not the JS-free form handling, which is the JVM renderer's own
+— see the [Node.js quickstart](./quickstart-node.md#6-render-on-the-server).
+
 ![SSR render flow](/img/semantic-ui/render-flow-ssr.svg)
 
 ## Single-page app (SPA)
