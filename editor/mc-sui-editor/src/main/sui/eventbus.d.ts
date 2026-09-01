@@ -456,7 +456,7 @@ export declare class SuiEventBus {
     private installRootListeners;
     /** Pre-bound handler set; keeps {@code add/removeEventListener} symmetric. */
     private boundHandlers;
-    /** Dialog-host element we've attached listeners to; null when no dialog open. */
+    /** Dialog-host element we've attached listeners to; null until it is wired. */
     private dialogListenerHost;
     private installListenersOn;
     private removeListenersFrom;

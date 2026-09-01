@@ -195,6 +195,15 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Fixed
 
+- **A server-rendered dialog can be closed again.** On a hybrid page the server
+  sends the dialog host as part of the markup, and the bus wired its listeners
+  only when it had created that element itself. Finding one already there, it
+  left it alone — so a dialog the server had opened could not be dismissed, its
+  × did nothing, and no control inside it responded. It is now wired whether it
+  was found or made. Anyone rendering `UiPage.dialogs` server-side has been
+  living with an unclosable modal; a purely client-driven page was never
+  affected, because there the bus builds the host itself.
+
 - **Animation no longer breaks the renderer outside a browser.** Deciding
   whether to animate is the one thing here that has to ask about its
   environment, and the question was asked in a way that assumed the answer: the
