@@ -113,6 +113,7 @@ const sidebars = {
             'semantic-ui/building-an-app',
             'semantic-ui/shop-demo',
             'semantic-ui/file-explorer-demo',
+            'semantic-ui/stateful-views',
           ],
         },
         {

@@ -38,8 +38,8 @@ Keep `SuiServerRendererTest` green — it locks the SSR markup for every node.
 
 ## Modules
 
-Libraries live under `core/`, `ext/` and `javafx/`; everything else is an
-application. A node type and the ability to render it belong together, so the
+Libraries live under `core/`, `ext/`, `javafx/` and `stateful/`; everything
+else is an application. A node type and the ability to render it belong together, so the
 core owns only the types it can draw itself — anything needing its own painter
 is an extension.
 
@@ -64,9 +64,16 @@ not move with the directory.
   `ext/mc-semantic-ui-ext-markdown` (`markdown`),
   `ext/mc-semantic-ui-ext-diagram` (`diagram`),
   `ext/mc-semantic-ui-ext-chart` (`chart`) — each adds node types
+- `stateful/mc-semantic-ui-stateful` — server-side stateful views: `SuiView<S>`
+  with Java listeners bound during `render(state)`, a JSON-level `TreeDiff`
+  that turns two renders into a `UiPatch`, a `ViewStateStore` SPI (in-memory
+  shipped) and the one generic event endpoint. Speaks the core protocol
+  unchanged — never add client code or node types here; a programming model,
+  not a node type, hence its own folder like `javafx/`
 - `editor/mc-sui-editor` (+ `-app`, `-standalone-app`) — embeddable visual editor
 - `demo/mc-sui-shop-spring-demo` (Postgres CRUD), `mc-sui-widget-demo`,
   `mc-sui-file-explorer-demo`, `mc-sui-shop-client-demo`,
+  `mc-sui-stateful-demo` (the product admin as stateful views, in-memory data),
   `mc-sui-shop-node-demo` (no Java — `packaging: pom`, builds its npm side only)
 - `website/` — Docusaurus docs (live in this repo; no separate deploy)
 

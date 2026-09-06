@@ -95,12 +95,14 @@ is a sweet spot, and where it explicitly isn't.
 | `ext/mc-semantic-ui-ext-markdown`     | `UiMarkdown` — Markdown → HTML (browser-side, auto-config)                 |
 | `ext/mc-semantic-ui-ext-diagram`      | Diagram extension (canvas-style graph nodes / edges)                       |
 | `ext/mc-semantic-ui-ext-chart`        | Chart extension (bar / line / area / pie / donut, SVG)                     |
+| `stateful/mc-semantic-ui-stateful`    | Server-side stateful views: Java listeners on nodes, state kept between requests, only the diff on the wire ([README](stateful/mc-semantic-ui-stateful/README.md)) |
 | `editor/mc-sui-editor`                | Embeddable visual editor (Tree + Property panel + Live preview)            |
 | `editor/mc-sui-editor-app`            | Standalone demo for the editor with sample content                         |
 | `editor/mc-sui-editor-standalone-app` | Backend-free editor SPA: projects/pages in localStorage, live preview, exports to static / Spring Boot / Node |
 | `demo/mc-sui-shop-spring-demo`               | End-to-end demo app: Postgres-backed product CRUD                          |
 | `demo/mc-sui-shop-client-demo`        | Backend-free shop: list + detail dialog + upload, driven by client triggers |
 | `demo/mc-sui-file-explorer-demo`      | File explorer over the real filesystem, with drag-and-drop `UiUpload`      |
+| `demo/mc-sui-stateful-demo`           | The product admin as stateful views — no controller per action, SSR and SPA |
 | `demo/mc-sui-shop-node-demo`               | Pure Node.js / Express demo — product list served as plain JSON, no Java   |
 | `demo/mc-sui-widget-demo`             | Static, backend-free showcase of every widget (plain JS `UiNode` literals) |
 
@@ -262,6 +264,33 @@ address nodes by `id`. The SPA renderer applies it via `applyPatch(...)`
 — ideal for chatty interactions and streaming (e.g. appending chat
 tokens) without re-shipping the full tree.
 
+### Stateful views — listeners in Java, only the diff on the wire
+
+The add-on `mc-semantic-ui-stateful` adds a second way to program the same
+UI. A view class holds a small state object and a `render` method; listeners
+are bound to nodes while rendering, and the framework keeps the state,
+re-renders after every event and sends only what changed:
+
+```java
+@SuiRoute("/counter")
+public class CounterView extends SuiView<CounterView.State> {
+    public static class State { int count; }
+
+    @Override protected State initialState(RouteParams params) { return new State(); }
+
+    @Override protected UiNode render(State s) {
+        return UiStack.of("counter")
+            .child(UiText.of("count", "Clicked " + s.count + " times"))
+            .child(on(UiAction.primary("inc", "+1")).click(e -> s.count++));
+    }
+}
+```
+
+No controller per action, no new client code — the click is an ordinary
+trigger to one generic endpoint and the answer an ordinary `UiPatch`, so it
+also works without JavaScript. See
+[`stateful/mc-semantic-ui-stateful`](stateful/mc-semantic-ui-stateful/README.md).
+
 ## Embed it as a UI island
 
 You don't need a full SPA shell. Drop a `<div>` into any existing page,
@@ -314,9 +343,12 @@ for local handlers, patches and the history caveat.
   framework entirely; the same JSON renders as plain HTML when no JS
   is loaded.
 - **Vaadin Flow** runs the component tree on the server with sticky
-  WebSocket sessions. `semantic-ui` is stateless: the JSON tree is the
-  response to one request, no server-side UI session, no per-user
-  RAM cost.
+  WebSocket sessions. `semantic-ui` is stateless by default: the JSON tree
+  is the response to one request, no server-side UI session, no per-user
+  RAM cost. When you want Vaadin's programming model — listeners in Java,
+  no endpoint per button — the `mc-semantic-ui-stateful` add-on gives you
+  that too, with the state as a JSON document in a pluggable store instead
+  of a sticky session, and the same view still working without JavaScript.
 
 Long-form comparison matrix lives in [`doc/concept.md`](doc/concept.md).
 

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ai.mindconnect</groupId>
+        <artifactId>mc-semantic-ui-parent</artifactId>
+        <version>0.3.1-SNAPSHOT</version>
+        <relativePath>../../parents/mc-semantic-ui-parent/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mc-semantic-ui-stateful</artifactId>
+    <packaging>jar</packaging>
+    <name>Semantic UI :: Stateful views</name>
+    <!-- Set explicitly: Maven would otherwise append the module path to the
+         parent's url, and flatten-maven-plugin ignores the
+         child.project.url.inherit.append.path=false that suppresses it —
+         the published pom would carry a 404. -->
+    <url>https://github.com/mindconnect-ai/mc-semantic-ui</url>
+
+    <!-- Opt in to Maven Central publishing; see the parent's release profile. -->
+    <properties>
+        <sui.publish.skip>false</sui.publish.skip>
+    </properties>
+    <description>
+        Server-side stateful views for Semantic UI: write a view class with
+        plain Java event listeners, the framework keeps its state between
+        requests, re-renders after every event and ships only the difference
+        as a UiPatch. State is JSON in a pluggable store, so a cluster needs
+        no sticky sessions. Speaks the core protocol unchanged — the browser
+        client, the SSR renderer and the JavaFX client need nothing new.
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!--
+            The view API, the diff and the store SPI have no Spring import.
+            Spring MVC + Boot autoconfigure are optional, exactly as in core:
+            they light up the generic event endpoint and the route mappings
+            when a consumer has them on the classpath.
+        -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- A real MVC stack for the endpoint tests; test scope only. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

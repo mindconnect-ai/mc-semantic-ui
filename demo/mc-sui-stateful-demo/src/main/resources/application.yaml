@@ -1,0 +1,14 @@
+server:
+  port: 9094
+
+mindconnect:
+  sui:
+    ssr:
+      enabled: true          # the core's Handlebars renderer answers Accept: text/html
+    stateful:
+      idle-timeout: 30m
+      max-instances-per-owner: 20
+
+logging:
+  level:
+    ai.mindconnect: INFO

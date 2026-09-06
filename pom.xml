@@ -34,6 +34,9 @@
         <module>ext/mc-semantic-ui-ext-markdown</module>
         <module>ext/mc-semantic-ui-ext-diagram</module>
         <module>ext/mc-semantic-ui-ext-chart</module>
+        <!-- Server-side stateful views: a programming model, not a node type,
+             so it has its own folder like javafx/. -->
+        <module>stateful/mc-semantic-ui-stateful</module>
         <module>editor/mc-sui-editor</module>
         <!-- standalone-app assembles the editor SPA under target/dist; the
              Spring showcase (mc-sui-editor-app) reuses that dist, so it must
@@ -46,6 +49,7 @@
         <module>demo/mc-sui-shop-client-demo</module>
         <module>demo/mc-sui-file-explorer-demo</module>
         <module>demo/mc-sui-merge-demo</module>
+        <module>demo/mc-sui-stateful-demo</module>
         <!-- No Java; in the reactor so a broken Node demo fails the build. -->
         <module>demo/mc-sui-shop-node-demo</module>
     </modules>

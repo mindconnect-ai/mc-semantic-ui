@@ -100,9 +100,11 @@ trip.
 
 Unlike Vaadin Flow, `semantic-ui` doesn't force backend session state.
 The tree lives in the browser, the server is stateless. As an option
-the server can hold the tree for a session and ship only patches
-(bandwidth, optimistic sync) — both are supported by the same
-protocol.
+the server can hold the state for a view and ship only patches — the
+`mc-semantic-ui-stateful` add-on does exactly that, with Java listeners
+bound while rendering and the state as a JSON document in a pluggable
+store, so it clusters without sticky sessions. Both styles are served
+by the same protocol and coexist page by page.
 
 ### 4. Logic / design separation
 

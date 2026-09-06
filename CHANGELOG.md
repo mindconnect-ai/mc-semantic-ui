@@ -21,6 +21,21 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **Server-side stateful views**, in the new add-on `mc-semantic-ui-stateful`.
+  Write a view class with a small state object and a `render(state)` method,
+  bind Java listeners to nodes while rendering — `on(button).click(e -> …)` —
+  and the framework keeps the state between requests, re-renders after every
+  event and sends only the difference as a `UiPatch`. No controller endpoint
+  per action. The state is JSON in a pluggable `ViewStateStore` (in-memory
+  shipped), so a cluster needs no sticky sessions; instances live in the URL
+  (`?_v=…`), so a reload keeps them and two tabs never share one. Nothing in
+  the wire protocol changed: the browser client, the SSR renderer and the
+  JavaFX client are untouched, and a view works without JavaScript through
+  the SSR form post. See `stateful/mc-semantic-ui-stateful/README.md` and
+  `demo/mc-sui-stateful-demo`.
+
 ## [0.3.0] - 2026-09-01
 
 ### Added
