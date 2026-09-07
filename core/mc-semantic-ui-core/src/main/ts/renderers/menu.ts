@@ -144,23 +144,82 @@ export function applyMenuState(menu: HTMLElement, state: MenuState, persist = tr
     }
 }
 
+/** The user's saved choice for a menu, or null when there is none. */
+function storedStateOf(menu: HTMLElement): MenuState | null {
+    let stored: string | null = null;
+    try { stored = localStorage.getItem(STORAGE_PREFIX + menu.id); } catch { /* ignore */ }
+    return stored && MENU_STATES.includes(stored as MenuState) ? stored as MenuState : null;
+}
+
+/**
+ * What a responsive menu should show for the CURRENT viewport. The saved
+ * choice is a desktop choice: on a wide screen "expanded" is a sidebar beside
+ * the content, on a narrow one the same word means a drawer lying across it.
+ * So a narrow viewport always starts the drawer closed, whatever was saved,
+ * and a wide one honours the choice.
+ *
+ * <p>Null means "nothing to apply": a wide viewport with no saved choice, where
+ * the server-rendered state stands. The breakpoint watch passes a fallback
+ * for that case — once the drawer has been closed there is no server state
+ * left to keep, so widening again opens the sidebar.
+ */
+function viewportStateOf(menu: HTMLElement, wideFallback: MenuState | null = null): MenuState | null {
+    return isMobile() ? "hidden" : (storedStateOf(menu) ?? wideFallback);
+}
+
 /**
  * Re-applies each menu's persisted state after a mount. Call once after
  * {@code renderer.mount(...)} so a user's collapse choice survives reloads.
- * Menus with no stored preference keep their server-rendered state.
+ * Menus with no stored preference keep their server-rendered state — except a
+ * responsive menu on a narrow screen, which starts closed regardless.
+ *
+ * <p>Also arms the breakpoint watch (once), so a window resized across the
+ * drawer breakpoint after mount is handled too.
  */
 export function restoreMenuState(root: ParentNode = document): void {
     root.querySelectorAll<HTMLElement>(".sui-menu[id]").forEach(menu => {
-        let stored: string | null = null;
-        try { stored = localStorage.getItem(STORAGE_PREFIX + menu.id); } catch { /* ignore */ }
-        if (stored && MENU_STATES.includes(stored as MenuState)) {
-            applyMenuState(menu, stored as MenuState, false);
+        if (menu.classList.contains("sui-menu--responsive")) {
+            const state = viewportStateOf(menu);
+            if (state) applyMenuState(menu, state, false);
             return;
         }
-        // No saved preference: a responsive menu starts closed on a small
-        // screen (a drawer behind the burger) and open on a wide one.
-        if (menu.classList.contains("sui-menu--responsive") && isMobile()) {
-            applyMenuState(menu, "hidden", false);
-        }
+        const stored = storedStateOf(menu);
+        if (stored) applyMenuState(menu, stored, false);
     });
+    watchBreakpoint();
+}
+
+let breakpointWatched = false;
+
+/**
+ * Re-evaluates every responsive menu when the viewport crosses the drawer
+ * breakpoint. Without this, a window narrowed after load kept its sidebar
+ * "expanded" — which the stylesheet then drew as an absolutely positioned
+ * drawer, open, on top of the page, with nothing to close it but the burger.
+ *
+ * <p>Registered once for the document: the media query outlives any page, and
+ * the menus are looked up afresh on each change, so one mounted later is
+ * covered as well. Nothing here is persisted — the window changed, not the
+ * user's mind.
+ */
+function watchBreakpoint(): void {
+    if (breakpointWatched || typeof matchMedia !== "function" || typeof document === "undefined") return;
+    breakpointWatched = true;
+    const query = matchMedia(MOBILE_QUERY);
+    const onChange = (): void => {
+        document.querySelectorAll<HTMLElement>(".sui-menu--responsive[id]").forEach(menu => {
+            applyMenuState(menu, viewportStateOf(menu, "expanded") as MenuState, false);
+        });
+    };
+    if (typeof query.addEventListener === "function") {
+        query.addEventListener("change", onChange);
+    } else if (typeof (query as MediaQueryList & { addListener?: (cb: () => void) => void }).addListener === "function") {
+        // Safari before 14
+        (query as MediaQueryList & { addListener: (cb: () => void) => void }).addListener(onChange);
+    }
+}
+
+/** Test seam: forget that the breakpoint watch was armed. */
+export function resetBreakpointWatchForTests(): void {
+    breakpointWatched = false;
 }
