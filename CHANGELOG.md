@@ -21,6 +21,17 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A responsive menu closes when the window gets narrow.** It used to keep
+  whatever state it had at load — "expanded", for a window that started wide —
+  while the stylesheet switched it to a drawer at the breakpoint. The result
+  was the drawer lying open across the page with nothing to close it but the
+  burger. The breakpoint is now watched, so narrowing the window closes the
+  drawer and widening it restores the sidebar. A choice saved on the desktop
+  is treated as a desktop choice: on a narrow screen the drawer always starts
+  closed, and the choice is neither applied there nor overwritten.
+
 ## [0.3.0] - 2026-09-01
 
 ### Added
