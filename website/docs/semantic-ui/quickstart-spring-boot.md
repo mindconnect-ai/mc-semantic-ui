@@ -18,7 +18,7 @@ No template files, no frontend build.
 <dependency>
   <groupId>ai.mindconnect</groupId>
   <artifactId>mc-semantic-ui-core</artifactId>
-  <version>0.3.0</version>
+  <version>0.3.1</version>
 </dependency>
 ```
 
