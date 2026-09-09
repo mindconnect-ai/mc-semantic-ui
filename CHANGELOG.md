@@ -32,6 +32,46 @@ fresh empty one, so nothing has to be moved by hand at release time.
   is treated as a desktop choice: on a narrow screen the drawer always starts
   closed, and the choice is neither applied there nor overwritten.
 
+- **A dead stream no longer blocks its own reconnect.** A page that lists a
+  stream in `activeStreams` is attached to it again even when the client still
+  holds a finished or errored handle for that channel. Such a handle stays in
+  the registry for a five-second grace period, and `SuiEventBus` used to take
+  it for a live connection and decline the reconnect — so an application that
+  re-fetched its page as soon as the server was reachable again (within those
+  five seconds) ended up with a page that showed the stream and heard nothing
+  from it until a reload. Applications that wait longer, or re-fetch on a
+  click, were never affected. The reconnect now also registers its handle
+  before the request goes out — a quiet stream may not answer until its first
+  heartbeat, and two page renders in that window used to open two connections
+  to the same channel, one of them untracked for good.
+
+- **One shown stream costs one connection.** A browser grants six connections
+  per host, and `SuiEventBus` used to spend them freely: a stream stayed open
+  after its page was left, so a tab that had visited four chats held four; a
+  message's POST stream took over its channel's registry slot without closing
+  the GET connection that was there, so every message left one more behind;
+  and a stream that ended took the registry entry of whichever stream had
+  replaced it. Now a stream whose page is gone is closed, running or not
+  (the page that shows it again names it in `activeStreams`, and the
+  server's resume URL replays what was missed), a replaced connection is
+  aborted, and a stream removes only its own entry. A detached stream no
+  longer buffers what it produces for the page's return, and no longer
+  reaches `completed` while away — an application that wants to tell the
+  user an answer is ready elsewhere does so over a channel of its own. A server's comment lines
+  (`:hb`) are no longer dispatched as `message` events either — they used to
+  promote a quiet stream to `running` on every heartbeat, which is what an
+  application's status surface saw. What decides which streams a page shows
+  is now the page itself — the list in `activeStreams` — and no longer a
+  look-up of the stream's target element in the DOM. That look-up was wrong
+  at the one moment it mattered: under a view transition the browser swaps
+  the DOM a frame after `mount()` returns, so the bus found the page on its
+  way out, kept its stream and dropped the wrong one, and every navigation
+  left one connection behind. Name every stream a page shows. The same
+  timing used to lose events: one that arrived in the frame between a page
+  being announced and drawn went into the old DOM and vanished with it. An
+  event whose target is not drawn yet now waits on its stream and lands, in
+  order, as soon as the target is there.
+
 ## [0.3.0] - 2026-09-01
 
 ### Added
