@@ -158,9 +158,13 @@ export interface StreamHandle {
      * last {@code done} counts as running.
      */
     state: "idle" | "running" | "completed" | "errored";
-    /** Raw SSE event records buffered while the owning page is detached. */
+    /**
+     * Raw SSE event records waiting for their target: the current page does
+     * not show this stream, or shows it but has not drawn the target yet.
+     * Delivered in order as soon as it is there.
+     */
     bufferedEvents: { event: string; data: string }[];
-    /** {@code true} while the owning page's DOM is mounted in the renderer root. */
+    /** {@code true} while the current page names this stream in {@code activeStreams}. */
     pageAttached: boolean;
     /**
      * Highest SSE id seen so far on this stream. Tracked so a reconnect
@@ -253,6 +257,8 @@ export class SuiEventBus {
     private readonly streamStateListeners: StreamStateListener[] = [];
     /** Pending removals of finished streams, keyed by channel. */
     private readonly streamReapers = new Map<string, ReturnType<typeof setTimeout>>();
+    /** Streams whose buffer is being handed over right now, so two flushes cannot interleave. */
+    private readonly flushing = new Set<StreamHandle>();
     private rewriter: UrlRewriter = (u) => u;
     private responseHandler: ResponseHandler = defaultResponseHandler;
     private navigateHandler: NavigateHandler | null = null;
@@ -443,16 +449,14 @@ export class SuiEventBus {
         // carrying its own id); later opens/closes are APPEND/REMOVE patches.
         this.renderDialogs(page?.dialogs);
         if (page?.toasts) showToasts(page.toasts);
-        // The DOM just swapped. Some live streams' target containers may
-        // have come back (user navigated back to the chat) or just left
-        // (user navigated away). Reconcile both directions: replay buffered
-        // events into freshly-mounted targets, mark abandoned streams.
-        this.reconcileStreamAttachments();
-        // Server-driven resume: the page may name streams it still considers
-        // running. For any channel we don't already track locally (F5, second
-        // tab, freshly opened admin window), open a GET reconnect so live
-        // patches start flowing into this page's DOM.
-        if (page?.activeStreams) this.reconnectMissingStreams(page.activeStreams);
+        // The page says which streams it shows: activeStreams. That list,
+        // not the DOM, decides what stays attached — the DOM is not the new
+        // page yet when this runs under a view transition. A stream the
+        // page names is attached (buffered events replay into it) or gets
+        // opened; one it does not name has left the screen.
+        const shown = page?.activeStreams ?? [];
+        this.reconcileStreamAttachments(shown);
+        this.reconnectMissingStreams(shown);
         if (!this.historyEnabled) return;
         const dest = page?.navigate ?? fallbackHref;
         if (dest) window.history.pushState({}, "", dest);
@@ -460,11 +464,20 @@ export class SuiEventBus {
 
     /**
      * For every server-listed active stream whose channelId we don't already
-     * have a {@link StreamHandle} for, open a GET to the server's resume URL
-     * and feed the resulting SSE stream through the same {@link #consumeSse}
-     * path as a fresh POST stream. {@code lastSeq} is sent as 0 — the client
-     * had no prior knowledge of this stream, so the server replays whatever
-     * it still has in its ring buffer.
+     * have a live {@link StreamHandle} for, open a GET to the server's resume
+     * URL and feed the resulting SSE stream through the same
+     * {@link #consumeSse} path as a fresh POST stream. {@code lastSeq} is sent
+     * as 0 — the client had no prior knowledge of this stream, so the server
+     * replays whatever it still has in its ring buffer.
+     *
+     * <p>A handle that has reached {@code completed} or {@code errored} does
+     * not count as "already have": its connection is over, and it only sits in
+     * the registry for the reap grace period. The page has just said the
+     * stream is live, and the page is the authority — so the dead handle is
+     * discarded and the stream reopened. Skipping it, as this method used to,
+     * left a tab deaf whenever its server came back inside that grace period:
+     * the page was re-fetched, the reconnect was declined, and five seconds
+     * later the reaper removed the only handle without replacing it.
      *
      * <p>Quiet failure model: if a resume URL 404s (stream finished between
      * page-render and client-applyPage), we just log and move on. The next
@@ -473,7 +486,11 @@ export class SuiEventBus {
     private reconnectMissingStreams(entries: NonNullable<UiPage["activeStreams"]>): void {
         for (const entry of entries) {
             if (!entry?.channelId || !entry.resumeUrl) continue;
-            if (this.streams.has(entry.channelId)) continue;
+            const existing = this.streams.get(entry.channelId);
+            if (existing) {
+                if (existing.state !== "completed" && existing.state !== "errored") continue;
+                this.discardStream(existing);
+            }
             void this.openReconnectStream(entry).catch(err => {
                 console.warn(`SuiEventBus: reconnect ${entry.channelId} failed`, err);
             });
@@ -487,18 +504,6 @@ export class SuiEventBus {
      */
     private async openReconnectStream(entry: NonNullable<UiPage["activeStreams"]>[number]): Promise<void> {
         const abortController = new AbortController();
-        const url = entry.resumeUrl.includes("?")
-            ? `${entry.resumeUrl}&lastSeq=0`
-            : `${entry.resumeUrl}?lastSeq=0`;
-        const res = await this.fetcher(url, {
-            method: "GET",
-            headers: { "Accept": "text/event-stream" },
-            signal: abortController.signal,
-        });
-        if (!res.ok || !res.body) {
-            console.warn(`SuiEventBus: reconnect ${entry.channelId} got`, res.status);
-            return;
-        }
         const handle: StreamHandle = {
             channelId: entry.channelId,
             returnHref: entry.returnHref ?? (window.location.pathname + window.location.search),
@@ -510,17 +515,45 @@ export class SuiEventBus {
             // "running" — there the request itself IS the work.
             state: "idle",
             bufferedEvents: [],
-            pageAttached: this.findStreamTarget(entry.channelId) != null,
+            pageAttached: true,          // opened because the page named it
             lastSeq: 0,
             abort: () => abortController.abort(),
         };
+        // Registered before the request goes out, not once the response is
+        // in. A quiet session stream writes nothing until its first
+        // heartbeat, so the response headers can take seconds to arrive, and
+        // an applyPage in that window would open a second connection to the
+        // same channel — one of which nobody would ever close.
         this.streams.set(entry.channelId, handle);
         this.notifyStreamState();
+
+        const url = entry.resumeUrl.includes("?")
+            ? `${entry.resumeUrl}&lastSeq=0`
+            : `${entry.resumeUrl}?lastSeq=0`;
+        let res: Response;
+        try {
+            res = await this.fetcher(url, {
+                method: "GET",
+                headers: { "Accept": "text/event-stream" },
+                signal: abortController.signal,
+            });
+        } catch (err) {
+            this.discardStream(handle);
+            this.notifyStreamState();
+            throw err;
+        }
+        if (!res.ok || !res.body) {
+            console.warn(`SuiEventBus: reconnect ${entry.channelId} got`, res.status);
+            this.discardStream(handle);
+            this.notifyStreamState();
+            return;
+        }
 
         // Reuse the regular streaming loop. A synthetic BehaviorContext is
         // enough — the patch handler only reads {bus} from closure.
         const ctx: BehaviorContext = this.syntheticReplayContext(handle);
         void this.consumeSse(res.body, ctx, handle).catch(err => {
+            if (isAbort(err)) return;   // closed on purpose: nothing went wrong
             console.warn(`SuiEventBus: reconnect ${entry.channelId} aborted`, err);
             handle.state = "errored";
             this.notifyStreamState();
@@ -538,44 +571,102 @@ export class SuiEventBus {
 
     /**
      * Walks every registered stream and re-evaluates its {@code pageAttached}
-     * flag against the live DOM. When a stream that was detached comes back
-     * (the user navigated back to the chat), all events buffered while
-     * detached are replayed through their registered handlers — then the
-     * buffer is cleared.
+     * flag against the page that was just applied: attached means the page
+     * names the stream in {@code activeStreams}. When a stream that was
+     * detached comes back (the user navigated back to the chat), all events
+     * buffered while detached are replayed through their registered
+     * handlers — then the buffer is cleared.
      *
-     * <p>"Attached" means there is a DOM element with id
-     * {@code data-sui-stream-target="<channelId>"} (or, as a convenience,
-     * an element with id equal to the channel id itself).
+     * <p>The page's list is the authority, not the DOM. The bus used to look
+     * for the stream's target element instead, and that is wrong at exactly
+     * this moment: under a view transition the renderer swaps the DOM a
+     * frame after {@code mount()} returns, so the element found belonged to
+     * the page on its way out, and every navigation kept the wrong stream.
+     *
+     * <p>A stream the page does not name is closed, running or not. A page
+     * that shows it again names it, which reopens it, and the server's
+     * replay brings what was missed — that is what the resume URL is for.
+     * Keeping the connection open instead, as this method used to, cost one
+     * per page ever visited in the tab (a browser grants six per host), and
+     * for a running stream it also meant buffering every token of an answer
+     * nobody was looking at, to replay it into a page the server had already
+     * rendered complete. Whether work finished while the user was away is
+     * the application's to tell, over a channel it holds anyway.
      */
-    private reconcileStreamAttachments(): void {
-        for (const stream of this.streams.values()) {
+    private reconcileStreamAttachments(shown: NonNullable<UiPage["activeStreams"]>): void {
+        const named = new Set(shown.map(entry => entry?.channelId));
+        for (const stream of Array.from(this.streams.values())) {
             const wasAttached = stream.pageAttached;
-            const nowAttached = this.findStreamTarget(stream.channelId) != null;
+            const nowAttached = named.has(stream.channelId);
             stream.pageAttached = nowAttached;
-            if (!wasAttached && nowAttached && stream.bufferedEvents.length > 0) {
-                const buffered = stream.bufferedEvents.splice(0);
-                for (const ev of buffered) {
-                    const handler = this.streamEventHandlers.get(ev.event);
-                    if (!handler) continue;
-                    try {
-                        // We don't have the original BehaviorContext anymore;
-                        // a synthetic one is enough for the built-in patch
-                        // handler (it only reads {bus} through closure).
-                        handler(ev.data, this.syntheticReplayContext(stream));
-                    } catch (err) {
-                        console.error(`SuiEventBus: replay handler "${ev.event}" failed`, err);
-                    }
-                }
+            if (!nowAttached) {
+                this.discardStream(stream);
+                continue;
             }
+            if (!wasAttached && nowAttached) void this.flushBuffered(stream);
         }
         this.notifyStreamState();
     }
 
     /**
-     * Returns the DOM element marking that a given stream's owning page is
-     * mounted. Convention: the originating page renders a hidden anchor
-     * with {@code data-sui-stream-target="<channelId>"} so the bus can
-     * detect re-mount without coupling to specific component shapes.
+     * Whether an event for this stream can land right now: the element the
+     * events go into is drawn. A DOM look-up on purpose, and deliberately
+     * not the page's list — that list says which streams to keep open, this
+     * says where an event can go, and the two differ at the edges: under a
+     * view transition the page is applied a frame after it is announced, so
+     * an event in that frame has nowhere to go yet; and a stream a POST
+     * started, which no page lists, still lands in its target whenever that
+     * target is on screen.
+     */
+    private canReceive(handle: StreamHandle): boolean {
+        return this.findStreamTarget(handle.channelId) != null;
+    }
+
+    /**
+     * Hands a stream's waiting events over, oldest first, stopping at the
+     * first one the page cannot take yet (it stays at the head, order kept).
+     * Runs when the page names the stream again and whenever the DOM has
+     * changed (see {@link #enhance}), so an event that waited for its target
+     * lands as soon as the target is drawn.
+     */
+    private async flushBuffered(handle: StreamHandle): Promise<void> {
+        if (this.flushing.has(handle)) return;
+        this.flushing.add(handle);
+        try {
+            while (handle.bufferedEvents.length > 0 && this.canReceive(handle)) {
+                const next = handle.bufferedEvents[0];
+                if (!await this.deliver(next.event, next.data, this.syntheticReplayContext(handle))) return;
+                handle.bufferedEvents.shift();
+            }
+        } finally {
+            this.flushing.delete(handle);
+        }
+    }
+
+    /**
+     * Runs one event through its handler. {@code false} means the handler
+     * could not apply it yet ("deferred") and the caller should keep it. A
+     * missing or failing handler counts as taken: nothing waits for it.
+     */
+    private async deliver(eventName: string, data: string, ctx: BehaviorContext): Promise<boolean> {
+        const handler = this.streamEventHandlers.get(eventName);
+        if (!handler) return true;
+        try {
+            return (await handler(data, ctx)) !== "deferred";
+        } catch (err) {
+            console.error(`SuiEventBus: stream handler "${eventName}" failed`, err);
+            return true;
+        }
+    }
+
+    /**
+     * Returns the DOM element a stream's events land in, if it is on screen.
+     * Convention: the originating page renders an element with
+     * {@code data-sui-stream-target="<channelId>"}, or simply with the
+     * channel id as its id. Consulted per event (see
+     * {@link #dispatchStreamEvent}) so an event that arrives before its
+     * target is drawn waits in the buffer instead of missing it; which
+     * streams a page shows is the page's own word, see {@link #applyPage}.
      */
     private findStreamTarget(channelId: string): HTMLElement | null {
         const sel = `[data-sui-stream-target="${cssEscape(channelId)}"]`;
@@ -634,15 +725,30 @@ export class SuiEventBus {
     private scheduleReap(handle: StreamHandle): void {
         if (this.streamReapers.has(handle.channelId)) return;
         const timer = setTimeout(() => {
-            this.streamReapers.delete(handle.channelId);
-            // Close it, don't just forget it: the connection may still be
-            // open, and an untracked one would be joined by a second on the
-            // next applyPage.
-            try { handle.abort(); } catch { /* already gone */ }
-            this.streams.delete(handle.channelId);
+            this.discardStream(handle);
             this.notifyStreamState();
         }, SuiEventBus.STREAM_REAP_DELAY_MS);
         this.streamReapers.set(handle.channelId, timer);
+    }
+
+    /**
+     * Takes a stream out of the registry for good: cancels a pending reap,
+     * closes the connection, forgets the handle. Closing matters — the
+     * connection may still be open, and an untracked one would be joined by
+     * a second on the next applyPage. Callers publish the change themselves,
+     * since the reaper and a reconnect want it at different moments.
+     */
+    private discardStream(handle: StreamHandle): void {
+        const reaper = this.streamReapers.get(handle.channelId);
+        if (reaper !== undefined) {
+            clearTimeout(reaper);
+            this.streamReapers.delete(handle.channelId);
+        }
+        try { handle.abort(); } catch { /* already gone */ }
+        // Only this handle: a POST stream may have taken the slot since.
+        if (this.streams.get(handle.channelId) === handle) {
+            this.streams.delete(handle.channelId);
+        }
     }
 
     /**
@@ -770,6 +876,11 @@ export class SuiEventBus {
         // Live feeds marked .sui-autoscroll stick to their newest entry and
         // surface a jump-to-latest arrow when the user scrolls up.
         try { wireAutoScroll(this.root); } catch { /* ignore */ }
+        // The DOM changed: a stream event that waited for its target may
+        // have one now.
+        for (const handle of this.streams.values()) {
+            if (handle.bufferedEvents.length > 0) void this.flushBuffered(handle);
+        }
     }
 
     /** Applies a {@link UiPatch} via the renderer. Convenience wrapper. */
@@ -1737,10 +1848,17 @@ export class SuiEventBus {
             returnLabel: "",
             state: "running",
             bufferedEvents: [],
-            pageAttached: this.findStreamTarget(channelId) != null,
+            pageAttached: true,          // started from the page that is showing
             lastSeq: 0,
             abort: () => abortController.abort(),
         };
+        // A page that shows a session stream already holds a GET connection
+        // to this very channel (see openReconnectStream); the POST that sends
+        // a message answers on the same channel and takes over the slot. The
+        // connection it takes over from has to go with the handle, or every
+        // message would leave one more open connection behind.
+        const previous = this.streams.get(channelId);
+        if (previous) this.discardStream(previous);
         this.streams.set(channelId, handle);
         this.notifyStreamState();
 
@@ -1750,6 +1868,7 @@ export class SuiEventBus {
         // can navigate away without blocking. The reader keeps running
         // until the server closes it or {@code handle.abort()} is called.
         void this.consumeSse(res.body, ctx, handle).catch(err => {
+            if (isAbort(err)) return;   // closed on purpose: nothing went wrong
             console.warn(`SuiEventBus: stream ${channelId} aborted`, err);
             handle.state = "errored";
             this.notifyStreamState();
@@ -1771,7 +1890,7 @@ export class SuiEventBus {
                 buf = events.pop() ?? "";
                 for (const block of events) {
                     if (!block.trim()) continue;
-                    let eventName = "message";
+                    let eventName: string | null = null;
                     let eventId: number | null = null;
                     const dataLines: string[] = [];
                     for (const raw of block.split(/\r?\n/)) {
@@ -1786,6 +1905,14 @@ export class SuiEventBus {
                     // id; track it so a reconnect can pass lastSeq and skip
                     // events we already saw.
                     if (eventId != null && eventId > handle.lastSeq) handle.lastSeq = eventId;
+                    // A block with neither event name nor data is not an
+                    // event: a comment line (the heartbeat a server sends to
+                    // keep the connection alive, or the note that a stream
+                    // has attached) or a bare id. Dispatching it as "message"
+                    // used to promote a quiet stream to running every
+                    // twenty-odd seconds.
+                    if (eventName == null && dataLines.length === 0) continue;
+                    eventName ??= "message";
                     const data = dataLines.join("\n");
                     // An event means work is being produced; "done" ends that
                     // without ending the stream. A finished turn the user is
@@ -1807,39 +1934,34 @@ export class SuiEventBus {
             if (handle.state === "running") handle.state = "completed";
             // An idle stream that ends carries nothing to report. Drop it, or
             // its registry entry would block the reconnect that replaces it.
-            if (handle.state === "idle") this.streams.delete(handle.channelId);
+            // Only its own entry, though: the stream may have ended because a
+            // successor took the slot and aborted it.
+            if (handle.state === "idle" && this.streams.get(handle.channelId) === handle) {
+                this.streams.delete(handle.channelId);
+            }
             this.notifyStreamState();
         }
     }
 
     /**
-     * Routes one SSE event to its registered handler. If the owning page is
-     * detached (the user navigated away mid-stream), the event is buffered
-     * on the handle and will be replayed when the page is re-mounted. If
-     * the handler runs but returns {@code "deferred"} the event is also
-     * buffered (the handler determined it couldn't apply right now, e.g.
-     * the target id wasn't in the live DOM despite the page being mounted).
+     * Routes one live SSE event to its registered handler. An event whose
+     * target is not on screen — the user navigated away mid-stream, or the
+     * page is announced but not drawn yet — waits on the handle, behind
+     * whatever already waits there, and lands in order once the target is
+     * there (see {@link #flushBuffered}). A handler that answers
+     * {@code "deferred"} puts the event back in the same queue.
      */
     private async dispatchStreamEvent(eventName: string, data: string,
                                       ctx: BehaviorContext,
                                       handle: StreamHandle): Promise<void> {
-        // Re-check attachment on every event — cheap (one DOM lookup) and
-        // catches the in-between-applyPage window where the user just
-        // landed but reconcileStreamAttachments hasn't been called yet.
-        handle.pageAttached = this.findStreamTarget(handle.channelId) != null;
-        if (!handle.pageAttached) {
+        if (this.canReceive(handle)) await this.flushBuffered(handle);
+        // Not deliverable, or older events still waiting: queue, keep order.
+        if (!this.canReceive(handle) || handle.bufferedEvents.length > 0) {
             handle.bufferedEvents.push({ event: eventName, data });
             return;
         }
-        const handler = this.streamEventHandlers.get(eventName);
-        if (!handler) return;
-        try {
-            const result = await handler(data, ctx);
-            if (result === "deferred") {
-                handle.bufferedEvents.push({ event: eventName, data });
-            }
-        } catch (err) {
-            console.error(`SuiEventBus: stream handler "${eventName}" failed`, err);
+        if (!await this.deliver(eventName, data, ctx)) {
+            handle.bufferedEvents.push({ event: eventName, data });
         }
     }
 }
@@ -1912,6 +2034,11 @@ function readInputValue(
  * identifiers — backslash-escaping double quotes is enough in practice and
  * keeps this file dependency-free.
  */
+/** True for the rejection a fetch reader produces when its controller aborts. */
+function isAbort(err: unknown): boolean {
+    return typeof err === "object" && err !== null && (err as { name?: string }).name === "AbortError";
+}
+
 function cssEscape(value: string): string {
     return value.replace(/(["\\])/g, "\\$1");
 }

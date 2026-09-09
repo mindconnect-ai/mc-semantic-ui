@@ -88,8 +88,12 @@ is a patch, and if it has `node` or `navigate` it is a page — which goes to
 2. `page.dialogs` repaint the `#sui-dialogs` host — a fresh screen drops the
    previous page's open dialogs.
 3. `page.toasts` are shown in the toast overlay.
-4. Stream attachments are reconciled, then `page.activeStreams` opens a resume
-   GET for any channel the client is not already reading.
+4. Streams are reconciled against `page.activeStreams`: a stream the page
+   names is attached (events buffered while it was off screen replay) or gets
+   a resume GET if the client is not already reading it; a stream the page
+   does not name has left the screen and is closed, running or not — the
+   resume URL replays what was missed when a page names it again. So name
+   every stream a page shows: the list, not the DOM, is what decides.
 5. If history is enabled, `page.navigate` (or the fallback href) is pushed.
 
 ```js
