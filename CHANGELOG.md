@@ -21,6 +21,17 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A button that replaces itself via a patch shows its new label.** Clicking
+  a button whose response REPLACEs it — a toggle flipping "Add" to "Remove",
+  say — used to leave the old label and icon in place under the new
+  attributes, so the button read as the opposite of what its next click would
+  do. In Chromium a clicked button keeps focus, and the morph skipped the
+  content of whatever element had focus. Only a control the user is typing
+  into or choosing in — a text-like input, textarea, select or contenteditable
+  — is protected from a re-render now.
+
 ## [0.3.1] - 2026-09-09
 
 ### Fixed
