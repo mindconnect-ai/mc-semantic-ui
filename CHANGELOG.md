@@ -31,6 +31,17 @@ fresh empty one, so nothing has to be moved by hand at release time.
   content of whatever element had focus. Only a control the user is typing
   into or choosing in — a text-like input, textarea, select or contenteditable
   — is protected from a re-render now.
+- **Submenus can be reached when the menu is collapsed to a rail.** In an app
+  shell the icon rail scrolls, and a scrolling container clipped the fly-outs
+  (and the leaf tooltips) that stick out of it — hovering a group showed
+  nothing, so its items could not be reached. A closed group did not render
+  its items at all, and the fly-out only ever opened on hover. With the event
+  bus, fly-outs and tooltips are now placed beside the rail with
+  `position: fixed`, open on hover, keyboard focus and tap (a tap on the group
+  no longer folds it), close on leave, Escape or a click elsewhere, and stay on
+  screen near the bottom of the window. A page rendered without the bus lets
+  the rail overflow instead, so the fly-outs are at least not clipped.
+  `wireRailFlyouts(root)` does the wiring for apps that render without a bus.
 
 ## [0.3.1] - 2026-09-09
 

@@ -1,6 +1,6 @@
 import type { UiTrigger, UiPage, UiPatch, UiToast, UiDialog } from "./model.js";
 import type { SuiRenderer } from "./renderer.js";
-import { applyMenuState, nextMenuState, restoreMenuState } from "./renderers/menu.js";
+import { applyMenuState, nextMenuState, restoreMenuState, wireRailFlyouts } from "./renderers/menu.js";
 import { renderIcon } from "./renderers/icon.js";
 import { wireOverflow } from "./renderers/overflow.js";
 import { wireMenuButtons } from "./renderers/menu-button.js";
@@ -869,6 +869,9 @@ export class SuiEventBus {
     /** Runs the idempotent post-render enhancers over the bus's root. */
     private enhance(): void {
         try { restoreMenuState(this.root); } catch { /* ignore */ }
+        // Rail fly-outs and tooltips: reachable by pointer, keyboard and touch,
+        // and not clipped by a scrolling rail.
+        try { wireRailFlyouts(this.root); } catch { /* ignore */ }
         // One call covers every container marked data-sui-overflow="menu":
         // tab bars, header extras, application toolbars.
         try { wireOverflow(this.root); } catch { /* ignore */ }

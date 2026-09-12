@@ -725,6 +725,11 @@ a.sui-tree-label:hover { text-decoration: underline; }
     border-right: 1px solid var(--sui-color-border);
     overflow-y: auto;
 }
+/* overflow-y: auto turns overflow-x to auto as well, which clips a rail's
+   hover fly-outs and tooltips. The event bus places them with position: fixed
+   instead (data-sui-flyouts); a page rendered without it lets the rail
+   overflow, so they can at least be reached. */
+.sui-shell-body > .sui-menu--rail:not([data-sui-flyouts]) { overflow: visible; }
 .sui-shell-body > .sui-menu--right { border-right: none; border-left: 1px solid var(--sui-color-border); }
 
 /* A menu that floats needs to look like it floats.
@@ -1532,6 +1537,42 @@ a[data-trigger].is-loading::before,
 .sui-menu--rail .sui-menu-item--group:hover > .sui-menu-group > .sui-menu-sublist { display: flex; }
 .sui-menu--rail .sui-menu-sublist .sui-menu-label { display: inline; }
 .sui-menu--rail .sui-menu-sublist .sui-menu-link { justify-content: flex-start; padding: 8px 10px; }
+/* An invisible bridge over the gap to the fly-out, so a pointer crossing it
+   is still "in" the group and the fly-out does not vanish on the way. */
+.sui-menu--rail .sui-menu-sublist::before {
+    content: ""; position: absolute; top: 0; bottom: 0; right: 100%; width: 8px;
+}
+.sui-menu--right.sui-menu--rail .sui-menu-sublist::before { right: auto; left: 100%; }
+/* A group nested inside a fly-out opens inline there, as in the expanded menu. */
+.sui-menu--rail .sui-menu-sublist .sui-menu-sublist {
+    position: static; display: flex; min-width: 0; padding: 0 0 0 22px;
+    background: none; border: none; box-shadow: none;
+}
+.sui-menu--rail .sui-menu-sublist .sui-menu-sublist::before { content: none; }
+.sui-menu--rail .sui-menu-sublist .sui-menu-caret { display: inline-flex; }
+
+/* Without the bus, a closed group still shows its fly-out on hover where the
+   browser lets CSS reach a <details>' hidden content. A rule of its own: a
+   browser that does not know the pseudo-element drops only this one. */
+.sui-menu--rail:not([data-sui-flyouts]) .sui-menu-item--group:hover > .sui-menu-group::details-content {
+    content-visibility: visible;
+}
+
+/* Wired by the event bus (wireRailFlyouts): fly-outs and tooltips open by
+   pointer, focus or tap and are placed with position: fixed beside the item —
+   the rail scrolls, and a scroll container clips anything absolutely
+   positioned that sticks out of it. The hover-only rules above stand down. */
+.sui-menu--rail[data-sui-flyouts] .sui-menu-list > .sui-menu-item--group:hover > .sui-menu-group > .sui-menu-sublist,
+.sui-menu--rail[data-sui-flyouts] .sui-menu-item:not(.sui-menu-item--group):hover > .sui-menu-tip { display: none; }
+.sui-menu--rail[data-sui-flyouts] .sui-menu-list > .sui-menu-item--group > .sui-menu-group > .sui-menu-sublist.is-flyout-open {
+    display: flex; position: fixed; z-index: 60;
+    top: var(--sui-flyout-top, 0); left: var(--sui-flyout-left, 0); right: auto;
+}
+.sui-menu--rail[data-sui-flyouts] .sui-menu-sublist.is-flyout-open::before { content: none; }
+.sui-menu--rail[data-sui-flyouts] .sui-menu-tip.is-tip-open {
+    display: block; position: fixed; transform: none;
+    top: var(--sui-flyout-top, 0); left: var(--sui-flyout-left, 0); right: auto;
+}
 
 /* State: HIDDEN — collapse to just the hamburger. */
 .sui-menu--hidden { width: var(--sui-menu-rail-w); }
