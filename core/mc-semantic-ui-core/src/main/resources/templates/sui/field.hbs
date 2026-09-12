@@ -24,7 +24,7 @@
 {{#if (eq fieldType "HIDDEN")~}}
 <input type="hidden" id="{{id}}" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}">
 {{~else~}}
-<div class="sui-field {{#if validationError}}sui-field--error{{/if}}"{{{events this "change"}}} id="{{id}}" data-field="{{id}}">
+<div class="sui-field{{#if cssClass}} {{cssClass}}{{/if}} {{#if validationError}}sui-field--error{{/if}}"{{{events this "change"}}} id="{{id}}" data-field="{{id}}">
   <label for="{{id}}__input">{{label}}{{#if required}} <span class="sui-required">*</span>{{/if}}</label>
   {{~#if editable~}}
     {{~#if trailing}}<div class="sui-field-row">{{/if~}}

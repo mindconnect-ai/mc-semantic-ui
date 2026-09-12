@@ -46,6 +46,13 @@ describe("HIDDEN field", () => {
         assert.doesNotMatch(html, /for="orderId__input"/);
     });
 
+    test("a visible field's wrapper carries cssClass and the display state, same as field.hbs", () => {
+        const hidden = render({ type: "field", id: "note", label: "Note", fieldType: "TEXT", editable: true, display: "HIDDEN" });
+        const styled = render({ type: "field", id: "note", label: "Note", fieldType: "TEXT", editable: true, cssClass: "wide" });
+        assert.match(hidden, /class="sui-field sui-hidden "/);
+        assert.match(styled, /class="sui-field wide "/);
+    });
+
     test("a detail view gives it no row", () => {
         const html = render({
             type: "detail", id: "d", title: "Order",

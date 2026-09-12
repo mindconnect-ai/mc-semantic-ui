@@ -717,6 +717,17 @@ class SuiServerRendererTest {
     }
 
     @Test
+    void fieldWrapperCarriesCssClassAndDisplayState() {
+        // .hidden() must take a visible field out of the layout — the wrapper
+        // used to drop cssClass, so the display marker never reached the page.
+        String hidden = renderer.render(UiField.text("note", "Note", "x").asEditable().hidden());
+        String styled = renderer.render(UiField.text("note", "Note", "x").asEditable().withCssClass("wide"));
+
+        assertTrue(hidden.contains("class=\"sui-field sui-hidden \""), hidden);
+        assertTrue(styled.contains("class=\"sui-field wide \""), styled);
+    }
+
+    @Test
     void detailSkipsHiddenFields() {
         var detail = UiDetail.of("d", "Order")
                 .field(UiField.hidden("orderId", "4711"))

@@ -2,7 +2,7 @@ import type { UiField } from "../model.js";
 import { escapeHtml, encodeTrigger } from "../renderer.js";
 import { renderIcon } from "./icon.js";
 import { renderActions } from "./shared.js";
-import { evt } from "./util.js";
+import { cls, evt } from "./util.js";
 
 export function renderField(f: UiField): string {
     // HIDDEN: no wrapper, no label — only the value, submitted with the form
@@ -31,7 +31,9 @@ export function renderField(f: UiField): string {
     // don't ship duplicate ids in the DOM. Form submission uses `name`,
     // which keeps the original UiField id — nothing on the server cares
     // about the control's DOM id.
-    return `<div class="sui-field ${f.validationError ? "sui-field--error" : ""}"${evt(f, "change")} id="${escapeHtml(f.id)}" data-field="${escapeHtml(f.id)}">
+    // cls() carries cssClass and the display state (sui-hidden / sui-blank),
+    // so .hidden() and .blank() work on a field like on any other node.
+    return `<div class="${cls("sui-field", f)} ${f.validationError ? "sui-field--error" : ""}"${evt(f, "change")} id="${escapeHtml(f.id)}" data-field="${escapeHtml(f.id)}">
         <label for="${escapeHtml(f.id)}__input">${escapeHtml(f.label)}${f.required ? ' <span class="sui-required">*</span>' : ""}</label>
         ${input}
         ${f.hint ? `<small class="sui-hint">${escapeHtml(f.hint)}</small>` : ""}

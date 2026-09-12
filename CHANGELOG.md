@@ -31,6 +31,11 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Fixed
 
+- **`.hidden()`, `.blank()` and `cssClass` work on a field.** The field
+  wrapper dropped the node's css classes in SSR and the SPA, so a field hidden
+  with `.hidden()` stayed on screen (JavaFX already hid it).
+- **The visual editor offers `PASSWORD` as a field type.** It was missing from
+  the editor's `fieldType` list.
 - **A button that replaces itself via a patch shows its new label.** Clicking
   a button whose response REPLACEs it — a toggle flipping "Add" to "Remove",
   say — used to leave the old label and icon in place under the new

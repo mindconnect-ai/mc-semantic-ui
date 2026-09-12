@@ -62,7 +62,8 @@ public class FileExplorerController {
     }
 
     /**
-     * Creates a sub-folder in {@code path}. Body: {@code {"name": "…"}}. On an
+     * Creates a sub-folder. Body: {@code {"path": "…", "name": "…"}} — the form
+     * sends {@code path} from a hidden field, the folder being shown. On an
      * invalid name it returns a {@link UiPatch} that re-renders just the form
      * with a field-level validation error (and the value the user typed) — the
      * server-driven validation flow; a valid name re-renders the whole folder.
