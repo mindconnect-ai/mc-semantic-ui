@@ -74,15 +74,20 @@ public class ExplorerPage {
      * The "new folder" form. Reused by the controller to re-render itself with
      * a field-level {@code error} (and the value the user typed) when the name
      * is rejected — the server-driven validation flow.
+     *
+     * <p>The folder it creates into travels as a hidden field rather than in
+     * the URL: the user has no reason to see it, and the server gets it back in
+     * the same body as the name.
      */
     public UiForm newFolderForm(String value, String error) {
         var name = UiField.text("name", "New folder", value == null ? "" : value)
                 .asEditable().placeholder("folder name");
         if (error != null) name.error(error);
         return UiForm.of("mkdir-form", null)
+                .field(UiField.hidden("path", path))
                 .field(name)
                 .action(UiAction.primary("create", "Create folder")
-                        .dispatch("POST", "/files/mkdir?path=" + enc(path), "mkdir-form"));
+                        .dispatch("POST", "/files/mkdir", "mkdir-form"));
     }
 
     // ── entry list ────────────────────────────────────────────────────────────

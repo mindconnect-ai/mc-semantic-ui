@@ -69,8 +69,8 @@ public class FileExplorerController {
      */
     @PostMapping(path = "/files/mkdir", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public Object mkdir(@RequestParam(defaultValue = "") String path,
-                        @RequestBody MkdirRequest body) {
+    public Object mkdir(@RequestBody MkdirRequest body) {
+        String path = body.path() == null ? "" : body.path();
         String name = body.name() == null ? "" : body.name().strip();
         String error = validateFolderName(path, name);
         if (error != null) {
@@ -116,6 +116,6 @@ public class FileExplorerController {
                 .body(body);
     }
 
-    /** JSON body for {@link #mkdir}. */
-    public record MkdirRequest(String name) {}
+    /** JSON body for {@link #mkdir}: the folder to create, and — from a hidden field — where. */
+    public record MkdirRequest(String path, String name) {}
 }
