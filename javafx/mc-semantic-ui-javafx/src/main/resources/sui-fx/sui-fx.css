@@ -116,6 +116,15 @@
     -fx-text-fill: -sui-text-body;
 }
 
+/* Move buttons of an orderable checkbox group: glyph-only, quiet until hovered. */
+.button.sui-choice-move {
+    -fx-background-color: transparent;
+    -fx-padding: 2 6 2 6;
+}
+.button.sui-choice-move:hover {
+    -fx-background-color: -sui-border-soft;
+}
+
 .sui-field-hint,
 .sui-fieldgroup-hint,
 .sui-list-description,

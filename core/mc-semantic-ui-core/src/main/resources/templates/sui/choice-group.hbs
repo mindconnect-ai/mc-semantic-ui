@@ -1,0 +1,22 @@
+{{!--
+  An expanded SELECT (radios) or MULTISELECT (checkboxes) — the control part of
+  field.hbs. Parity with renderChoices() in renderers/field.ts, locked by the
+  shared fixtures; what to draw comes from the `choiceGroup` helper, the
+  options, their order and checked state from UiField#choicesInDisplayOrder.
+
+  Every input shares name= and carries its own id, <field>__opt<option index>,
+  so a re-render matches rows by option rather than by position. An orderable
+  group wraps each option in a row that records its option index and carries
+  the move buttons, which the stylesheet shows once an EventBus drives them.
+--}}
+{{#with (choiceGroup this)~}}
+<div class="sui-choice-group{{#if orderable}} sui-choice-group--orderable{{/if}}" id="{{id}}__input" role="{{role}}" aria-labelledby="{{id}}__label">
+{{~#each choices~}}
+  {{~#if ../orderable}}<div class="sui-choice-row" data-sui-index="{{index}}">{{/if~}}
+  <label class="sui-choice"><input type="{{../inputType}}" id="{{../id}}__opt{{index}}" name="{{../id}}" value="{{value}}" data-sui-type="{{../fieldType}}"{{#if ../submitOnChange}} data-submit-on-change="true"{{/if}}{{#if ../onChange}} data-change-trigger='{{{trigger ../onChange}}}'{{/if}}{{#if checked}} checked{{/if}}><span>{{label}}</span></label>
+  {{~#if ../orderable~}}
+  <span class="sui-choice-move"><button type="button" class="sui-icon-btn sui-icon-btn--secondary" data-sui-move="up" aria-label="Move up" title="Move up">{{{icon "chevron-up"}}}</button><button type="button" class="sui-icon-btn sui-icon-btn--secondary" data-sui-move="down" aria-label="Move down" title="Move down">{{{icon "chevron-down"}}}</button></span></div>
+  {{~/if~}}
+{{~/each~}}
+</div>
+{{~/with}}

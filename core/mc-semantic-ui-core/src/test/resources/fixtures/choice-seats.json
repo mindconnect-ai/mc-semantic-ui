@@ -1,0 +1,20 @@
+[
+  { "name": "a tick below the checked rows joins their end",
+    "checked": [true, false, true, false], "index": [0, 1, 2, 3], "at": 2, "seat": 1 },
+  { "name": "a tick right below the checked rows stays",
+    "checked": [true, true, false], "index": [0, 1, 2], "at": 1, "seat": 1 },
+  { "name": "a tick on the first row stays",
+    "checked": [true, false], "index": [0, 1], "at": 0, "seat": 0 },
+  { "name": "a change on a checked row inside the block leaves the user's order",
+    "checked": [true, true, true], "index": [2, 0, 1], "at": 0, "seat": 0 },
+  { "name": "an untick returns to its option place",
+    "checked": [false, false, false], "index": [1, 0, 2], "at": 0, "seat": 1 },
+  { "name": "an untick goes below the remaining checked rows, in option order",
+    "checked": [false, true, false, false], "index": [2, 0, 1, 3], "at": 0, "seat": 2 },
+  { "name": "an untick ahead of a larger option index",
+    "checked": [false, true, false, false], "index": [0, 2, 1, 3], "at": 0, "seat": 1 },
+  { "name": "an untick already in place stays",
+    "checked": [false, false, false], "index": [0, 1, 2], "at": 0, "seat": 0 },
+  { "name": "an untick of the last row goes to the end",
+    "checked": [true, false, false], "index": [0, 1, 2], "at": 2, "seat": 2 }
+]

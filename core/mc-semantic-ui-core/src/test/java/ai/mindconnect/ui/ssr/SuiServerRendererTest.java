@@ -739,6 +739,74 @@ class SuiServerRendererTest {
         assertFalse(html.contains("4711"), html);
     }
 
+    /**
+     * Expanded SELECT / MULTISELECT markup, locked against fixtures that the SPA
+     * test (field-choices.test.mjs) renders through renderers/field.ts too — so
+     * SSR and SPA stay identical down to the byte, icons aside (their sprite
+     * URLs differ per renderer).
+     */
+    @Test
+    void expandedChoiceMarkupMatchesTheSharedFixtures() throws Exception {
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var fixtures = mapper.readTree(java.nio.file.Path.of("src/test/resources/fixtures/choice-fields.json").toFile());
+        assertTrue(fixtures.size() > 0);
+        for (var fixture : fixtures) {
+            var node = mapper.treeToValue(fixture.get("node"), ai.mindconnect.ui.model.UiNode.class);
+            String html = renderer.render(node);
+            String name = fixture.get("name").asText();
+            if (fixture.has("html")) {
+                assertEquals(fixture.get("html").asText(), choiceGroup(html), name);
+            } else {
+                // A dropdown: the renderers differ in whitespace inside <option>, so
+                // the fixture pins which values come out selected.
+                var expected = new java.util.ArrayList<String>();
+                fixture.get("selected").forEach(v -> expected.add(v.asText()));
+                assertEquals(expected, selectedOptions(html, fixture.get("node").get("id").asText()), name);
+            }
+        }
+    }
+
+    @Test
+    void expandedChoiceCaptionLabelsTheGroup() {
+        var options = java.util.List.of(UiField.Option.of("s", "Small"), UiField.Option.of("m", "Medium"));
+
+        String expanded = renderer.render(UiField.select("size", "Size", "m", options).asEditable().asRadio());
+        String dropdown = renderer.render(UiField.select("size", "Size", "m", options).asEditable());
+
+        // A label's `for` must name a control; the group is named through aria-labelledby instead.
+        assertTrue(expanded.contains("<label id=\"size__label\">Size</label>"), expanded);
+        assertTrue(expanded.contains("aria-labelledby=\"size__label\""), expanded);
+        assertFalse(expanded.contains("for=\"size__input\""), expanded);
+        assertTrue(dropdown.contains("<label for=\"size__input\">Size</label>"), dropdown);
+    }
+
+    /** The values of the options marked selected in a field's dropdown — mirrors the TS test helper. */
+    private static java.util.List<String> selectedOptions(String html, String fieldId) {
+        var select = java.util.regex.Pattern.compile("<select id=\"" + java.util.regex.Pattern.quote(fieldId) + "__input\"[\\s\\S]*?</select>").matcher(html);
+        assertTrue(select.find(), html);
+        var option = java.util.regex.Pattern.compile("<option value=\"([^\"]*)\"\\s*selected").matcher(select.group());
+        var values = new java.util.ArrayList<String>();
+        while (option.find()) values.add(option.group(1));
+        return values;
+    }
+
+    /** The choice group's outer div, icons reduced to {@code <svg/>} — mirrors the TS test helper. */
+    private static String choiceGroup(String html) {
+        int start = html.indexOf("<div class=\"sui-choice-group");
+        assertTrue(start >= 0, html);
+        var tags = java.util.regex.Pattern.compile("<div\\b|</div>").matcher(html);
+        int depth = 0;
+        int from = start;
+        while (tags.find(from)) {
+            depth += tags.group().equals("<div") ? 1 : -1;
+            from = tags.end();
+            if (depth == 0) {
+                return html.substring(start, tags.end()).replaceAll("<svg[\\s\\S]*?</svg>", "<svg/>");
+            }
+        }
+        throw new AssertionError("unclosed choice group: " + html);
+    }
+
     @Test
     void headerActionsRenderWithoutATitle() {
         // Regression: the header bar used to be gated on the title alone, so
