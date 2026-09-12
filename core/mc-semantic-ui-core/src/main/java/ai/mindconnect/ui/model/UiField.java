@@ -20,7 +20,14 @@ public class UiField extends UiNode {
         SELECT, MULTISELECT,
         FILE, REFERENCE,
         /** Masked input with a built-in eye toggle that reveals the value. */
-        PASSWORD
+        PASSWORD,
+        /**
+         * Not shown at all — no label, no control, just the value riding along
+         * in the form submission ({@code <input type="hidden">}). Submitted
+         * whether or not the field is {@link #editable}. For a visible field
+         * that is only temporarily out of view, use {@link UiNode#hidden()}.
+         */
+        HIDDEN
     }
 
     @Data
@@ -118,6 +125,15 @@ public class UiField extends UiNode {
     /** Masked input with an eye toggle that reveals the value while pressed. */
     public static UiField password(String id, String label, Object value) {
         return of(id, label, FieldType.PASSWORD, value);
+    }
+
+    /**
+     * A value the form submits without showing it — an id, a version, the
+     * context the server needs back. Renders as {@code <input type="hidden">};
+     * see {@link FieldType#HIDDEN}.
+     */
+    public static UiField hidden(String id, Object value) {
+        return of(id, null, FieldType.HIDDEN, value);
     }
 
     public static UiField textarea(String id, String label, Object value) {

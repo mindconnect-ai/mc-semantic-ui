@@ -21,6 +21,14 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **Hidden form fields.** `UiField.hidden(id, value)` (`fieldType: "HIDDEN"`)
+  submits a value with its form without showing anything — a record id, a
+  version, context the server needs back. It renders as a bare
+  `<input type="hidden">` in SSR and the SPA, takes no room in JavaFX, always
+  submits regardless of `editable`, and gets no row in a `detail`.
+
 ### Fixed
 
 - **A button that replaces itself via a patch shows its new label.** Clicking

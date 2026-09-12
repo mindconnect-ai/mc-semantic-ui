@@ -15,7 +15,15 @@
   when harvesting an SSR-rendered form's values so a CURRENCY input stays
   CURRENCY even though it shares the HTML type="number" attribute with
   NUMBER and PERCENT.
+
+  HIDDEN is the exception to all of the above: no wrapper, no label, just
+  the input — there is nothing to lay out, and a wrapper would still take a
+  row in the form. The input carries the model id itself, and submits whether
+  or not the field is editable.
 --}}
+{{#if (eq fieldType "HIDDEN")~}}
+<input type="hidden" id="{{id}}" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}">
+{{~else~}}
 <div class="sui-field {{#if validationError}}sui-field--error{{/if}}"{{{events this "change"}}} id="{{id}}" data-field="{{id}}">
   <label for="{{id}}__input">{{label}}{{#if required}} <span class="sui-required">*</span>{{/if}}</label>
   {{~#if editable~}}
@@ -57,3 +65,4 @@
   {{~#if hint}}<small class="sui-hint">{{hint}}</small>{{/if~}}
   {{~#if validationError}}<span class="sui-error">{{validationError}}</span>{{/if~}}
 </div>
+{{~/if}}

@@ -6,7 +6,8 @@ export type FieldType =
     | "BOOLEAN"
     | "SELECT" | "MULTISELECT"
     | "FILE" | "REFERENCE"
-    | "PASSWORD";
+    | "PASSWORD"
+    | "HIDDEN";
 
 export type ActionStyle = "PRIMARY" | "SECONDARY" | "DANGER";
 export type ActionAppearance = "BUTTON" | "LINK" | "ICON";

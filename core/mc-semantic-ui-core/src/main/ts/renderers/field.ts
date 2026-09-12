@@ -5,6 +5,13 @@ import { renderActions } from "./shared.js";
 import { evt } from "./util.js";
 
 export function renderField(f: UiField): string {
+    // HIDDEN: no wrapper, no label — only the value, submitted with the form
+    // whether or not the field is editable. The input carries the model id
+    // itself, since there is no wrapper to hold it. Parity with field.hbs.
+    if (f.fieldType === "HIDDEN") {
+        const id = escapeHtml(f.id);
+        return `<input type="hidden" id="${id}" name="${id}" value="${f.value != null ? escapeHtml(f.value) : ""}" data-sui-type="HIDDEN">`;
+    }
     let input = f.editable
         ? renderInput(f)
         : `<span class="sui-value">${f.value != null ? escapeHtml(f.value) : "—"}</span>`;

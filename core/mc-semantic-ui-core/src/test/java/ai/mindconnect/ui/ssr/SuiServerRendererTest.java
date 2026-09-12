@@ -691,6 +691,44 @@ class SuiServerRendererTest {
     }
 
     @Test
+    void rendersHiddenFieldAsBareInput() {
+        var form = UiForm.of("order", "Order")
+                .field(UiField.hidden("orderId", 4711))
+                .field(UiField.text("note", "Note", null).asEditable())
+                .action(UiAction.primary("save", "Save").dispatch("POST", "/orders", "order"));
+
+        String html = renderer.render(form);
+
+        // The value is submitted — natively, and by the EventBus's harvest …
+        assertTrue(html.contains("<input type=\"hidden\" id=\"orderId\" name=\"orderId\" value=\"4711\" data-sui-type=\"HIDDEN\">"), html);
+        // … but nothing is shown: no wrapper, no label for it.
+        assertFalse(html.contains("data-field=\"orderId\""), html);
+        assertFalse(html.contains("for=\"orderId__input\""), html);
+    }
+
+    @Test
+    void hiddenFieldSubmitsEvenWhenNotEditable() {
+        // A read-only field renders as a span and drops out of the payload; a
+        // hidden one exists only to be submitted, so editable must not matter.
+        String html = renderer.render(UiField.hidden("version", "3"));
+
+        assertTrue(html.contains("name=\"version\""), html);
+        assertFalse(html.contains("sui-value"), html);
+    }
+
+    @Test
+    void detailSkipsHiddenFields() {
+        var detail = UiDetail.of("d", "Order")
+                .field(UiField.hidden("orderId", "4711"))
+                .field(UiField.text("customer", "Customer", "Ada"));
+
+        String html = renderer.render(detail);
+
+        assertTrue(html.contains("Customer"), html);
+        assertFalse(html.contains("4711"), html);
+    }
+
+    @Test
     void headerActionsRenderWithoutATitle() {
         // Regression: the header bar used to be gated on the title alone, so
         // a title-less table silently dropped its header actions.

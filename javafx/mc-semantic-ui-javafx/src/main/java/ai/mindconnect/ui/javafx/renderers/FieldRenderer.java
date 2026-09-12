@@ -22,6 +22,7 @@ import javafx.scene.control.TextInputControl;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -55,6 +56,9 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
 
     @Override
     public Node render(UiField node, FxRenderContext ctx) {
+        if (node.getFieldType() == UiField.FieldType.HIDDEN) {
+            return hidden(node, ctx);
+        }
         var box = new VBox(4);
 
         var labelText = SuiFxText.first(node.getLabel(), node.getTitle());
@@ -99,6 +103,21 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
         }
 
         return box;
+    }
+
+    /**
+     * A {@code HIDDEN} field: only its value, handed to the form. The node it
+     * returns is a placeholder that takes no room — invisible and out of the
+     * layout, the {@code <input type="hidden">} of a scene graph.
+     */
+    private Node hidden(UiField node, FxRenderContext ctx) {
+        if (node.getId() != null && ctx.form() != null) {
+            ctx.form().register(node.getId(), node::getValue);
+        }
+        var placeholder = new Region();
+        placeholder.setVisible(false);
+        placeholder.setManaged(false);
+        return placeholder;
     }
 
     /** A painted control paired with the supplier that reads its current value. */

@@ -5,7 +5,8 @@ import { renderIcon } from "./icon.js";
 import { renderActions, renderLinks } from "./shared.js";
 
 export function renderDetail(node: UiDetail): string {
-    const fields = (node.fields || []).map(f =>
+    // HIDDEN fields carry a value, not something to read — no row for them.
+    const fields = (node.fields || []).filter(f => f.fieldType !== "HIDDEN").map(f =>
         `<div class="sui-detail-row">
             <dt>${escapeHtml(f.label)}</dt>
             <dd>${f.value != null ? escapeHtml(f.value) : '<span class="sui-empty">—</span>'}</dd>
