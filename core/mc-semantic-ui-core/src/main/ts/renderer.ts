@@ -124,6 +124,8 @@ export class SuiRenderer {
      * HTML, which doubles the size of every page to serve the rare merge.
      */
     private readonly models = new Map<string, UiNode>();
+    /** Reads the values the user has put into the controls under an element; see {@link #setInputReader}. */
+    private inputReader: InputReader | null = null;
     private loadingDepth = 0;
     private loadingIndicator: LoadingIndicator = defaultLoadingIndicator;
     private morpher: Morpher = innerHtmlMorpher;
@@ -302,6 +304,17 @@ export class SuiRenderer {
     }
 
     /**
+     * Tells the renderer how to read what the user has entered below an
+     * element — {@code field id → value}, the shape a form submits. The event
+     * bus installs its own reader; a renderer without one keeps no user input
+     * across a MERGE (see {@link #applyPatch}).
+     */
+    setInputReader(reader: InputReader | null): this {
+        this.inputReader = reader;
+        return this;
+    }
+
+    /**
      * Seeds the model index from a tree this renderer did not draw.
      *
      * <p>A hybrid page arrives as finished HTML with its model parked in a
@@ -356,6 +369,11 @@ export class SuiRenderer {
      *       container, the scroll position is updated to follow the new
      *       tail; otherwise it is left alone (so a user reading older
      *       messages isn't yanked away).</li>
+     *   <li><b>MERGE</b> writes {@code attributes} over the target's model and
+     *       re-renders it. What the user has entered in the target's fields
+     *       since it was drawn is kept — the model still holds the value the
+     *       server last sent — unless the merge supplies it: a {@code value}
+     *       in the attributes of a field, or the list of fields itself.</li>
      *   <li><b>CLEAR</b> empties the target via the morpher.</li>
      *   <li><b>REMOVE</b> removes the target element itself from the DOM.
      *       When the target lives inside a list item, the wrapping {@code
@@ -439,7 +457,7 @@ export class SuiRenderer {
                 break;
             }
             case "MERGE": {
-                const merged = this.mergeModel(op);
+                const merged = this.mergeModel(op, target);
                 if (!merged) return;
                 // Straight back through REPLACE's path: the node is a whole
                 // node again by now, and morphing it in is what keeps focus
@@ -767,7 +785,7 @@ export class SuiRenderer {
      *         also logged — a merge that quietly does nothing is worse than
      *         one that says why
      */
-    private mergeModel(op: UiPatchOperation): UiNode | null {
+    private mergeModel(op: UiPatchOperation, target: HTMLElement): UiNode | null {
         const current = this.models.get(op.targetId);
         if (!current) {
             console.warn("SuiRenderer: MERGE target has no known model", op.targetId);
@@ -775,9 +793,59 @@ export class SuiRenderer {
         }
         // Object.assign, not a spread of undefineds: an explicit null in
         // attributes has to land, or a state could be set but never cleared.
-        const merged = Object.assign({}, current, op.attributes ?? {}) as UiNode;
+        const attributes = op.attributes ?? {};
+        const merged = this.keepUserInput(Object.assign({}, current, attributes) as UiNode, attributes, target);
         this.models.set(op.targetId, merged);
         return merged;
+    }
+
+    /**
+     * The merged node with the user's current input written into its fields.
+     *
+     * <p>The model of a field holds the value the server last sent. Between
+     * that render and this merge the user may have typed, ticked or reordered,
+     * and re-rendering from the model would put every control that does not
+     * have focus back — a merge that only sets a {@code validationError}
+     * would undo the input it is complaining about. So the values under the
+     * target are read first and win, except where the merge itself says what
+     * they are: a {@code value} in the attributes of a merged field, or a part
+     * of the tree the attributes replace (a form's {@code fields}, say).
+     *
+     * <p>Copy on write: nodes without a field whose value changes come back as
+     * they were.
+     */
+    private keepUserInput(merged: UiNode, attributes: Record<string, unknown>, target: HTMLElement): UiNode {
+        if (!this.inputReader) return merged;
+        let live: Record<string, unknown>;
+        try { live = this.inputReader(target); } catch { return merged; }
+        if (!live || Object.keys(live).length === 0) return merged;
+
+        const withLive = (node: unknown, replacedByMerge: (key: string) => boolean): unknown => {
+            if (node == null || typeof node !== "object") return node;
+            if (Array.isArray(node)) {
+                let changed = false;
+                const out = node.map(child => {
+                    const next = withLive(child, () => false);
+                    if (next !== child) changed = true;
+                    return next;
+                });
+                return changed ? out : node;
+            }
+            const record = node as Record<string, unknown>;
+            let copy: Record<string, unknown> | null = null;
+            if (record.type === "field" && typeof record.id === "string" && record.editable === true
+                && record.fieldType !== "FILE" && Object.prototype.hasOwnProperty.call(live, record.id)
+                && !replacedByMerge("value")) {
+                copy = { ...record, value: live[record.id] };
+            }
+            for (const [key, value] of Object.entries(record)) {
+                if (value == null || typeof value !== "object" || replacedByMerge(key)) continue;
+                const next = withLive(value, () => false);
+                if (next !== value) (copy ??= { ...record })[key] = next;
+            }
+            return copy ?? node;
+        };
+        return withLive(merged, key => Object.prototype.hasOwnProperty.call(attributes, key)) as UiNode;
     }
 
     private applyTablePatch(op: UiPatchOperation, target: HTMLElement): boolean {
@@ -1042,6 +1110,12 @@ export function createDefaultRenderer(): SuiRenderer {
  * ({@code "outerHTML"}, used by REPLACE patches) or only its children
  * ({@code "innerHTML"}, used by mount and CLEAR).
  */
+/**
+ * Reads the values a user has entered in the controls below an element, keyed
+ * by field id — what the element would submit. See {@link SuiRenderer#setInputReader}.
+ */
+export type InputReader = (root: HTMLElement) => Record<string, unknown>;
+
 export type Morpher = (target: HTMLElement, newContent: string, mode: "innerHTML" | "outerHTML") => void;
 
 /** Fallback morpher: plain string assignment. Used before Idiomorph loads. */

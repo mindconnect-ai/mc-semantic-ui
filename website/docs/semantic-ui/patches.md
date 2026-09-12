@@ -66,6 +66,27 @@ earns its place when the node you are patching is expensive to rebuild, or when
 the server does not actually know what the rest of it looked like.
 :::
 
+### What the user entered stays
+
+The client re-renders a merged node from the model it kept when it last drew
+it, and that model holds the value the server sent then — not what the user
+has typed, ticked or selected since. So before re-rendering, the event bus
+reads the current input under the target and keeps it. The typical case works
+without echoing anything back:
+
+```java
+// The user filled in the form; the server only has something to say about it.
+UiPatch.of()
+        .patch(UiPatch.Operation.merge("signup", Map.of("formError", "Please fix the email.")))
+        .patch(UiPatch.Operation.merge("email",  Map.of("validationError", "Not a company address.")));
+```
+
+Every field keeps what the user entered. The server's value wins only where the
+merge says so: a `value` in the attributes of a merged field, or a part of the
+tree it replaces — merging new `fields` into a form renders those as sent.
+Read-only fields always show the model. `REPLACE` sends the whole node and is
+rendered exactly as sent.
+
 ### Clearing a field
 
 An explicit `null` **clears** a field rather than being ignored:
