@@ -71,13 +71,21 @@ which reports the new value without submitting anything.*
 | `MULTISELECT` | `<select multiple>` | `options`; `value` may be a list or a comma-separated string |
 | `FILE` | `<input type="file">` | `accept`, `multiple` |
 | `REFERENCE` | `<input type="text">` | `placeholder`, `icon` — a semantic marker for a foreign-key value; the renderer treats it like `TEXT` |
+| `HIDDEN` | `<input type="hidden">` — no wrapper, no label | `value` only — submitted whether or not the field is `editable` |
 
 `PASSWORD` builds the reveal toggle in: the eye button (wired by the event
 bus) switches the input between `password` and `text`, so an admin can check
 what is in the field before saving. Factory: `UiField.password(id, label,
 value)`.
 
-`icon`, `submitOnChange` and `onChange` work with every type. `CURRENCY` and
+`HIDDEN` carries a value the user never sees — a record id, a version for
+optimistic locking, the context the server needs back on submit. Nothing is
+drawn: the input stands alone with the field id as both DOM `id` and `name`,
+and a [`detail`](./detail.md) leaves it out. Factory: `UiField.hidden(id,
+value)`. This is a different thing from `.hidden()` on any node, which only
+takes a visible field out of the layout for a while.
+
+`icon`, `submitOnChange` and `onChange` work with every type but `HIDDEN`. `CURRENCY` and
 `PERCENT` are semantic labels only: the renderer emits the same number input as
 `NUMBER`, so format the display value yourself for the read-only case.
 
@@ -114,6 +122,9 @@ UiField.file("avatar", "Avatar").accept("image/*").multiple()
 
 UiField.reference("owner", "Owner", "u-42").asEditable();
 
+// Submitted with the form, never shown:
+UiField.hidden("orderId", 4711);
+
 // Read-only, and rejected-submit rendering:
 UiField.text("sku", "SKU", "WGT-0042");                       // editable = false
 UiField.text("name", "Name", "").asEditable().error("Name is required.");
@@ -144,6 +155,8 @@ UiField.text("q", "Search", null).asEditable().editableIf(canEdit);
   "editable": true, "accept": "image/*", "multiple": true,
   "onChange": { "behavior": "UPLOAD", "method": "POST", "url": "/api/avatar" } }
 
+{ "type": "field", "id": "orderId", "fieldType": "HIDDEN", "value": 4711 }
+
 { "type": "field", "id": "desc", "label": "Description", "fieldType": "TEXTAREA",
   "editable": true, "validationError": "Add at least a short description." }
 ```
@@ -163,7 +176,7 @@ not the input id.
 `UiField.text(...)` and dropped into a form renders as static text and never
 reaches the server. Call `.asEditable()` (or `.editableIf(condition)`) on every
 input you actually want filled in. `UiField.file(...)` is the one factory that
-sets it for you.
+sets it for you, and a `HIDDEN` field ignores the flag — it always submits.
 
 **`required` is a marker, not validation.** It adds the asterisk and nothing
 else — no `required` attribute, no client-side check. Validate on the server and

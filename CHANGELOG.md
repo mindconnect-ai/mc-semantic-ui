@@ -21,8 +21,21 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **Hidden form fields.** `UiField.hidden(id, value)` (`fieldType: "HIDDEN"`)
+  submits a value with its form without showing anything — a record id, a
+  version, context the server needs back. It renders as a bare
+  `<input type="hidden">` in SSR and the SPA, takes no room in JavaFX, always
+  submits regardless of `editable`, and gets no row in a `detail`.
+
 ### Fixed
 
+- **`.hidden()`, `.blank()` and `cssClass` work on a field.** The field
+  wrapper dropped the node's css classes in SSR and the SPA, so a field hidden
+  with `.hidden()` stayed on screen (JavaFX already hid it).
+- **The visual editor offers `PASSWORD` as a field type.** It was missing from
+  the editor's `fieldType` list.
 - **A button that replaces itself via a patch shows its new label.** Clicking
   a button whose response REPLACEs it — a toggle flipping "Add" to "Remove",
   say — used to leave the old label and icon in place under the new

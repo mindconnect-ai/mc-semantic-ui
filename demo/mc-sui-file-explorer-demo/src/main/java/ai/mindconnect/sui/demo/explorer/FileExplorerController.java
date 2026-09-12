@@ -62,15 +62,16 @@ public class FileExplorerController {
     }
 
     /**
-     * Creates a sub-folder in {@code path}. Body: {@code {"name": "…"}}. On an
+     * Creates a sub-folder. Body: {@code {"path": "…", "name": "…"}} — the form
+     * sends {@code path} from a hidden field, the folder being shown. On an
      * invalid name it returns a {@link UiPatch} that re-renders just the form
      * with a field-level validation error (and the value the user typed) — the
      * server-driven validation flow; a valid name re-renders the whole folder.
      */
     @PostMapping(path = "/files/mkdir", consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
-    public Object mkdir(@RequestParam(defaultValue = "") String path,
-                        @RequestBody MkdirRequest body) {
+    public Object mkdir(@RequestBody MkdirRequest body) {
+        String path = body.path() == null ? "" : body.path();
         String name = body.name() == null ? "" : body.name().strip();
         String error = validateFolderName(path, name);
         if (error != null) {
@@ -116,6 +117,6 @@ public class FileExplorerController {
                 .body(body);
     }
 
-    /** JSON body for {@link #mkdir}. */
-    public record MkdirRequest(String name) {}
+    /** JSON body for {@link #mkdir}: the folder to create, and — from a hidden field — where. */
+    public record MkdirRequest(String path, String name) {}
 }

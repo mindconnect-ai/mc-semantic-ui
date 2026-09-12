@@ -3,6 +3,7 @@ package ai.mindconnect.ui.javafx.renderers;
 import ai.mindconnect.ui.javafx.FxNodeRenderer;
 import ai.mindconnect.ui.javafx.FxRenderContext;
 import ai.mindconnect.ui.model.UiDetail;
+import ai.mindconnect.ui.model.UiField;
 import javafx.geometry.HPos;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -68,6 +69,8 @@ public class DetailRenderer implements FxNodeRenderer<UiDetail> {
 
         int row = 0;
         for (var field : node.getFields()) {
+            // A hidden field carries a value, not something to read.
+            if (field.getFieldType() == UiField.FieldType.HIDDEN) continue;
             var label = new Label(field.getLabel() != null ? field.getLabel() : field.getTitle());
             label.getStyleClass().add("sui-detail-label");
 

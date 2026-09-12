@@ -1,6 +1,7 @@
 package ai.mindconnect.ui.javafx;
 
 import ai.mindconnect.ui.model.UiAction;
+import ai.mindconnect.ui.javafx.renderers.FieldRenderer;
 import ai.mindconnect.ui.model.UiField;
 import ai.mindconnect.ui.model.UiForm;
 import ai.mindconnect.ui.model.UiMenu;
@@ -88,6 +89,27 @@ class SuiFxRendererTest {
                 .containsEntry("name", "Ada")
                 .containsEntry("city", "London")
                 .containsEntry("iban", "GB33");
+    }
+
+    @Test
+    void hiddenFieldRidesInThePayloadWithoutTakingRoom() {
+        var form = UiForm.of("order", "Order")
+                .field(UiField.hidden("orderId", "4711"))
+                .field(UiField.text("note", "Note", "rush").asEditable());
+
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.mount(form));
+
+        var payload = capturePayload(bus, "save",
+                () -> bus.dispatch(UiTrigger.invoke("save", "order"), form, bus.context()));
+
+        assertThat(payload)
+                .containsEntry("orderId", "4711")
+                .containsEntry("note", "rush");
+
+        var painted = onFxThread(() -> new FieldRenderer().render(UiField.hidden("x", "1"), bus.context()));
+        assertThat(painted.isVisible()).isFalse();
+        assertThat(painted.isManaged()).isFalse();
     }
 
     @Test

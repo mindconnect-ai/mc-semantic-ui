@@ -40,4 +40,4 @@ sample files and folders. Everything you do in the UI happens inside it.
 | `/files/upload`   | POST   | Multipart upload into `?path=`           |
 | `/files/download` | GET    | Stream a file (`?path=` to the file)     |
 | `/files/delete`   | POST   | Delete a file/folder at `?path=`         |
-| `/files/mkdir`    | POST   | Create a folder in `?path=` (JSON body)  |
+| `/files/mkdir`    | POST   | Create a folder; JSON body `{path, name}` |
