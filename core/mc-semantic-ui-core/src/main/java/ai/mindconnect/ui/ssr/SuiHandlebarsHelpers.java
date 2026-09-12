@@ -323,6 +323,20 @@ public final class SuiHandlebarsHelpers {
             return opts.tagType.inline() ? Boolean.valueOf(any) : blockResult(opts, any);
         });
 
+        // {{#if (and a b …)}} → true when every argument is truthy. The
+        // counterpart of `or`, same two forms.
+        hb.registerHelper("and", (ctx, opts) -> {
+            boolean all = isTruthy(ctx);
+            for (int i = 0; i < opts.params.length && all; i++) all = isTruthy(opts.param(i));
+            return opts.tagType.inline() ? Boolean.valueOf(all) : blockResult(opts, all);
+        });
+
+        // {{#each (choiceOptions this)}} → a UiField's options in the order an
+        // expanded field shows them (checked first when orderable). The model
+        // owns the rule, so SSR, SPA and JavaFX paint the same first order.
+        hb.registerHelper("choiceOptions", (ctx, opts) ->
+                ctx instanceof ai.mindconnect.ui.model.UiField f ? f.optionsInDisplayOrder() : java.util.List.of());
+
         // ── String substitution ({page} placeholder) ─────────────────────────
         hb.registerHelper("subst", (ctx, opts) -> {
             String s     = str(ctx);

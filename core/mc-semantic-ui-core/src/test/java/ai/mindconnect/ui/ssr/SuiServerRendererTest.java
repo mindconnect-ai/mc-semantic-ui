@@ -739,6 +739,45 @@ class SuiServerRendererTest {
         assertFalse(html.contains("4711"), html);
     }
 
+    private static final java.util.List<UiField.Option> SIZES = java.util.List.of(
+            UiField.Option.of("s", "Small"), UiField.Option.of("m", "Medium"), UiField.Option.of("l", "Large"));
+
+    @Test
+    void rendersExpandedSelectAsRadios() {
+        String html = renderer.render(UiField.select("size", "Size", "m", SIZES).asEditable().asRadio());
+
+        // No dropdown — a radio per option, one shared name, the value checked.
+        assertFalse(html.contains("<select"), html);
+        assertTrue(html.contains("role=\"radiogroup\""), html);
+        assertEquals(3, html.split("type=\"radio\" name=\"size\"", -1).length - 1, html);
+        assertTrue(html.contains("value=\"m\" data-sui-type=\"SELECT\" checked>"), html);
+        assertTrue(html.contains("value=\"s\" data-sui-type=\"SELECT\">"), html);
+    }
+
+    @Test
+    void rendersExpandedMultiselectAsCheckboxes() {
+        String html = renderer.render(UiField.multiselect("tags", "Tags", java.util.List.of("l", "s"), SIZES)
+                .asEditable().asCheckboxes().submitOnChange());
+
+        assertFalse(html.contains("<select"), html);
+        assertTrue(html.contains("value=\"s\" data-sui-type=\"MULTISELECT\" data-submit-on-change=\"true\" checked>"), html);
+        assertTrue(html.contains("value=\"m\" data-sui-type=\"MULTISELECT\" data-submit-on-change=\"true\">"), html);
+        // Not orderable: option order, no move buttons.
+        assertTrue(html.indexOf("value=\"s\"") < html.indexOf("value=\"l\""), html);
+        assertFalse(html.contains("data-sui-move"), html);
+    }
+
+    @Test
+    void orderableCheckboxesLeadWithTheCheckedOnesInValueOrder() {
+        String html = renderer.render(UiField.multiselect("tags", "Tags", "l,s", SIZES).asEditable().orderable());
+
+        assertTrue(html.contains("sui-choice-group--orderable"), html);
+        // l, s (the value's order), then m (the rest).
+        int l = html.indexOf("value=\"l\""), s = html.indexOf("value=\"s\""), m = html.indexOf("value=\"m\"");
+        assertTrue(l < s && s < m, html);
+        assertEquals(3, html.split("data-sui-move=\"up\"", -1).length - 1, html);
+    }
+
     @Test
     void headerActionsRenderWithoutATitle() {
         // Regression: the header bar used to be gated on the title alone, so

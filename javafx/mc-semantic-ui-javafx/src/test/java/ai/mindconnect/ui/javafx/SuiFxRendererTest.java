@@ -113,6 +113,59 @@ class SuiFxRendererTest {
     }
 
     @Test
+    void expandedChoicesSubmitTheSameShapeAsTheirDropdowns() {
+        var sizes = java.util.List.of(
+                UiField.Option.of("s", "Small"), UiField.Option.of("m", "Medium"), UiField.Option.of("l", "Large"));
+        var form = UiForm.of("prefs", "Prefs")
+                .field(UiField.select("size", "Size", "m", sizes).asEditable().asRadio())
+                .field(UiField.multiselect("tags", "Tags", java.util.List.of("s", "l"), sizes).asEditable().asCheckboxes())
+                .field(UiField.multiselect("order", "Order", java.util.List.of("l", "s"), sizes).asEditable().orderable());
+
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.mount(form));
+
+        var payload = capturePayload(bus, "save",
+                () -> bus.dispatch(UiTrigger.invoke("save", "prefs"), form, bus.context()));
+
+        assertThat(payload)
+                .containsEntry("size", "m")
+                .containsEntry("tags", java.util.List.of("s", "l"))
+                .containsEntry("order", java.util.List.of("l", "s"));
+    }
+
+    @Test
+    void orderableCheckboxesFollowTicksAndMoves() {
+        var sizes = java.util.List.of(
+                UiField.Option.of("s", "Small"), UiField.Option.of("m", "Medium"), UiField.Option.of("l", "Large"));
+        var field = UiField.multiselect("order", "Order", java.util.List.of("l", "s"), sizes).asEditable().orderable();
+        var form = UiForm.of("prefs", "Prefs").field(field);
+
+        var bus = new SuiFxEventBus();
+        var root = onFxThread(() -> bus.mount(form));
+
+        onFxThread(() -> {
+            var group = (javafx.scene.layout.VBox) root.lookup(".sui-choice-group");
+            // Rows: l, s, m. Tick m: it joins the end of the checked block.
+            checkBox(group, 2).setSelected(true);
+            // Rows: l, s, m. Move m up past s: l, m, s.
+            ((javafx.scene.control.Button) ((javafx.scene.layout.HBox) group.getChildren().get(2))
+                    .getChildren().get(2)).fire();
+            // Untick l: it drops below the checked ones: m, s, l.
+            checkBox(group, 0).setSelected(false);
+            return null;
+        });
+
+        var payload = capturePayload(bus, "save",
+                () -> bus.dispatch(UiTrigger.invoke("save", "prefs"), form, bus.context()));
+        assertThat(payload).containsEntry("order", java.util.List.of("m", "s"));
+    }
+
+    private static javafx.scene.control.CheckBox checkBox(javafx.scene.layout.VBox group, int row) {
+        return (javafx.scene.control.CheckBox) ((javafx.scene.layout.HBox) group.getChildren().get(row))
+                .getChildren().get(0);
+    }
+
+    @Test
     void invokeReachesAPlainJavaHandler() throws Exception {
         var action = UiAction.primary("go", "Go").onClick(UiTrigger.invoke("ping"));
         var bus = new SuiFxEventBus();

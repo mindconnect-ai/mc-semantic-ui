@@ -509,6 +509,30 @@ a.sui-tree-label:hover { text-decoration: underline; }
 
 /* A boolean field is a single checkbox — keep it left-aligned, not stretched. */
 .sui-field:has(> input[type="checkbox"]) { align-items: flex-start; }
+/* Expanded SELECT / MULTISELECT: one option per line, the control beside its
+   label. The option label is body text, not a field caption, so it drops the
+   weight the .sui-field label rule gives it. */
+.sui-choice-group { display: flex; flex-direction: column; gap: var(--sui-space-xs); }
+.sui-field .sui-choice {
+    display: inline-flex; align-items: center; gap: var(--sui-space-sm);
+    font-weight: 400; cursor: pointer; align-self: flex-start;
+}
+/* Orderable: each option a row, move buttons on the right. Only checked rows
+   move, and only within the checked block that leads the list — so the first
+   row has no way up and the last checked row no way down. */
+.sui-choice-row {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--sui-space-sm);
+    min-height: 32px; border-radius: var(--sui-radius-md);
+    /* Hover tint reaches past the checkbox without moving it out of line
+       with the plain checkbox groups above and below. */
+    padding: 0 var(--sui-space-xs); margin: 0 calc(-1 * var(--sui-space-xs));
+}
+.sui-choice-row:has(input:checked):hover { background: var(--sui-color-border-soft); }
+.sui-choice-move { display: inline-flex; gap: 2px; }
+.sui-choice-move .sui-icon-btn { min-width: 28px; height: 28px; padding: 0 4px; }
+.sui-choice-row:not(:has(input:checked)) .sui-choice-move,
+.sui-choice-row:first-child [data-sui-move="up"],
+.sui-choice-row:not(:has(+ .sui-choice-row input:checked)) [data-sui-move="down"] { visibility: hidden; }
 .sui-hint { font-size: 13px; color: var(--sui-color-text-muted); }
 .sui-required { color: var(--sui-color-required); }
 /* Validation errors — per-field (sui-field--error + sui-error message) and

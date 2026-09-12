@@ -84,15 +84,15 @@ function renderInput(f: UiField): string {
         case "BOOLEAN":
             return `<input type="checkbox" id="${id}" name="${name}"${changeAttrs} ${f.value ? "checked" : ""}>`;
         case "SELECT": {
+            if (f.expanded) return renderChoices(f, "radio", id, name, changeAttrs);
             const opts = (f.options || []).map(o =>
                 `<option value="${escapeHtml(o.value)}" ${f.value === o.value ? "selected" : ""}>${escapeHtml(o.label)}</option>`
             ).join("");
             return `<select id="${id}" name="${name}"${changeAttrs}>${opts}</select>`;
         }
         case "MULTISELECT": {
-            const selected = Array.isArray(f.value)
-                ? f.value
-                : (f.value ? String(f.value).split(",").map(s => s.trim()) : []);
+            if (f.expanded) return renderChoices(f, "checkbox", id, name, changeAttrs);
+            const selected = selectedValues(f.value);
             const opts = (f.options || []).map(o =>
                 `<option value="${escapeHtml(o.value)}" ${selected.includes(o.value) ? "selected" : ""}>${escapeHtml(o.label)}</option>`
             ).join("");
@@ -127,4 +127,42 @@ function renderInput(f: UiField): string {
         default:
             return `<input type="text" id="${id}" name="${name}" value="${valueAttr}" placeholder="${escapeHtml(f.placeholder ?? "")}"${changeAttrs}>`;
     }
+}
+
+/**
+ * An expanded SELECT (radios) or MULTISELECT (checkboxes): one input per
+ * option, all sharing {@code name=} — the browser keeps a radio choice
+ * exclusive, and the EventBus folds same-named checkboxes into one list. Each
+ * input carries the change markers itself, since the change event fires on
+ * the input, not the group. An orderable MULTISELECT wraps each option in a
+ * row with move buttons, checked rows first. Parity with field.hbs.
+ */
+function renderChoices(f: UiField, kind: "radio" | "checkbox", id: string, name: string, changeAttrs: string): string {
+    const radio = kind === "radio";
+    const orderable = !radio && f.orderable === true;
+    const selected = radio ? (f.value != null ? [String(f.value)] : []) : selectedValues(f.value);
+    const options = orderable ? checkedFirst(f.options || [], selected) : (f.options || []);
+    const inputs = options.map(o => {
+        const choice = `<label class="sui-choice"><input type="${kind}" name="${name}" value="${escapeHtml(o.value)}" data-sui-type="${f.fieldType}"${changeAttrs}${selected.includes(String(o.value)) ? " checked" : ""}><span>${escapeHtml(o.label)}</span></label>`;
+        if (!orderable) return choice;
+        return `<div class="sui-choice-row">${choice}<span class="sui-choice-move">`
+            + `<button type="button" class="sui-icon-btn sui-icon-btn--secondary" data-sui-move="up" aria-label="Move up" title="Move up">${renderIcon("chevron-up")}</button>`
+            + `<button type="button" class="sui-icon-btn sui-icon-btn--secondary" data-sui-move="down" aria-label="Move down" title="Move down">${renderIcon("chevron-down")}</button>`
+            + `</span></div>`;
+    }).join("");
+    return `<div class="sui-choice-group${orderable ? " sui-choice-group--orderable" : ""}" id="${id}" role="${radio ? "radiogroup" : "group"}" aria-label="${escapeHtml(f.label)}">${inputs}</div>`;
+}
+
+/** Checked options in the order of the value, then the rest in option order — UiField#optionsInDisplayOrder. */
+function checkedFirst<O extends { value: string }>(options: O[], selected: string[]): O[] {
+    const first = selected
+        .map(v => options.find(o => String(o.value) === v))
+        .filter((o, i, all): o is O => o !== undefined && all.indexOf(o) === i);
+    return [...first, ...options.filter(o => !first.includes(o))];
+}
+
+/** The selected values of a multi-choice field: a list, or a comma-separated string. */
+function selectedValues(value: unknown): string[] {
+    if (Array.isArray(value)) return value.map(v => String(v));
+    return value ? String(value).split(",").map(s => s.trim()) : [];
 }

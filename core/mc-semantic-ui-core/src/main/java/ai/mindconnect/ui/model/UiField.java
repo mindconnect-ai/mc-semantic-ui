@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -115,6 +116,23 @@ public class UiField extends UiNode {
     private String accept;
     /** Only for {@link FieldType#FILE}: allow selecting more than one file. */
     private boolean multiple;
+
+    /**
+     * Only for {@link FieldType#SELECT} and {@link FieldType#MULTISELECT}: show
+     * every option at once instead of a dropdown or list box — a radio button
+     * per option for SELECT, a checkbox per option for MULTISELECT. Purely
+     * presentation: the submitted value keeps its shape (one string, or a list
+     * of strings), so the server reads it exactly as before.
+     */
+    private boolean expanded;
+
+    /**
+     * Only for an {@link #expanded} {@link FieldType#MULTISELECT}: the checked
+     * options come first and carry move-up/move-down buttons, and the value is
+     * submitted in the order shown. Checking an option appends it to the end
+     * of the checked ones; unchecking drops it back among the rest.
+     */
+    private boolean orderable;
 
     // ── factory methods ───────────────────────────────────────────────────
 
@@ -260,6 +278,61 @@ public class UiField extends UiNode {
     public UiField multiple() {
         this.multiple = true;
         return this;
+    }
+
+    /** SELECT as a group of radio buttons. See {@link #expanded}. */
+    public UiField asRadio() {
+        this.expanded = true;
+        return this;
+    }
+
+    /** MULTISELECT as a group of checkboxes. See {@link #expanded}. */
+    public UiField asCheckboxes() {
+        this.expanded = true;
+        return this;
+    }
+
+    /**
+     * MULTISELECT as checkboxes whose checked entries can be reordered; implies
+     * {@link #asCheckboxes()}. See {@link #orderable}.
+     */
+    public UiField orderable() {
+        this.expanded = true;
+        this.orderable = true;
+        return this;
+    }
+
+    /**
+     * The options in the order an expanded field shows them. For an
+     * {@link #orderable} MULTISELECT that is the checked ones in the order of
+     * {@link #value}, then the rest in option order; otherwise simply
+     * {@link #options}. Shared by the renderers so the first paint agrees
+     * everywhere.
+     */
+    public List<Option> optionsInDisplayOrder() {
+        List<Option> all = options == null ? List.of() : options;
+        if (!orderable) return all;
+        var selected = selectedValues();
+        var ordered = new ArrayList<Option>(all.size());
+        for (var v : selected) {
+            all.stream().filter(o -> v.equals(o.getValue()) && !ordered.contains(o))
+                    .findFirst().ifPresent(ordered::add);
+        }
+        for (var o : all) {
+            if (!ordered.contains(o)) ordered.add(o);
+        }
+        return ordered;
+    }
+
+    /** The values of a multi-choice {@link #value}: a list, or a comma-separated string. */
+    public List<String> selectedValues() {
+        if (value == null) return List.of();
+        if (value instanceof java.util.Collection<?> c) {
+            return c.stream().filter(java.util.Objects::nonNull).map(Object::toString).toList();
+        }
+        var text = value.toString();
+        if (text.isBlank()) return List.of();
+        return java.util.Arrays.stream(text.split(",")).map(String::trim).toList();
     }
 
     /** Sets lower bound (date/number). See {@link #min}. */

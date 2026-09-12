@@ -1213,6 +1213,14 @@ export class SuiEventBus {
             this.handleFileSelection(target);
             return;
         }
+        // An orderable checkbox group keeps its checked rows on top: a box just
+        // checked or unchecked takes its place at the seam, before any trigger
+        // below collects the value. A change the move buttons raise already
+        // put the row where it belongs.
+        if (target instanceof HTMLInputElement && target.type === "checkbox"
+            && !(e instanceof CustomEvent && e.detail?.suiMoved)) {
+            settleOrderableChoice(target);
+        }
         // A node-level change (UiNode.events) fires first — it sits on a
         // wrapper, so a field's own data-change-trigger below still wins for
         // the input itself.
@@ -1341,6 +1349,25 @@ export class SuiEventBus {
         // Password reveal: flip the sibling input between password/text and
         // mirror the state on the wrapper so CSS can swap the eye glyph.
         // Purely client-side — no trigger, no fetch.
+        // Orderable checkbox group: move a checked row one place up or down.
+        // The neighbour moves rather than the row, so the clicked button keeps
+        // focus and can be pressed again. The reorder is a value change, so it
+        // is announced as one — onChange and submitOnChange react as they would
+        // to a tick.
+        const move = target.closest<HTMLElement>("[data-sui-move]");
+        if (move && this.inScope(move)) {
+            e.preventDefault();
+            const row = move.closest<HTMLElement>(".sui-choice-row");
+            const input = row?.querySelector<HTMLInputElement>("input[type=checkbox]");
+            if (!row || !input?.checked) return;
+            const up = move.dataset.suiMove === "up";
+            const neighbour = (up ? row.previousElementSibling : row.nextElementSibling) as HTMLElement | null;
+            if (!neighbour?.querySelector<HTMLInputElement>("input[type=checkbox]")?.checked) return;
+            if (up) row.after(neighbour); else row.before(neighbour);
+            input.dispatchEvent(new CustomEvent("change", { bubbles: true, detail: { suiMoved: true } }));
+            return;
+        }
+
         const pwToggle = target.closest<HTMLElement>("[data-sui-password-toggle]");
         if (pwToggle && this.inScope(pwToggle)) {
             e.preventDefault();
@@ -2080,6 +2107,24 @@ function appendQuery(url: string, payload: Record<string, unknown>): string {
 }
 
 /**
+ * Keeps an orderable checkbox group's checked rows on top after one of its
+ * boxes changed: the row goes right after the last other checked row, which
+ * appends a fresh tick to the chosen ones and drops an untick back among the
+ * rest. Anything else is left alone.
+ */
+function settleOrderableChoice(input: HTMLInputElement): void {
+    const row = input.closest<HTMLElement>(".sui-choice-row");
+    const group = row?.closest<HTMLElement>(".sui-choice-group--orderable");
+    if (!row || !group) return;
+    const rows = Array.from(group.querySelectorAll<HTMLElement>(":scope > .sui-choice-row"));
+    const lastChecked = rows
+        .filter(r => r !== row && r.querySelector<HTMLInputElement>("input[type=checkbox]")?.checked)
+        .pop();
+    if (lastChecked) lastChecked.after(row);
+    else group.prepend(row);
+}
+
+/**
  * Walks every named editable control inside the given root and returns
  * {@code name → value}. Mirrors native HTML-form semantics with one twist:
  * the semantic field type comes from {@code data-sui-type} on the control
@@ -2092,8 +2137,15 @@ function appendQuery(url: string, payload: Record<string, unknown>): string {
  *   <li>controls without {@code name}</li>
  *   <li>{@code name="_method"} — Spring's hidden-method override is for
  *       form-encoded bodies; the JSON path uses the real HTTP verb.</li>
- *   <li>unchecked radio buttons (only the selected one contributes)</li>
+ *   <li>unchecked radio buttons (only the selected one contributes) — except
+ *       that an expanded {@code SELECT} with nothing chosen still submits its
+ *       name, as {@code null}, the way an empty {@code <select>} would</li>
  * </ul>
+ *
+ * <p>The checkboxes of an expanded {@code MULTISELECT} share one name and fold
+ * into a single list of the checked values, in document order — which is the
+ * order an orderable one shows — and empty when none is checked. A lone
+ * checkbox still submits its own {@code true}/{@code false}.
  */
 function harvestNamedControls(root: HTMLElement): Record<string, unknown> {
     const out: Record<string, unknown> = {};
@@ -2103,7 +2155,14 @@ function harvestNamedControls(root: HTMLElement): Record<string, unknown> {
     for (const ctrl of controls) {
         const name = ctrl.name;
         if (!name || name === "_method") continue;
+        const suiType = ctrl.dataset.suiType;
+        if (ctrl instanceof HTMLInputElement && ctrl.type === "checkbox" && suiType === "MULTISELECT") {
+            const checked = Array.isArray(out[name]) ? out[name] as string[] : (out[name] = []) as string[];
+            if (ctrl.checked) checked.push(ctrl.value);
+            continue;
+        }
         if (ctrl instanceof HTMLInputElement && ctrl.type === "radio" && !ctrl.checked) {
+            if (suiType === "SELECT" && !(name in out)) out[name] = null;
             continue;
         }
         out[name] = readInputValue(ctrl, ctrl.dataset.suiType);

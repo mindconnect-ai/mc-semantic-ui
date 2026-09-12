@@ -29,6 +29,14 @@ fresh empty one, so nothing has to be moved by hand at release time.
   `<input type="hidden">` in SSR and the SPA, takes no room in JavaFX, always
   submits regardless of `editable`, and gets no row in a `detail`.
 
+- **Radio buttons and checkbox groups.** `UiField.select(...).asRadio()` shows
+  a `SELECT` as radio buttons, `UiField.multiselect(...).asCheckboxes()` a
+  `MULTISELECT` as checkboxes (`expanded: true`). The submitted value keeps its
+  shape — one string, or a list of strings — so a server handler reads it
+  unchanged. `.orderable()` adds move-up/down buttons to the checked options
+  and submits the list in the order shown, for rankings such as fallback
+  models. In SSR, the SPA and JavaFX.
+
 ### Fixed
 
 - **`.hidden()`, `.blank()` and `cssClass` work on a field.** The field

@@ -110,6 +110,17 @@ export interface UiField {
     trailing?: UiAction;
     options?: Array<{ value: string; label: string }>;
     /**
+     * Only for SELECT / MULTISELECT: every option shown at once — radio buttons
+     * for SELECT, checkboxes for MULTISELECT. Presentation only; the submitted
+     * value keeps its shape.
+     */
+    expanded?: boolean;
+    /**
+     * Only for an expanded MULTISELECT: checked options come first with
+     * move-up/down buttons, and the value is submitted in the order shown.
+     */
+    orderable?: boolean;
+    /**
      * Only meaningful for {@code TEXTAREA}: when true, pressing Enter
      * inside the textarea submits the surrounding form; Shift+Enter
      * still inserts a newline. Used for chat-style inputs.
