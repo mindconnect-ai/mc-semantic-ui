@@ -1075,7 +1075,8 @@ const IDIOMORPH_URL = "https://cdn.jsdelivr.net/npm/idiomorph@0.7.4/+esm";
  * Builds a Morpher that delegates to a resolved Idiomorph instance.
  *
  * <p>Two pieces of user-owned state are protected from server re-renders:
- * the value of the field the user is currently editing ({@code ignoreActiveValue}),
+ * the focused control the user is typing into or choosing in — a text-like
+ * input, a textarea, a select, a contenteditable (see {@link isEditing}) —
  * and the open/closed state of any {@code <details data-sui-client-collapse>}
  * (via {@code beforeAttributeUpdated}). The latter lets live-updating cards —
  * tool calls, sub-agent activity — keep whatever the user manually expanded or
@@ -1088,8 +1089,12 @@ function idiomorphMorpher(lib: IdiomorphLib): Morpher {
             morphStyle: mode,
             // Don't clobber what the user is currently typing — the
             // server's view of the form value is, by definition, stale
-            // while the user is still editing.
-            ignoreActiveValue: true,
+            // while the user is still editing. Decided per morph, and only
+            // for a control that is actually being edited: Idiomorph skips
+            // the focused element's children as well as its value, and a
+            // clicked button keeps focus, so a blanket `true` left the button
+            // that fired a patch with its old label and icon.
+            ignoreActiveValue: isEditing(document.activeElement),
             callbacks: {
                 beforeAttributeUpdated: (attributeName, node) => {
                     // Leave the `open` attribute alone on client-controlled
@@ -1104,6 +1109,25 @@ function idiomorphMorpher(lib: IdiomorphLib): Morpher {
             },
         });
     };
+}
+
+/**
+ * True when {@code el} holds input the user is in the middle of giving —
+ * the only focused element whose server-side value is stale by definition.
+ *
+ * <p>Buttons are the case this exists for: they keep focus after a click and
+ * have nothing to protect. Checkboxes and radios are left out too — once their
+ * change has made a round-trip, {@code checked} is the server's answer, not
+ * something still being typed.
+ */
+function isEditing(el: Element | null): boolean {
+    if (!el || el === document.body) return false;
+    if (el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) return true;
+    if (el instanceof HTMLInputElement) {
+        return !["button", "submit", "reset", "checkbox", "radio", "file", "image", "hidden"]
+            .includes(el.type);
+    }
+    return (el as HTMLElement).isContentEditable === true;
 }
 
 /**
