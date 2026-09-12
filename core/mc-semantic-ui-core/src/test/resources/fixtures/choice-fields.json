@@ -1,0 +1,165 @@
+[
+  {
+    "name": "radio group, value checked, submitOnChange",
+    "node": {
+      "type": "field",
+      "id": "size",
+      "label": "Size",
+      "fieldType": "SELECT",
+      "editable": true,
+      "expanded": true,
+      "submitOnChange": true,
+      "value": "m",
+      "options": [
+        {
+          "value": "s",
+          "label": "Small"
+        },
+        {
+          "value": "m",
+          "label": "Medium"
+        },
+        {
+          "value": "l",
+          "label": "L & <XL>"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-choice-group\" id=\"size__input\" role=\"radiogroup\" aria-labelledby=\"size__label\"><label class=\"sui-choice\"><input type=\"radio\" id=\"size__opt0\" name=\"size\" value=\"s\" data-sui-type=\"SELECT\" data-submit-on-change=\"true\"><span>Small</span></label><label class=\"sui-choice\"><input type=\"radio\" id=\"size__opt1\" name=\"size\" value=\"m\" data-sui-type=\"SELECT\" data-submit-on-change=\"true\" checked><span>Medium</span></label><label class=\"sui-choice\"><input type=\"radio\" id=\"size__opt2\" name=\"size\" value=\"l\" data-sui-type=\"SELECT\" data-submit-on-change=\"true\"><span>L &amp; &lt;XL&gt;</span></label></div>"
+  },
+  {
+    "name": "radio group, null value never checks an empty option",
+    "node": {
+      "type": "field",
+      "id": "prio",
+      "label": "Priority",
+      "fieldType": "SELECT",
+      "editable": true,
+      "expanded": true,
+      "value": null,
+      "options": [
+        {
+          "value": "",
+          "label": "None"
+        },
+        {
+          "value": "hi",
+          "label": "High"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-choice-group\" id=\"prio__input\" role=\"radiogroup\" aria-labelledby=\"prio__label\"><label class=\"sui-choice\"><input type=\"radio\" id=\"prio__opt0\" name=\"prio\" value=\"\" data-sui-type=\"SELECT\"><span>None</span></label><label class=\"sui-choice\"><input type=\"radio\" id=\"prio__opt1\" name=\"prio\" value=\"hi\" data-sui-type=\"SELECT\"><span>High</span></label></div>"
+  },
+  {
+    "name": "radio group, number value matches its string option",
+    "node": {
+      "type": "field",
+      "id": "n",
+      "label": "N",
+      "fieldType": "SELECT",
+      "editable": true,
+      "expanded": true,
+      "value": 0,
+      "options": [
+        {
+          "value": "0",
+          "label": "Zero"
+        },
+        {
+          "value": "1",
+          "label": "One"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-choice-group\" id=\"n__input\" role=\"radiogroup\" aria-labelledby=\"n__label\"><label class=\"sui-choice\"><input type=\"radio\" id=\"n__opt0\" name=\"n\" value=\"0\" data-sui-type=\"SELECT\" checked><span>Zero</span></label><label class=\"sui-choice\"><input type=\"radio\" id=\"n__opt1\" name=\"n\" value=\"1\" data-sui-type=\"SELECT\"><span>One</span></label></div>"
+  },
+  {
+    "name": "checkbox group, list value, onChange trigger",
+    "node": {
+      "type": "field",
+      "id": "tags",
+      "label": "Tags",
+      "fieldType": "MULTISELECT",
+      "editable": true,
+      "expanded": true,
+      "value": [
+        "l",
+        "s"
+      ],
+      "onChange": {
+        "behavior": "INVOKE",
+        "handler": "tagsChanged"
+      },
+      "options": [
+        {
+          "value": "s",
+          "label": "Small"
+        },
+        {
+          "value": "m",
+          "label": "Medium"
+        },
+        {
+          "value": "l",
+          "label": "Large"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-choice-group\" id=\"tags__input\" role=\"group\" aria-labelledby=\"tags__label\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"tags__opt0\" name=\"tags\" value=\"s\" data-sui-type=\"MULTISELECT\" data-change-trigger='{\"behavior\":\"INVOKE\",\"handler\":\"tagsChanged\"}' checked><span>Small</span></label><label class=\"sui-choice\"><input type=\"checkbox\" id=\"tags__opt1\" name=\"tags\" value=\"m\" data-sui-type=\"MULTISELECT\" data-change-trigger='{\"behavior\":\"INVOKE\",\"handler\":\"tagsChanged\"}'><span>Medium</span></label><label class=\"sui-choice\"><input type=\"checkbox\" id=\"tags__opt2\" name=\"tags\" value=\"l\" data-sui-type=\"MULTISELECT\" data-change-trigger='{\"behavior\":\"INVOKE\",\"handler\":\"tagsChanged\"}' checked><span>Large</span></label></div>"
+  },
+  {
+    "name": "checkbox group, blank string and zero",
+    "node": {
+      "type": "field",
+      "id": "z",
+      "label": "Z",
+      "fieldType": "MULTISELECT",
+      "editable": true,
+      "expanded": true,
+      "value": "",
+      "options": [
+        {
+          "value": "",
+          "label": "Empty"
+        },
+        {
+          "value": "0",
+          "label": "Zero"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-choice-group\" id=\"z__input\" role=\"group\" aria-labelledby=\"z__label\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"z__opt0\" name=\"z\" value=\"\" data-sui-type=\"MULTISELECT\"><span>Empty</span></label><label class=\"sui-choice\"><input type=\"checkbox\" id=\"z__opt1\" name=\"z\" value=\"0\" data-sui-type=\"MULTISELECT\"><span>Zero</span></label></div>"
+  },
+  {
+    "name": "orderable, comma value, duplicate option values",
+    "node": {
+      "type": "field",
+      "id": "fallbacks",
+      "label": "Fallback models",
+      "fieldType": "MULTISELECT",
+      "editable": true,
+      "expanded": true,
+      "orderable": true,
+      "value": "c, a",
+      "options": [
+        {
+          "value": "a",
+          "label": "A"
+        },
+        {
+          "value": "b",
+          "label": "B"
+        },
+        {
+          "value": "a",
+          "label": "A again"
+        },
+        {
+          "value": "c",
+          "label": "C"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-choice-group sui-choice-group--orderable\" id=\"fallbacks__input\" role=\"group\" aria-labelledby=\"fallbacks__label\"><div class=\"sui-choice-row\" data-sui-index=\"3\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"fallbacks__opt3\" name=\"fallbacks\" value=\"c\" data-sui-type=\"MULTISELECT\" checked><span>C</span></label><span class=\"sui-choice-move\"><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"up\" aria-label=\"Move up\" title=\"Move up\"><svg/></button><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"down\" aria-label=\"Move down\" title=\"Move down\"><svg/></button></span></div><div class=\"sui-choice-row\" data-sui-index=\"0\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"fallbacks__opt0\" name=\"fallbacks\" value=\"a\" data-sui-type=\"MULTISELECT\" checked><span>A</span></label><span class=\"sui-choice-move\"><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"up\" aria-label=\"Move up\" title=\"Move up\"><svg/></button><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"down\" aria-label=\"Move down\" title=\"Move down\"><svg/></button></span></div><div class=\"sui-choice-row\" data-sui-index=\"2\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"fallbacks__opt2\" name=\"fallbacks\" value=\"a\" data-sui-type=\"MULTISELECT\" checked><span>A again</span></label><span class=\"sui-choice-move\"><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"up\" aria-label=\"Move up\" title=\"Move up\"><svg/></button><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"down\" aria-label=\"Move down\" title=\"Move down\"><svg/></button></span></div><div class=\"sui-choice-row\" data-sui-index=\"1\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"fallbacks__opt1\" name=\"fallbacks\" value=\"b\" data-sui-type=\"MULTISELECT\"><span>B</span></label><span class=\"sui-choice-move\"><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"up\" aria-label=\"Move up\" title=\"Move up\"><svg/></button><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"down\" aria-label=\"Move down\" title=\"Move down\"><svg/></button></span></div></div>"
+  }
+]

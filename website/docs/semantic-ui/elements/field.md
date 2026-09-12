@@ -53,7 +53,7 @@ which reports the new value without submitting anything.*
 | `accept` | `String` | `FILE` only: the HTML `accept` filter (`"image/*"`, `".pdf,.docx"`). |
 | `multiple` | `boolean` | `FILE` only: allow selecting more than one file. |
 | `expanded` | `boolean` | `SELECT` / `MULTISELECT` only: show every option at once — radio buttons for `SELECT`, checkboxes for `MULTISELECT`. Set with `.asRadio()` / `.asCheckboxes()`. The submitted value keeps its shape. |
-| `orderable` | `boolean` | Expanded `MULTISELECT` only: checked options lead the list with move-up/down buttons, and the list is submitted in the order shown. Set with `.orderable()`, which implies `.asCheckboxes()`. |
+| `orderable` | `boolean` | Expanded `MULTISELECT` only: checked options lead the list with move-up/down buttons, and the list is submitted in the order shown. Set with `.orderable()`, which implies `.asCheckboxes()`. The buttons need the SPA EventBus or JavaFX. |
 | `cssClass` | `String` | Extra CSS class on the field wrapper. |
 
 ### Field types
@@ -91,19 +91,36 @@ takes a visible field out of the layout for a while.
 
 A choice with few options often reads better with every option on screen.
 `.asRadio()` turns a `SELECT` into a group of radio buttons, `.asCheckboxes()`
-a `MULTISELECT` into a group of checkboxes. Only the presentation changes: the
-field still submits one string (`null` when nothing is chosen) or a list of
-strings (empty when nothing is checked), so the handler on the server stays as
-it is — switching between a dropdown and a radio group is a one-word change.
+a `MULTISELECT` into a group of checkboxes. The value keeps its shape — one
+string, or a list of strings — so a handler that reads a dropdown reads the
+group the same way.
+
+One difference to plan for: a radio group can have nothing chosen. When
+`value` is null or matches no option, no radio is checked and the field
+submits `null` (a native form post sends no key at all). A dropdown never gets
+there, because the browser selects its first option when none is marked. Set
+a `value` if the server needs one, or treat `null` as "not chosen". Likewise a
+checkbox group with nothing checked submits `[]` over the SPA, and no key in a
+native form post.
+
+Which options start checked follows one rule on every renderer: for a
+`MULTISELECT` the option's value is in `value` (a list, or a comma-separated
+string; blank means none), for a `SELECT` it equals `value` as a string, so
+`0` checks the option `"0"` and `null` checks nothing — not even an option
+whose value is `""`.
 
 `.orderable()` goes one step further for a list whose order matters — a
 preference ranking, fallback models tried top to bottom. The checked options
-come first, in the order of `value`; each carries move-up and move-down
-buttons, and the list comes back in the order shown. Checking an option
-appends it to the end of the checked ones, unchecking drops it back among the
-rest. Reordering counts as a change, so `onChange` and `submitOnChange` fire
-for it as they do for a tick. Without JavaScript the order is the one the
-server rendered.
+come first, in the order of `value`, the rest follow in option order; each
+checked row carries move-up and move-down buttons, and the list comes back in
+the order shown. Checking an option appends it to the end of the checked ones;
+unchecking returns it to its place among the unchecked ones — exactly where a
+re-render from the server puts it, so a form that answers each change with a
+fresh render does not shuffle rows under the user's cursor. Reordering counts
+as a change: `onChange` and `submitOnChange` fire once the move clicks pause,
+not once per step. The move buttons need the SPA EventBus (or the JavaFX
+client); on a page rendered without it they are not shown, and the order is
+the one the server rendered.
 
 `icon`, `submitOnChange` and `onChange` work with every type but `HIDDEN`. `CURRENCY` and
 `PERCENT` are semantic labels only: the renderer emits the same number input as

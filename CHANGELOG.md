@@ -32,10 +32,12 @@ fresh empty one, so nothing has to be moved by hand at release time.
 - **Radio buttons and checkbox groups.** `UiField.select(...).asRadio()` shows
   a `SELECT` as radio buttons, `UiField.multiselect(...).asCheckboxes()` a
   `MULTISELECT` as checkboxes (`expanded: true`). The submitted value keeps its
-  shape — one string, or a list of strings — so a server handler reads it
-  unchanged. `.orderable()` adds move-up/down buttons to the checked options
-  and submits the list in the order shown, for rankings such as fallback
-  models. In SSR, the SPA and JavaFX.
+  shape — one string, or a list of strings. Unlike a dropdown, a radio group
+  with no matching `value` has nothing chosen and submits `null`.
+  `.orderable()` adds move-up/down buttons to the checked options and submits
+  the list in the order shown, for rankings such as fallback models; the
+  buttons need the SPA EventBus or JavaFX. In SSR, the SPA and JavaFX, with the
+  same markup, order and checked state on each.
 
 ### Fixed
 

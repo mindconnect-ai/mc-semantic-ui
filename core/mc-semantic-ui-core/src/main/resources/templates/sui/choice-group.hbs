@@ -1,0 +1,23 @@
+{{!--
+  An expanded SELECT (radios) or MULTISELECT (checkboxes) — the control part of
+  field.hbs. Parity with renderChoices() in renderers/field.ts; the options,
+  their order and their checked state come from UiField#choicesInDisplayOrder
+  via the `choices` helper.
+
+  Every input shares name= (the browser keeps a radio choice exclusive; the
+  EventBus folds same-named checkboxes into one list) and carries its own id,
+  <field>__opt<option index>, so a re-render matches rows by option rather than
+  by position. The change markers sit on each input, since the change event
+  fires there. An orderable group wraps each option in a row that records its
+  option index and carries the move buttons; the stylesheet shows those only
+  once the EventBus is live.
+--}}
+<div class="sui-choice-group{{#if (eq fieldType "MULTISELECT")}}{{#if orderable}} sui-choice-group--orderable{{/if}}{{/if}}" id="{{id}}__input" role="{{#if (eq fieldType "MULTISELECT")}}group{{else}}radiogroup{{/if}}" aria-labelledby="{{id}}__label">
+{{~#each (choices this)~}}
+  {{~#if (eq ../fieldType "MULTISELECT")}}{{#if ../orderable}}<div class="sui-choice-row" data-sui-index="{{index}}">{{/if}}{{/if~}}
+  <label class="sui-choice"><input type="{{#if (eq ../fieldType "MULTISELECT")}}checkbox{{else}}radio{{/if}}" id="{{../id}}__opt{{index}}" name="{{../id}}" value="{{value}}" data-sui-type="{{../fieldType}}"{{#if ../submitOnChange}} data-submit-on-change="true"{{/if}}{{#if ../onChange}} data-change-trigger='{{{trigger ../onChange}}}'{{/if}}{{#if checked}} checked{{/if}}><span>{{label}}</span></label>
+  {{~#if (eq ../fieldType "MULTISELECT")}}{{#if ../orderable~}}
+  <span class="sui-choice-move"><button type="button" class="sui-icon-btn sui-icon-btn--secondary" data-sui-move="up" aria-label="Move up" title="Move up">{{{icon "chevron-up"}}}</button><button type="button" class="sui-icon-btn sui-icon-btn--secondary" data-sui-move="down" aria-label="Move down" title="Move down">{{{icon "chevron-down"}}}</button></span></div>
+  {{~/if}}{{/if~}}
+{{~/each~}}
+</div>

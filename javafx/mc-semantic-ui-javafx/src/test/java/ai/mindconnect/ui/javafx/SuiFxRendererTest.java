@@ -112,14 +112,17 @@ class SuiFxRendererTest {
         assertThat(painted.isManaged()).isFalse();
     }
 
+    private static final java.util.List<UiField.Option> SIZES = java.util.List.of(
+            UiField.Option.of("s", "Small"), UiField.Option.of("m", "Medium"), UiField.Option.of("l", "Large"));
+
     @Test
     void expandedChoicesSubmitTheSameShapeAsTheirDropdowns() {
-        var sizes = java.util.List.of(
-                UiField.Option.of("s", "Small"), UiField.Option.of("m", "Medium"), UiField.Option.of("l", "Large"));
         var form = UiForm.of("prefs", "Prefs")
-                .field(UiField.select("size", "Size", "m", sizes).asEditable().asRadio())
-                .field(UiField.multiselect("tags", "Tags", java.util.List.of("s", "l"), sizes).asEditable().asCheckboxes())
-                .field(UiField.multiselect("order", "Order", java.util.List.of("l", "s"), sizes).asEditable().orderable());
+                .field(UiField.select("size", "Size", "m", SIZES).asEditable().asRadio())
+                .field(UiField.select("none", "None", null, SIZES).asEditable().asRadio())
+                .field(UiField.multiselect("tags", "Tags", java.util.List.of("s", "l"), SIZES).asEditable().asCheckboxes())
+                .field(UiField.multiselect("csv", "Csv", "l, s", SIZES).asEditable())
+                .field(UiField.multiselect("order", "Order", java.util.List.of("l", "s"), SIZES).asEditable().orderable());
 
         var bus = new SuiFxEventBus();
         onFxThread(() -> bus.mount(form));
@@ -129,40 +132,89 @@ class SuiFxRendererTest {
 
         assertThat(payload)
                 .containsEntry("size", "m")
+                .containsEntry("none", null)
                 .containsEntry("tags", java.util.List.of("s", "l"))
                 .containsEntry("order", java.util.List.of("l", "s"));
+        // A comma-separated value preselects in the list box as it does in the
+        // checkbox group and on the web.
+        assertThat((java.util.List<Object>) payload.get("csv")).containsExactlyInAnyOrder("s", "l");
+    }
+
+    @Test
+    void anOptionWithoutAValuePaintsOnAnEmptyField() {
+        var field = UiField.multiselect("n", "N", null,
+                java.util.List.of(UiField.Option.of(null, "None"), UiField.Option.of("x", "X"))).asEditable().asCheckboxes();
+        var form = UiForm.of("f", "F").field(field);
+
+        var bus = new SuiFxEventBus();
+        onFxThread(() -> bus.mount(form));
+
+        var payload = capturePayload(bus, "save",
+                () -> bus.dispatch(UiTrigger.invoke("save", "f"), form, bus.context()));
+        assertThat(payload).containsEntry("n", java.util.List.of());
     }
 
     @Test
     void orderableCheckboxesFollowTicksAndMoves() {
-        var sizes = java.util.List.of(
-                UiField.Option.of("s", "Small"), UiField.Option.of("m", "Medium"), UiField.Option.of("l", "Large"));
-        var field = UiField.multiselect("order", "Order", java.util.List.of("l", "s"), sizes).asEditable().orderable();
+        var field = UiField.multiselect("order", "Order", java.util.List.of("m"), SIZES).asEditable().orderable();
         var form = UiForm.of("prefs", "Prefs").field(field);
 
         var bus = new SuiFxEventBus();
         var root = onFxThread(() -> bus.mount(form));
+        var group = onFxThread(() -> (javafx.scene.layout.VBox) root.lookup(".sui-choice-group"));
 
-        onFxThread(() -> {
-            var group = (javafx.scene.layout.VBox) root.lookup(".sui-choice-group");
-            // Rows: l, s, m. Tick m: it joins the end of the checked block.
-            checkBox(group, 2).setSelected(true);
-            // Rows: l, s, m. Move m up past s: l, m, s.
-            ((javafx.scene.control.Button) ((javafx.scene.layout.HBox) group.getChildren().get(2))
-                    .getChildren().get(2)).fire();
-            // Untick l: it drops below the checked ones: m, s, l.
-            checkBox(group, 0).setSelected(false);
-            return null;
-        });
+        // Shown: m, s, l. Tick l: it joins the end of the checked rows.
+        onFxThread(() -> { checkBox(group, 2).setSelected(true); return null; });
+        assertThat(onFxThread(() -> labels(group))).containsExactly("Medium", "Large", "Small");
+        // Move l up past m: l, m, s.
+        onFxThread(() -> { moveButton(group, 1, "up").fire(); return null; });
+        assertThat(onFxThread(() -> labels(group))).containsExactly("Large", "Medium", "Small");
+        // Untick m: it returns to its option place among the unchecked rows — after s.
+        onFxThread(() -> { checkBox(group, 1).setSelected(false); return null; });
+        assertThat(onFxThread(() -> labels(group))).containsExactly("Large", "Small", "Medium");
 
         var payload = capturePayload(bus, "save",
                 () -> bus.dispatch(UiTrigger.invoke("save", "prefs"), form, bus.context()));
-        assertThat(payload).containsEntry("order", java.util.List.of("m", "s"));
+        assertThat(payload).containsEntry("order", java.util.List.of("l"));
+    }
+
+    @Test
+    void aBurstOfMovesIsAnnouncedAsOneChange() {
+        var changes = new java.util.concurrent.atomic.AtomicInteger();
+        var field = UiField.multiselect("order", "Order", java.util.List.of("s", "m", "l"), SIZES)
+                .asEditable().orderable().onChange(UiTrigger.invoke("changed"));
+        var form = UiForm.of("prefs", "Prefs").field(field);
+
+        var bus = new SuiFxEventBus();
+        var root = onFxThread(() -> {
+            bus.registerClientHandler("changed", ctx -> changes.incrementAndGet(), FxHandlerThread.FX);
+            return bus.mount(form);
+        });
+        var group = onFxThread(() -> (javafx.scene.layout.VBox) root.lookup(".sui-choice-group"));
+
+        // l to the top in two clicks, then a pause.
+        onFxThread(() -> { moveButton(group, 2, "up").fire(); return null; });
+        onFxThread(() -> { moveButton(group, 1, "up").fire(); return null; });
+        assertThat(changes.get()).isZero();
+        awaitOnFxThread("one change after the moves settle", () -> changes.get() == 1);
+        assertThat(onFxThread(() -> labels(group))).containsExactly("Large", "Small", "Medium");
     }
 
     private static javafx.scene.control.CheckBox checkBox(javafx.scene.layout.VBox group, int row) {
-        return (javafx.scene.control.CheckBox) ((javafx.scene.layout.HBox) group.getChildren().get(row))
-                .getChildren().get(0);
+        return (javafx.scene.control.CheckBox) group.getChildren().get(row).lookup(".check-box");
+    }
+
+    private static javafx.scene.control.Button moveButton(javafx.scene.layout.VBox group, int row, String direction) {
+        return group.getChildren().get(row).lookupAll(".sui-choice-move").stream()
+                .map(javafx.scene.control.Button.class::cast)
+                .filter(b -> ("Move " + direction).equals(b.getAccessibleText()))
+                .findFirst().orElseThrow();
+    }
+
+    private static java.util.List<String> labels(javafx.scene.layout.VBox group) {
+        return group.getChildren().stream()
+                .map(row -> ((javafx.scene.control.CheckBox) row.lookup(".check-box")).getText())
+                .toList();
     }
 
     @Test

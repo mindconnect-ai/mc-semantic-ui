@@ -739,43 +739,52 @@ class SuiServerRendererTest {
         assertFalse(html.contains("4711"), html);
     }
 
-    private static final java.util.List<UiField.Option> SIZES = java.util.List.of(
-            UiField.Option.of("s", "Small"), UiField.Option.of("m", "Medium"), UiField.Option.of("l", "Large"));
-
+    /**
+     * Expanded SELECT / MULTISELECT markup, locked against fixtures that the SPA
+     * test (field-choices.test.mjs) renders through renderers/field.ts too — so
+     * SSR and SPA stay identical down to the byte, icons aside (their sprite
+     * URLs differ per renderer).
+     */
     @Test
-    void rendersExpandedSelectAsRadios() {
-        String html = renderer.render(UiField.select("size", "Size", "m", SIZES).asEditable().asRadio());
-
-        // No dropdown — a radio per option, one shared name, the value checked.
-        assertFalse(html.contains("<select"), html);
-        assertTrue(html.contains("role=\"radiogroup\""), html);
-        assertEquals(3, html.split("type=\"radio\" name=\"size\"", -1).length - 1, html);
-        assertTrue(html.contains("value=\"m\" data-sui-type=\"SELECT\" checked>"), html);
-        assertTrue(html.contains("value=\"s\" data-sui-type=\"SELECT\">"), html);
+    void expandedChoiceMarkupMatchesTheSharedFixtures() throws Exception {
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var fixtures = mapper.readTree(java.nio.file.Path.of("src/test/resources/fixtures/choice-fields.json").toFile());
+        assertTrue(fixtures.size() > 0);
+        for (var fixture : fixtures) {
+            var node = mapper.treeToValue(fixture.get("node"), ai.mindconnect.ui.model.UiNode.class);
+            assertEquals(fixture.get("html").asText(), choiceGroup(renderer.render(node)), fixture.get("name").asText());
+        }
     }
 
     @Test
-    void rendersExpandedMultiselectAsCheckboxes() {
-        String html = renderer.render(UiField.multiselect("tags", "Tags", java.util.List.of("l", "s"), SIZES)
-                .asEditable().asCheckboxes().submitOnChange());
+    void expandedChoiceCaptionLabelsTheGroup() {
+        var options = java.util.List.of(UiField.Option.of("s", "Small"), UiField.Option.of("m", "Medium"));
 
-        assertFalse(html.contains("<select"), html);
-        assertTrue(html.contains("value=\"s\" data-sui-type=\"MULTISELECT\" data-submit-on-change=\"true\" checked>"), html);
-        assertTrue(html.contains("value=\"m\" data-sui-type=\"MULTISELECT\" data-submit-on-change=\"true\">"), html);
-        // Not orderable: option order, no move buttons.
-        assertTrue(html.indexOf("value=\"s\"") < html.indexOf("value=\"l\""), html);
-        assertFalse(html.contains("data-sui-move"), html);
+        String expanded = renderer.render(UiField.select("size", "Size", "m", options).asEditable().asRadio());
+        String dropdown = renderer.render(UiField.select("size", "Size", "m", options).asEditable());
+
+        // A label's `for` must name a control; the group is named through aria-labelledby instead.
+        assertTrue(expanded.contains("<label id=\"size__label\">Size</label>"), expanded);
+        assertTrue(expanded.contains("aria-labelledby=\"size__label\""), expanded);
+        assertFalse(expanded.contains("for=\"size__input\""), expanded);
+        assertTrue(dropdown.contains("<label for=\"size__input\">Size</label>"), dropdown);
     }
 
-    @Test
-    void orderableCheckboxesLeadWithTheCheckedOnesInValueOrder() {
-        String html = renderer.render(UiField.multiselect("tags", "Tags", "l,s", SIZES).asEditable().orderable());
-
-        assertTrue(html.contains("sui-choice-group--orderable"), html);
-        // l, s (the value's order), then m (the rest).
-        int l = html.indexOf("value=\"l\""), s = html.indexOf("value=\"s\""), m = html.indexOf("value=\"m\"");
-        assertTrue(l < s && s < m, html);
-        assertEquals(3, html.split("data-sui-move=\"up\"", -1).length - 1, html);
+    /** The choice group's outer div, icons reduced to {@code <svg/>} — mirrors the TS test helper. */
+    private static String choiceGroup(String html) {
+        int start = html.indexOf("<div class=\"sui-choice-group");
+        assertTrue(start >= 0, html);
+        var tags = java.util.regex.Pattern.compile("<div\\b|</div>").matcher(html);
+        int depth = 0;
+        int from = start;
+        while (tags.find(from)) {
+            depth += tags.group().equals("<div") ? 1 : -1;
+            from = tags.end();
+            if (depth == 0) {
+                return html.substring(start, tags.end()).replaceAll("<svg[\\s\\S]*?</svg>", "<svg/>");
+            }
+        }
+        throw new AssertionError("unclosed choice group: " + html);
     }
 
     @Test

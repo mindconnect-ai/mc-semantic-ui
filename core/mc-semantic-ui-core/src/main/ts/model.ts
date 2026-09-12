@@ -118,6 +118,7 @@ export interface UiField {
     /**
      * Only for an expanded MULTISELECT: checked options come first with
      * move-up/down buttons, and the value is submitted in the order shown.
+     * Order and checked state follow renderers/choices.ts.
      */
     orderable?: boolean;
     /**

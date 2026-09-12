@@ -121,7 +121,7 @@ body {
 .sui-header-extras .sui-form { background: transparent; border: none; padding: 0; }
 .sui-header-extras .sui-form .sui-form-footer { display: none; }
 .sui-header-extras .sui-field { margin: 0; gap: 0; }
-.sui-header-extras .sui-field label { display: none; }
+.sui-header-extras .sui-field > label { display: none; }
 .sui-header-extras select { padding: 8px 12px; font-size: 13px; font-weight: 700; letter-spacing: .03em; }
 
 /* ── Lists ──────────────────────────────────────────────────────────────── */
@@ -168,6 +168,36 @@ body {
     outline: none; border-color: var(--sui-color-primary); box-shadow: var(--sui-focus-ring);
 }
 .sui-field textarea { resize: vertical; min-height: 100px; }
+/* Checkboxes and radios keep their native size — the input rule above would
+   stretch them to the full width. */
+.sui-field input[type="checkbox"], .sui-field input[type="radio"] {
+    width: auto; padding: 0; margin: 0; flex: 0 0 auto;
+    accent-color: var(--sui-color-primary); cursor: pointer;
+}
+.sui-field:has(> input[type="checkbox"]) { align-items: flex-start; }
+/* Expanded SELECT / MULTISELECT — the same structure as in sui.css. */
+.sui-choice-group { display: flex; flex-direction: column; gap: 4px; }
+.sui-field .sui-choice {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: var(--sui-font-size); font-weight: 400; letter-spacing: normal;
+    color: var(--sui-color-text-body); cursor: pointer; align-self: flex-start;
+}
+.sui-choice-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    min-height: 36px; border-radius: var(--sui-radius-md);
+    padding: 0 4px; margin: 0 -4px;
+}
+.sui-choice-row:has(input:checked):hover { background: var(--sui-color-surface-alt); }
+.sui-choice-move { display: none; gap: 2px; }
+.sui-live .sui-choice-move { display: inline-flex; }
+.sui-choice-move .sui-icon-btn { min-width: 32px; height: 32px; padding: 0 4px; }
+.sui-choice-row:not(:has(input:checked)) .sui-choice-move,
+.sui-choice-row:first-child [data-sui-move="up"],
+.sui-choice-row:not(:has(+ .sui-choice-row input:checked)) [data-sui-move="down"] { visibility: hidden; }
+/* hidden: out of layout, but still in the DOM; blank: invisible, space kept.
+   The theme replaces sui.css, so it needs these markers of its own. */
+.sui-hidden { display: none !important; }
+.sui-blank  { visibility: hidden !important; }
 .sui-hint { font-size: 12px; color: var(--sui-color-text-muted); }
 .sui-required { color: var(--sui-color-required); }
 .sui-value { color: var(--sui-color-text-body); }

@@ -130,7 +130,9 @@ public class UiField extends UiNode {
      * Only for an {@link #expanded} {@link FieldType#MULTISELECT}: the checked
      * options come first and carry move-up/move-down buttons, and the value is
      * submitted in the order shown. Checking an option appends it to the end
-     * of the checked ones; unchecking drops it back among the rest.
+     * of the checked ones; unchecking returns it to its place among the rest,
+     * which keep option order. The move buttons need the SPA EventBus (or
+     * JavaFX); a page rendered without it hides them.
      */
     private boolean orderable;
 
@@ -303,28 +305,61 @@ public class UiField extends UiNode {
     }
 
     /**
-     * The options in the order an expanded field shows them. For an
-     * {@link #orderable} MULTISELECT that is the checked ones in the order of
-     * {@link #value}, then the rest in option order; otherwise simply
-     * {@link #options}. Shared by the renderers so the first paint agrees
-     * everywhere.
+     * One option as an expanded field shows it: the option, its position in
+     * {@link #options}, and whether it starts checked.
      */
-    public List<Option> optionsInDisplayOrder() {
+    public record Choice(Option option, int index, boolean checked) { }
+
+    /**
+     * The options of an expanded field in the order they are shown, each
+     * marked checked or not. The rule every renderer shares — SSR, the SPA
+     * ({@code renderers/choices.ts}) and JavaFX — so a first paint agrees
+     * everywhere and a re-render lands on what the user already sees:
+     *
+     * <ul>
+     *   <li>checked follows {@link #isChosen};</li>
+     *   <li>an {@link #orderable} MULTISELECT shows its checked options first,
+     *       in the order of {@link #value}, then the rest in option order;</li>
+     *   <li>anything else keeps option order.</li>
+     * </ul>
+     *
+     * Options are never merged: two options with the same value are both
+     * shown, and both checked when that value is.
+     */
+    public List<Choice> choicesInDisplayOrder() {
         List<Option> all = options == null ? List.of() : options;
-        if (!orderable) return all;
+        var choices = new ArrayList<Choice>(all.size());
+        for (int i = 0; i < all.size(); i++) {
+            var option = all.get(i);
+            choices.add(new Choice(option, i, option != null && isChosen(option.getValue())));
+        }
+        if (!orderable || fieldType != FieldType.MULTISELECT) return choices;
         var selected = selectedValues();
-        var ordered = new ArrayList<Option>(all.size());
-        for (var v : selected) {
-            all.stream().filter(o -> v.equals(o.getValue()) && !ordered.contains(o))
-                    .findFirst().ifPresent(ordered::add);
-        }
-        for (var o : all) {
-            if (!ordered.contains(o)) ordered.add(o);
-        }
+        var ordered = new ArrayList<Choice>(choices.size());
+        // Stream.sorted is stable, so options sharing a value keep option order.
+        choices.stream().filter(Choice::checked)
+                .sorted(java.util.Comparator.comparingInt(c -> selected.indexOf(c.option().getValue())))
+                .forEach(ordered::add);
+        choices.stream().filter(c -> !c.checked()).forEach(ordered::add);
         return ordered;
     }
 
-    /** The values of a multi-choice {@link #value}: a list, or a comma-separated string. */
+    /**
+     * Whether the option with this value is chosen: for a MULTISELECT when
+     * {@link #selectedValues} holds it, otherwise when it equals {@link #value}
+     * as a string. An option without a value is never chosen.
+     */
+    public boolean isChosen(String optionValue) {
+        if (optionValue == null) return false;
+        if (fieldType == FieldType.MULTISELECT) return selectedValues().contains(optionValue);
+        return value != null && optionValue.equals(value.toString());
+    }
+
+    /**
+     * The values of a multi-choice {@link #value}: a collection (null entries
+     * dropped), or a comma-separated string with each part trimmed. Null or a
+     * blank string means none.
+     */
     public List<String> selectedValues() {
         if (value == null) return List.of();
         if (value instanceof java.util.Collection<?> c) {

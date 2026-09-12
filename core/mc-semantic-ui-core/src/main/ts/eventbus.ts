@@ -6,6 +6,7 @@ import { wireOverflow } from "./renderers/overflow.js";
 import { wireMenuButtons } from "./renderers/menu-button.js";
 import { wireAutoScroll } from "./renderers/autoscroll.js";
 import { t } from "./i18n.js";
+import { seatAfterToggle } from "./renderers/choices.js";
 
 /**
  * Context handed to every {@link BehaviorHandler}. Captures the trigger
@@ -280,6 +281,11 @@ export class SuiEventBus {
         this.registerDefaultBehaviors();
         this.seedModelsFromDocument();
         this.installAutoEnhance();
+        // Marks the document as driven by a live bus, for controls that do
+        // nothing without one — an orderable group's move buttons stay hidden
+        // on a page rendered without it. On <html>, not the root: dialogs mount
+        // outside it.
+        document.documentElement?.classList?.add("sui-live");
         // A patch SSE event is so universal that we wire it as a built-in
         // stream handler; apps can override by registering another handler
         // under the same name.
@@ -1213,12 +1219,11 @@ export class SuiEventBus {
             this.handleFileSelection(target);
             return;
         }
-        // An orderable checkbox group keeps its checked rows on top: a box just
-        // checked or unchecked takes its place at the seam, before any trigger
-        // below collects the value. A change the move buttons raise already
-        // put the row where it belongs.
-        if (target instanceof HTMLInputElement && target.type === "checkbox"
-            && !(e instanceof CustomEvent && e.detail?.suiMoved)) {
+        // An orderable checkbox group keeps its rows in order — checked first,
+        // the rest in option order — before any trigger below collects the
+        // value. A row already in place stays, so a change raised by the move
+        // buttons (or anyone else) leaves the user's ordering alone.
+        if (target instanceof HTMLInputElement && target.type === "checkbox") {
             settleOrderableChoice(target);
         }
         // A node-level change (UiNode.events) fires first — it sits on a
@@ -1341,19 +1346,13 @@ export class SuiEventBus {
             return;
         }
 
-        // Menu hamburger: a purely client-side state cycle (expanded → rail →
-        // hidden), like tab-switching. No server round-trip; the choice is
-        // persisted to localStorage by applyMenuState. Handled before the
-        // generic [data-trigger]/[data-action] paths so the toggle never
-        // dispatches a fetch.
-        // Password reveal: flip the sibling input between password/text and
-        // mirror the state on the wrapper so CSS can swap the eye glyph.
-        // Purely client-side — no trigger, no fetch.
         // Orderable checkbox group: move a checked row one place up or down.
-        // The neighbour moves rather than the row, so the clicked button keeps
-        // focus and can be pressed again. The reorder is a value change, so it
-        // is announced as one — onChange and submitOnChange react as they would
-        // to a tick.
+        // The neighbour moves rather than the row, so the pressed button keeps
+        // focus and can be pressed again — unless the row just reached the
+        // edge of the checked block, where the stylesheet hides that button;
+        // focus then goes to the row's other button, or its box. The reorder is
+        // a value change, announced once the clicks pause, so moving an entry
+        // several places costs one onChange / submitOnChange, not one per step.
         const move = target.closest<HTMLElement>("[data-sui-move]");
         if (move && this.inScope(move)) {
             e.preventDefault();
@@ -1364,10 +1363,22 @@ export class SuiEventBus {
             const neighbour = (up ? row.previousElementSibling : row.nextElementSibling) as HTMLElement | null;
             if (!neighbour?.querySelector<HTMLInputElement>("input[type=checkbox]")?.checked) return;
             if (up) row.after(neighbour); else row.before(neighbour);
-            input.dispatchEvent(new CustomEvent("change", { bubbles: true, detail: { suiMoved: true } }));
+            if (getComputedStyle(move).visibility === "hidden") {
+                const other = row.querySelector<HTMLElement>(`[data-sui-move="${up ? "down" : "up"}"]`);
+                (other && getComputedStyle(other).visibility !== "hidden" ? other : input).focus();
+            }
+            announceChoiceMove(input);
             return;
         }
 
+        // Menu hamburger: a purely client-side state cycle (expanded → rail →
+        // hidden), like tab-switching. No server round-trip; the choice is
+        // persisted to localStorage by applyMenuState. Handled before the
+        // generic [data-trigger]/[data-action] paths so the toggle never
+        // dispatches a fetch.
+        // Password reveal: flip the sibling input between password/text and
+        // mirror the state on the wrapper so CSS can swap the eye glyph.
+        // Purely client-side — no trigger, no fetch.
         const pwToggle = target.closest<HTMLElement>("[data-sui-password-toggle]");
         if (pwToggle && this.inScope(pwToggle)) {
             e.preventDefault();
@@ -2107,21 +2118,45 @@ function appendQuery(url: string, payload: Record<string, unknown>): string {
 }
 
 /**
- * Keeps an orderable checkbox group's checked rows on top after one of its
- * boxes changed: the row goes right after the last other checked row, which
- * appends a fresh tick to the chosen ones and drops an untick back among the
- * rest. Anything else is left alone.
+ * Puts a row of an orderable checkbox group where it belongs after its box
+ * changed ({@link seatAfterToggle}): a tick joins the end of the checked rows
+ * unless it is already among them, an untick returns to its option place — the
+ * order a server re-render produces too. Nothing moves when the row is in
+ * place, and when it does move, a box that had focus gets it back: taking a
+ * focused element out of the document drops focus to the body.
  */
 function settleOrderableChoice(input: HTMLInputElement): void {
     const row = input.closest<HTMLElement>(".sui-choice-row");
     const group = row?.closest<HTMLElement>(".sui-choice-group--orderable");
     if (!row || !group) return;
     const rows = Array.from(group.querySelectorAll<HTMLElement>(":scope > .sui-choice-row"));
-    const lastChecked = rows
-        .filter(r => r !== row && r.querySelector<HTMLInputElement>("input[type=checkbox]")?.checked)
-        .pop();
-    if (lastChecked) lastChecked.after(row);
-    else group.prepend(row);
+    const at = rows.indexOf(row);
+    const seat = seatAfterToggle(rows.map(r => ({
+        checked: r.querySelector<HTMLInputElement>("input[type=checkbox]")?.checked === true,
+        index: Number(r.dataset.suiIndex),
+    })), at);
+    if (seat === at) return;
+    const focused = row.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
+    group.insertBefore(row, rows.filter(r => r !== row)[seat] ?? null);
+    focused?.focus({ preventScroll: true });
+}
+
+/** How long move clicks must pause before the reorder is announced as a change. */
+const CHOICE_MOVE_SETTLE_MS = 400;
+const pendingChoiceMoves = new WeakMap<Element, number>();
+
+/**
+ * Announces a reorder in an orderable group as a {@code change} on the moved
+ * box, once the move clicks pause for {@link CHOICE_MOVE_SETTLE_MS}. The value
+ * is read when the event fires, so the last order is the one that is sent.
+ */
+function announceChoiceMove(input: HTMLInputElement): void {
+    const group = input.closest(".sui-choice-group") ?? input;
+    clearTimeout(pendingChoiceMoves.get(group));
+    pendingChoiceMoves.set(group, window.setTimeout(() => {
+        pendingChoiceMoves.delete(group);
+        if (input.isConnected) input.dispatchEvent(new Event("change", { bubbles: true }));
+    }, CHOICE_MOVE_SETTLE_MS));
 }
 
 /**
@@ -2139,7 +2174,8 @@ function settleOrderableChoice(input: HTMLInputElement): void {
  *       form-encoded bodies; the JSON path uses the real HTTP verb.</li>
  *   <li>unchecked radio buttons (only the selected one contributes) — except
  *       that an expanded {@code SELECT} with nothing chosen still submits its
- *       name, as {@code null}, the way an empty {@code <select>} would</li>
+ *       name, as {@code null}. (A dropdown never gets there: a browser selects
+ *       its first option when none is marked.)</li>
  * </ul>
  *
  * <p>The checkboxes of an expanded {@code MULTISELECT} share one name and fold

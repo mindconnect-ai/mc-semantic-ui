@@ -1,65 +1,81 @@
 /**
  * An expanded SELECT / MULTISELECT shows every option at once.
  *
- * The SSR side is locked by SuiServerRendererTest; this holds the SPA renderer
- * to the same markup rules. The value harvest and the reordering live in the
- * EventBus and need a DOM, so they are not covered here.
+ * The markup is locked against the same fixtures SuiServerRendererTest renders
+ * through field.hbs (src/test/resources/fixtures/choice-fields.json), so SSR
+ * and SPA cannot drift apart. The ordering rule the EventBus applies to rows
+ * (seatAfterToggle) is locked against fixtures the JavaFX renderer checks too.
+ * The DOM side of the EventBus — harvest, focus, the move clicks — needs a
+ * browser and is not covered here.
  */
 import { test, describe, before } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
+import fs from "node:fs";
 import path from "node:path";
 
-const DIST = path.resolve(
-    path.dirname(fileURLToPath(import.meta.url)), "../../../target/ts-dist");
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const DIST = path.resolve(HERE, "../../../target/ts-dist");
+const FIXTURES = path.resolve(HERE, "../resources/fixtures");
 
-const SIZES = [
-    { value: "s", label: "Small" },
-    { value: "m", label: "Medium" },
-    { value: "l", label: "Large" },
-];
+const fields = JSON.parse(fs.readFileSync(path.join(FIXTURES, "choice-fields.json"), "utf8"));
+const seats = JSON.parse(fs.readFileSync(path.join(FIXTURES, "choice-seats.json"), "utf8"));
+
+/** The choice group's outer <div>, with icons reduced to <svg/> (their sprite URLs differ per renderer). */
+function choiceGroup(html) {
+    const start = html.indexOf('<div class="sui-choice-group');
+    assert.ok(start >= 0, html);
+    let depth = 0;
+    for (const m of html.slice(start).matchAll(/<div\b|<\/div>/g)) {
+        depth += m[0] === "<div" ? 1 : -1;
+        if (depth === 0) {
+            return html.slice(start, start + m.index + m[0].length).replace(/<svg[\s\S]*?<\/svg>/g, "<svg/>");
+        }
+    }
+    assert.fail("unclosed choice group: " + html);
+}
 
 let render;
+let choices;
 
 describe("expanded choice fields", () => {
     before(async () => {
         const { createDefaultRenderer } = await import(`${DIST}/renderer.js`);
         const renderer = createDefaultRenderer();
         render = node => renderer.render(node);
+        choices = await import(`${DIST}/renderers/choices.js`);
     });
 
-    test("SELECT asRadio renders a radio per option, the value checked", () => {
-        const html = render({ type: "field", id: "size", label: "Size", fieldType: "SELECT",
-            editable: true, expanded: true, value: "m", options: SIZES });
-        assert.doesNotMatch(html, /<select/);
-        assert.match(html, /role="radiogroup"/);
-        assert.equal(html.match(/type="radio" name="size"/g).length, 3);
-        assert.match(html, /value="m" data-sui-type="SELECT" checked>/);
-        assert.match(html, /value="s" data-sui-type="SELECT">/);
+    for (const f of fields) {
+        test(`markup matches field.hbs: ${f.name}`, () => {
+            assert.equal(choiceGroup(render(f.node)), f.html);
+        });
+    }
+
+    test("the caption labels the group by id, not a control by for", () => {
+        const html = render(fields[0].node);
+        assert.match(html, /<label id="size__label">Size<\/label>/);
+        assert.doesNotMatch(html, /for="size__input"/);
     });
 
-    test("MULTISELECT asCheckboxes keeps option order and has no move buttons", () => {
-        const html = render({ type: "field", id: "tags", label: "Tags", fieldType: "MULTISELECT",
-            editable: true, expanded: true, value: ["l", "s"], options: SIZES });
-        assert.doesNotMatch(html, /<select/);
-        assert.match(html, /value="s" data-sui-type="MULTISELECT" checked>/);
-        assert.match(html, /value="m" data-sui-type="MULTISELECT">/);
-        assert.ok(html.indexOf('value="s"') < html.indexOf('value="l"'));
-        assert.doesNotMatch(html, /data-sui-move/);
+    test("not expanded stays a select whose caption points at it", () => {
+        const html = render({ ...fields[0].node, expanded: false });
+        assert.match(html, /<select id="size__input"/);
+        assert.match(html, /<label for="size__input">/);
     });
 
-    test("orderable leads with the checked options in value order", () => {
-        const html = render({ type: "field", id: "tags", label: "Tags", fieldType: "MULTISELECT",
-            editable: true, expanded: true, orderable: true, value: "l,s", options: SIZES });
-        assert.match(html, /sui-choice-group--orderable/);
-        const l = html.indexOf('value="l"'), s = html.indexOf('value="s"'), m = html.indexOf('value="m"');
-        assert.ok(l < s && s < m, html);
-        assert.equal(html.match(/data-sui-move="up"/g).length, 3);
-    });
+    for (const s of seats) {
+        test(`seatAfterToggle: ${s.name}`, () => {
+            const rows = s.checked.map((checked, i) => ({ checked, index: s.index[i] }));
+            assert.equal(choices.seatAfterToggle(rows, s.at), s.seat);
+        });
+    }
 
-    test("not expanded stays a select", () => {
-        const html = render({ type: "field", id: "size", label: "Size", fieldType: "SELECT",
-            editable: true, value: "m", options: SIZES });
-        assert.match(html, /<select/);
+    test("selectedValues: arrays, comma strings, blanks and numbers", () => {
+        assert.deepEqual(choices.selectedValues(["a", null, 2]), ["a", "2"]);
+        assert.deepEqual(choices.selectedValues(" a , b "), ["a", "b"]);
+        assert.deepEqual(choices.selectedValues("   "), []);
+        assert.deepEqual(choices.selectedValues(null), []);
+        assert.deepEqual(choices.selectedValues(0), ["0"]);
     });
 });

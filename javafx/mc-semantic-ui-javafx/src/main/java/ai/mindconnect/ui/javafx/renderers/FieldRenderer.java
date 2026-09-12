@@ -30,13 +30,13 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 import java.io.File;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -177,7 +177,9 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
             case BOOLEAN -> checkBox(node, ctx);
             case DATE -> datePicker(node, ctx);
             case SELECT -> node.isExpanded() ? radioGroup(node, ctx) : comboBox(node, ctx);
-            case MULTISELECT -> node.isExpanded() ? checkboxGroup(node, ctx) : multiSelect(node, ctx);
+            case MULTISELECT -> !node.isExpanded() ? multiSelect(node, ctx)
+                    : node.isOrderable() ? new OrderableChoices(node, ctx).bound()
+                    : checkboxGroup(node, ctx);
             case FILE -> filePicker(node, ctx);
             case NUMBER, CURRENCY, PERCENT -> numberField(node, ctx);
             default -> textField(node, ctx);
@@ -268,7 +270,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
         });
         list.setPrefHeight(120);
 
-        for (var selected : selectedValues(node.getValue())) {
+        for (var selected : node.selectedValues()) {
             var option = findOption(node, selected);
             if (option != null) list.getSelectionModel().select(option);
         }
@@ -280,17 +282,21 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
                 .toList());
     }
 
-    /** An expanded SELECT: a radio button per option, one choice, the same value a combo box gives. */
+    /**
+     * An expanded SELECT: a radio button per option, one choice — the same value
+     * a combo box gives, or null when nothing is chosen. Which option starts
+     * selected comes from {@link UiField#choicesInDisplayOrder()}, the rule the
+     * web renderers share.
+     */
     private Bound radioGroup(UiField node, FxRenderContext ctx) {
         var toggles = new ToggleGroup();
         var box = new VBox(6);
         box.getStyleClass().add("sui-choice-group");
-        var selected = node.getValue() == null ? null : node.getValue().toString();
-        for (var option : options(node)) {
-            var radio = new RadioButton(optionLabel(option));
+        for (var choice : node.choicesInDisplayOrder()) {
+            var radio = new RadioButton(optionLabel(choice.option()));
             radio.setToggleGroup(toggles);
-            radio.setUserData(option.getValue());
-            radio.setSelected(option.getValue() != null && option.getValue().equals(selected));
+            radio.setUserData(choice.option().getValue());
+            radio.setSelected(choice.checked());
             box.getChildren().add(radio);
         }
         onChanged(toggles.selectedToggleProperty(), node, ctx);
@@ -299,101 +305,171 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
                 : toggles.getSelectedToggle().getUserData());
     }
 
-    /**
-     * An expanded MULTISELECT: a checkbox per option, submitting the checked
-     * values as a list — top to bottom, which for an orderable one is the order
-     * the user arranged.
-     */
+    /** An expanded MULTISELECT: a checkbox per option, submitting the checked values as a list. */
     private Bound checkboxGroup(UiField node, FxRenderContext ctx) {
-        var box = new VBox(node.isOrderable() ? 2 : 6);
+        var box = new VBox(6);
         box.getStyleClass().add("sui-choice-group");
-        var selected = node.selectedValues();
-        for (var option : node.optionsInDisplayOrder()) {
-            var check = new CheckBox(optionLabel(option));
-            check.setUserData(option.getValue());
-            check.setSelected(selected.contains(option.getValue()));
-            box.getChildren().add(node.isOrderable() ? orderableRow(box, check, node, ctx) : check);
-            if (!node.isOrderable()) onChanged(check.selectedProperty(), node, ctx);
+        var checks = new ArrayList<CheckBox>();
+        for (var choice : node.choicesInDisplayOrder()) {
+            var check = new CheckBox(optionLabel(choice.option()));
+            check.setUserData(choice.option().getValue());
+            check.setSelected(choice.checked());
+            onChanged(check.selectedProperty(), node, ctx);
+            checks.add(check);
         }
-        if (node.isOrderable()) refreshMoves(box);
-        return new Bound(box, () -> box.getChildren().stream()
-                .map(FieldRenderer::checkBoxOf)
+        box.getChildren().setAll(checks);
+        return new Bound(box, () -> checks.stream()
                 .filter(CheckBox::isSelected)
                 .map(c -> (String) c.getUserData())
                 .toList());
     }
 
+    /** How long move clicks must pause before a reorder is announced as a change. */
+    static final Duration CHOICE_MOVE_SETTLE = Duration.millis(400);
+
     /**
-     * One row of an orderable checkbox group: the box, then move-up and
-     * move-down. Checked rows lead the list — a tick joins the end of them, an
-     * untick drops back among the rest — and only they move, within that block.
-     * The web renderers keep the same rules.
+     * Where a row of an orderable group belongs after its box was ticked or
+     * unticked — the rule of {@code seatAfterToggle} in the web renderer's
+     * {@code renderers/choices.ts}, kept identical so a re-render from the
+     * server lands where the user already sees the row. Checked rows lead; a
+     * tick already among them stays, otherwise it joins their end; an untick
+     * returns to its option place among the unchecked rows.
+     *
+     * @param checked the rows' checked state as shown, the toggled row's new state included
+     * @param index   the rows' positions in the field's options
+     * @param at      the toggled row
+     * @return the toggled row's index in the final order
      */
-    private HBox orderableRow(VBox box, CheckBox check, UiField node, FxRenderContext ctx) {
-        var up = moveButton("chevron-up", "Move up", ctx);
-        var down = moveButton("chevron-down", "Move down", ctx);
-        var spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-        var row = new HBox(4, check, spacer, up, down);
-        row.setAlignment(Pos.CENTER_LEFT);
-        row.getStyleClass().add("sui-choice-row");
-
-        check.selectedProperty().addListener((obs, was, now) -> {
-            var rows = box.getChildren();
-            boolean focused = check.isFocused();
-            rows.remove(row);
-            int seam = 0;
-            while (seam < rows.size() && checkBoxOf(rows.get(seam)).isSelected()) seam++;
-            rows.add(seam, row);
-            // Taking the row out of the scene drops focus; hand it back so the
-            // keyboard stays on the box that was just toggled.
-            if (focused) check.requestFocus();
-            refreshMoves(box);
-            fireChange(node, ctx);
-        });
-        // The neighbour moves, not the row, so the pressed button keeps focus.
-        up.setOnAction(e -> swapWithNeighbour(box, row, -1, node, ctx));
-        down.setOnAction(e -> swapWithNeighbour(box, row, +1, node, ctx));
-        return row;
-    }
-
-    private void swapWithNeighbour(VBox box, HBox row, int direction, UiField node, FxRenderContext ctx) {
-        var rows = box.getChildren();
-        int at = rows.indexOf(row);
-        int other = at + direction;
-        if (other < 0 || other >= rows.size()) return;
-        if (!checkBoxOf(row).isSelected() || !checkBoxOf(rows.get(other)).isSelected()) return;
-        var neighbour = rows.remove(other);
-        rows.add(at, neighbour);
-        refreshMoves(box);
-        fireChange(node, ctx);
-    }
-
-    /** Shows a row's move buttons only where a move is possible. */
-    private static void refreshMoves(VBox box) {
-        var rows = box.getChildren();
-        for (int i = 0; i < rows.size(); i++) {
-            var row = (HBox) rows.get(i);
-            boolean checked = checkBoxOf(row).isSelected();
-            boolean nextChecked = i + 1 < rows.size() && checkBoxOf(rows.get(i + 1)).isSelected();
-            row.getChildren().get(2).setVisible(checked && i > 0);
-            row.getChildren().get(3).setVisible(checked && nextChecked);
+    static int seatAfterToggle(List<Boolean> checked, List<Integer> index, int at) {
+        if (checked.get(at)) {
+            for (int i = 0; i < at; i++) {
+                if (!checked.get(i)) return (int) checked.stream().filter(c -> c).count() - 1;
+            }
+            return at;
         }
+        int seat = 0;
+        for (int i = 0; i < checked.size(); i++) {
+            if (i != at && checked.get(i)) seat++;
+        }
+        int checkedOthers = seat;
+        for (int i = 0, others = 0; i < checked.size(); i++) {
+            if (i == at) continue;
+            if (others++ < checkedOthers) continue;
+            if (index.get(i) > index.get(at)) break;
+            seat++;
+        }
+        return seat;
     }
 
-    private static Button moveButton(String icon, String label, FxRenderContext ctx) {
-        var button = new Button();
-        var glyph = ctx.icon(icon);
-        if (glyph != null) button.setGraphic(glyph.inherit(button));
-        else button.setText(label);
-        button.setTooltip(new Tooltip(label));
-        button.setAccessibleText(label);
-        button.getStyleClass().add("sui-choice-move");
-        return button;
-    }
+    /**
+     * An orderable MULTISELECT: checkboxes in rows with move-up / move-down
+     * buttons, the checked rows first, submitted in the order shown. Follows
+     * the web renderers' rules — {@link #seatAfterToggle} for ticks, moves only
+     * within the checked block, focus kept on the pressed button unless it
+     * just reached the edge, and one change per burst of moves.
+     */
+    private final class OrderableChoices {
 
-    private static CheckBox checkBoxOf(Node rowOrCheck) {
-        return rowOrCheck instanceof HBox row ? (CheckBox) row.getChildren().get(0) : (CheckBox) rowOrCheck;
+        private record Row(HBox node, CheckBox check, Button up, Button down, int index) { }
+
+        private final UiField node;
+        private final FxRenderContext ctx;
+        private final VBox box = new VBox(2);
+        private final List<Row> rows = new ArrayList<>();
+        private final javafx.animation.PauseTransition moved = new javafx.animation.PauseTransition(CHOICE_MOVE_SETTLE);
+
+        OrderableChoices(UiField node, FxRenderContext ctx) {
+            this.node = node;
+            this.ctx = ctx;
+            box.getStyleClass().add("sui-choice-group");
+            moved.setOnFinished(e -> fireChange(node, ctx));
+            // One tooltip per direction, installed on every button of the group.
+            var upTip = new Tooltip("Move up");
+            var downTip = new Tooltip("Move down");
+            for (var choice : node.choicesInDisplayOrder()) {
+                var check = new CheckBox(optionLabel(choice.option()));
+                check.setUserData(choice.option().getValue());
+                check.setSelected(choice.checked());
+                var up = moveButton("chevron-up", "Move up", upTip);
+                var down = moveButton("chevron-down", "Move down", downTip);
+                var spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+                var hbox = new HBox(4, check, spacer, up, down);
+                hbox.setAlignment(Pos.CENTER_LEFT);
+                hbox.getStyleClass().add("sui-choice-row");
+                var row = new Row(hbox, check, up, down, choice.index());
+                rows.add(row);
+                check.selectedProperty().addListener((obs, was, now) -> toggled(row));
+                up.setOnAction(e -> move(row, -1));
+                down.setOnAction(e -> move(row, +1));
+            }
+            box.getChildren().setAll(rows.stream().map(Row::node).toList());
+            refreshMoves();
+        }
+
+        Bound bound() {
+            return new Bound(box, () -> rows.stream()
+                    .filter(r -> r.check().isSelected())
+                    .map(r -> (String) r.check().getUserData())
+                    .toList());
+        }
+
+        private void toggled(Row row) {
+            int at = rows.indexOf(row);
+            int seat = seatAfterToggle(
+                    rows.stream().map(r -> r.check().isSelected()).toList(),
+                    rows.stream().map(Row::index).toList(), at);
+            if (seat != at) {
+                // Taking the row out of the scene drops focus; hand it back so
+                // the keyboard stays on the box that was just toggled.
+                boolean focused = row.check().isFocused();
+                rows.remove(at);
+                rows.add(seat, row);
+                box.getChildren().remove(row.node());
+                box.getChildren().add(seat, row.node());
+                if (focused) row.check().requestFocus();
+            }
+            refreshMoves();
+            fireChange(node, ctx);
+        }
+
+        private void move(Row row, int direction) {
+            int at = rows.indexOf(row);
+            int other = at + direction;
+            if (other < 0 || other >= rows.size()) return;
+            var neighbour = rows.get(other);
+            if (!row.check().isSelected() || !neighbour.check().isSelected()) return;
+            // The neighbour moves, not the row, so the pressed button keeps focus.
+            java.util.Collections.swap(rows, at, other);
+            box.getChildren().remove(neighbour.node());
+            box.getChildren().add(at, neighbour.node());
+            refreshMoves();
+            var pressed = direction < 0 ? row.up() : row.down();
+            var opposite = direction < 0 ? row.down() : row.up();
+            if (!pressed.isVisible()) (opposite.isVisible() ? opposite : row.check()).requestFocus();
+            moved.playFromStart();
+        }
+
+        /** Shows a row's move buttons only where a move is possible. */
+        private void refreshMoves() {
+            for (int i = 0; i < rows.size(); i++) {
+                var row = rows.get(i);
+                boolean checked = row.check().isSelected();
+                boolean nextChecked = i + 1 < rows.size() && rows.get(i + 1).check().isSelected();
+                row.up().setVisible(checked && i > 0);
+                row.down().setVisible(checked && nextChecked);
+            }
+        }
+
+        private Button moveButton(String icon, String label, Tooltip tooltip) {
+            var button = new Button();
+            Icons.lead(button, icon, ctx);
+            if (button.getGraphic() == null) button.setText(label);
+            button.setTooltip(tooltip);
+            button.setAccessibleText(label);
+            button.getStyleClass().add("sui-choice-move");
+            return button;
+        }
     }
 
     private Bound filePicker(UiField node, FxRenderContext ctx) {
@@ -492,15 +568,6 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
                 return null; // not editable — the combo picks from the list
             }
         };
-    }
-
-    /** The initially selected values of a MULTISELECT, however they were modelled. */
-    private static List<String> selectedValues(Object value) {
-        if (value == null) return List.of();
-        if (value instanceof Collection<?> collection) {
-            return collection.stream().filter(java.util.Objects::nonNull).map(Object::toString).toList();
-        }
-        return List.of(value.toString());
     }
 
     private static LocalDate parseDate(Object value) {

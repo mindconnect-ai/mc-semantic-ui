@@ -294,7 +294,8 @@ body {
 }
 
 .sui-header-extras .sui-field { margin: 0; gap: 0; }
-.sui-header-extras .sui-field label { display: none; }
+/* The caption only (a direct child) — an expanded field's options are labels too. */
+.sui-header-extras .sui-field > label { display: none; }
 .sui-header-extras select { padding: 6px 10px; font-size: var(--sui-text-sm); }
 
 /* ── Lists ──────────────────────────────────────────────────────────────── */
@@ -511,11 +512,12 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-field:has(> input[type="checkbox"]) { align-items: flex-start; }
 /* Expanded SELECT / MULTISELECT: one option per line, the control beside its
    label. The option label is body text, not a field caption, so it drops the
-   weight the .sui-field label rule gives it. */
+   weight the .sui-field label rule gives it — and the error colour the
+   .sui-field--error label rule would paint it in. */
 .sui-choice-group { display: flex; flex-direction: column; gap: var(--sui-space-xs); }
 .sui-field .sui-choice {
     display: inline-flex; align-items: center; gap: var(--sui-space-sm);
-    font-weight: 400; cursor: pointer; align-self: flex-start;
+    font-weight: 400; color: var(--sui-color-text-body); cursor: pointer; align-self: flex-start;
 }
 /* Orderable: each option a row, move buttons on the right. Only checked rows
    move, and only within the checked block that leads the list — so the first
@@ -528,7 +530,10 @@ a.sui-tree-label:hover { text-decoration: underline; }
     padding: 0 var(--sui-space-xs); margin: 0 calc(-1 * var(--sui-space-xs));
 }
 .sui-choice-row:has(input:checked):hover { background: var(--sui-color-border-soft); }
-.sui-choice-move { display: inline-flex; gap: 2px; }
+/* The move buttons need the EventBus; without it (a page rendered with no
+   SPA script) they would only look usable, so they appear once it is live. */
+.sui-choice-move { display: none; gap: 2px; }
+.sui-live .sui-choice-move { display: inline-flex; }
 .sui-choice-move .sui-icon-btn { min-width: 28px; height: 28px; padding: 0 4px; }
 .sui-choice-row:not(:has(input:checked)) .sui-choice-move,
 .sui-choice-row:first-child [data-sui-move="up"],

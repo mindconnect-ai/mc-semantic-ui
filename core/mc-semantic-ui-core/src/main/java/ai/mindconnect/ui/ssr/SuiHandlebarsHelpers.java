@@ -323,19 +323,32 @@ public final class SuiHandlebarsHelpers {
             return opts.tagType.inline() ? Boolean.valueOf(any) : blockResult(opts, any);
         });
 
-        // {{#if (and a b …)}} → true when every argument is truthy. The
-        // counterpart of `or`, same two forms.
-        hb.registerHelper("and", (ctx, opts) -> {
-            boolean all = isTruthy(ctx);
-            for (int i = 0; i < opts.params.length && all; i++) all = isTruthy(opts.param(i));
-            return opts.tagType.inline() ? Boolean.valueOf(all) : blockResult(opts, all);
+        // {{#each (choices this)}} → a UiField's options as an expanded field
+        // shows them, each a map of value / label / index / checked. The model
+        // owns the order and the checked rule (UiField#choicesInDisplayOrder),
+        // so SSR, SPA and JavaFX paint the same list.
+        hb.registerHelper("choices", (ctx, opts) -> {
+            if (!(ctx instanceof ai.mindconnect.ui.model.UiField f)) return java.util.List.of();
+            return f.choicesInDisplayOrder().stream().map(c -> {
+                var m = new java.util.HashMap<String, Object>();
+                m.put("value", c.option() == null ? null : c.option().getValue());
+                m.put("label", c.option() == null ? null : c.option().getLabel());
+                m.put("index", c.index());
+                m.put("checked", c.checked());
+                return m;
+            }).toList();
         });
 
-        // {{#each (choiceOptions this)}} → a UiField's options in the order an
-        // expanded field shows them (checked first when orderable). The model
-        // owns the rule, so SSR, SPA and JavaFX paint the same first order.
-        hb.registerHelper("choiceOptions", (ctx, opts) ->
-                ctx instanceof ai.mindconnect.ui.model.UiField f ? f.optionsInDisplayOrder() : java.util.List.of());
+        // {{#if (expandedChoice this)}} → true for an editable SELECT or
+        // MULTISELECT shown as radios / checkboxes. Its caption labels a group,
+        // not one control, so it gets an id instead of a `for`.
+        hb.registerHelper("expandedChoice", (ctx, opts) -> {
+            boolean expanded = ctx instanceof ai.mindconnect.ui.model.UiField f
+                    && f.isEditable() && f.isExpanded()
+                    && (f.getFieldType() == ai.mindconnect.ui.model.UiField.FieldType.SELECT
+                        || f.getFieldType() == ai.mindconnect.ui.model.UiField.FieldType.MULTISELECT);
+            return opts.tagType.inline() ? Boolean.valueOf(expanded) : blockResult(opts, expanded);
+        });
 
         // ── String substitution ({page} placeholder) ─────────────────────────
         hb.registerHelper("subst", (ctx, opts) -> {
