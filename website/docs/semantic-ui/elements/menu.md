@@ -10,7 +10,7 @@ import TabItem from '@theme/TabItem';
 **`UiMenu`** is the vertical navigation sidebar an admin shell puts beside its
 content. It holds nestable [`menu-item`](./menu-item.md)s and toggles between
 three display states with a hamburger: **expanded** (icon + label, groups open
-inline), **rail** (a narrow icon-only strip, groups fly out on hover) and
+inline), **rail** (a narrow icon-only strip, groups fly out beside it) and
 **hidden** (off-canvas).
 
 The `state` field is only the *initial* state the server renders. Once the SPA
@@ -26,7 +26,7 @@ native `<details>` disclosures.
 ></iframe>
 
 *Live — click the hamburger to cycle expanded → rail → hidden; the content panel
-reflows as the sidebar narrows. In the rail, hover "Catalog" for its fly-out.
+reflows as the sidebar narrows. In the rail, hover, focus or tap "Catalog" for its fly-out.
 Clicking an item patches the page title.*
 
 ## Fields
