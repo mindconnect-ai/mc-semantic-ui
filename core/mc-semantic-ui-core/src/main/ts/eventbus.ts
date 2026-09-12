@@ -6,6 +6,7 @@ import { wireOverflow } from "./renderers/overflow.js";
 import { wireMenuButtons } from "./renderers/menu-button.js";
 import { wireAutoScroll } from "./renderers/autoscroll.js";
 import { t } from "./i18n.js";
+import { seatAfterToggle } from "./renderers/choices.js";
 
 /**
  * Context handed to every {@link BehaviorHandler}. Captures the trigger
@@ -280,6 +281,12 @@ export class SuiEventBus {
         this.registerDefaultBehaviors();
         this.seedModelsFromDocument();
         this.installAutoEnhance();
+        // Marks what this bus drives, for controls that do nothing without it —
+        // an orderable group's move buttons stay hidden on a page rendered
+        // without a bus. On the root (and the dialog host, below), not <html>:
+        // exactly the elements inScope() accepts, and out of reach of theme
+        // switchers that overwrite the document's class attribute.
+        root.setAttribute?.("data-sui-live", "");
         // A patch SSE event is so universal that we wire it as a built-in
         // stream handler; apps can override by registering another handler
         // under the same name.
@@ -800,6 +807,7 @@ export class SuiEventBus {
         // the same bound handlers every time, and addEventListener ignores a
         // duplicate.
         this.installListenersOn(host);
+        host.setAttribute?.("data-sui-live", "");
         // inScope() consults this so events from within dialogs are handled.
         this.dialogListenerHost = host;
         return host;
@@ -1213,6 +1221,16 @@ export class SuiEventBus {
             this.handleFileSelection(target);
             return;
         }
+        // An orderable checkbox group keeps its rows in order — checked first,
+        // the rest in option order — before any trigger below collects the
+        // value. A row already in place stays, so a change raised by the move
+        // buttons (or anyone else) leaves the user's ordering alone.
+        if (target instanceof HTMLInputElement && target.type === "checkbox") {
+            settleOrderableChoice(target);
+            // This change reports the group's current order too, so a move
+            // announcement still pending for it would only repeat it.
+            if (!choiceMoveAnnouncements.has(e)) cancelChoiceMove(target);
+        }
         // A node-level change (UiNode.events) fires first — it sits on a
         // wrapper, so a field's own data-change-trigger below still wins for
         // the input itself.
@@ -1330,6 +1348,31 @@ export class SuiEventBus {
         if (closeEl && closeEl.closest(".sui-dialog-host")) {
             e.preventDefault();
             this.closeDialogAround(closeEl);
+            return;
+        }
+
+        // Orderable checkbox group: move a checked row one place up or down.
+        // The neighbour moves rather than the row, so the pressed button keeps
+        // focus and can be pressed again — unless the row just reached the
+        // edge of the checked block, where the stylesheet hides that button;
+        // focus then goes to the row's other button, or its box. The reorder is
+        // a value change, announced once the clicks pause, so moving an entry
+        // several places costs one onChange / submitOnChange, not one per step.
+        const move = target.closest<HTMLElement>("[data-sui-move]");
+        if (move && this.inScope(move)) {
+            e.preventDefault();
+            const row = move.closest<HTMLElement>(".sui-choice-row");
+            const input = row?.querySelector<HTMLInputElement>("input[type=checkbox]");
+            if (!row || !input?.checked) return;
+            const up = move.dataset.suiMove === "up";
+            const neighbour = (up ? row.previousElementSibling : row.nextElementSibling) as HTMLElement | null;
+            if (!neighbour?.querySelector<HTMLInputElement>("input[type=checkbox]")?.checked) return;
+            if (up) row.after(neighbour); else row.before(neighbour);
+            if (getComputedStyle(move).visibility === "hidden") {
+                const other = row.querySelector<HTMLElement>(`[data-sui-move="${up ? "down" : "up"}"]`);
+                (other && getComputedStyle(other).visibility !== "hidden" ? other : input).focus();
+            }
+            announceChoiceMove(input);
             return;
         }
 
@@ -1569,6 +1612,9 @@ export class SuiEventBus {
         // theme stylesheet, the SPA bootstrap script) also gets refreshed.
         if (form.dataset.suiReload === "true") return;
         e.preventDefault();
+        // The submit carries every group's current order; a move announcement
+        // still pending would fire the same change again afterwards.
+        form.querySelectorAll(".sui-choice-group--orderable").forEach(cancelChoiceMove);
         // Prefer the form's PRIMARY-styled action as the default submitter —
         // Enter should send/save, not fire whatever helper button happens to
         // come first in the footer (e.g. a chat form's attach "+").
@@ -2080,6 +2126,64 @@ function appendQuery(url: string, payload: Record<string, unknown>): string {
 }
 
 /**
+ * Puts a row of an orderable checkbox group where it belongs after its box
+ * changed ({@link seatAfterToggle}): a tick joins the end of the checked rows
+ * unless it is already among them, an untick returns to its option place — the
+ * order a server re-render produces too. Nothing moves when the row is in
+ * place, and when it does move, a box that had focus gets it back: taking a
+ * focused element out of the document drops focus to the body.
+ */
+function settleOrderableChoice(input: HTMLInputElement): void {
+    const row = input.closest<HTMLElement>(".sui-choice-row");
+    const group = row?.closest<HTMLElement>(".sui-choice-group--orderable");
+    if (!row || !group) return;
+    const rows = Array.from(group.querySelectorAll<HTMLElement>(":scope > .sui-choice-row"));
+    const at = rows.indexOf(row);
+    const seat = seatAfterToggle(rows.map(r => ({
+        checked: r.querySelector<HTMLInputElement>("input[type=checkbox]")?.checked === true,
+        index: Number(r.dataset.suiIndex),
+    })), at);
+    if (seat === at) return;
+    const focused = row.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
+    group.insertBefore(row, rows.filter(r => r !== row)[seat] ?? null);
+    focused?.focus({ preventScroll: true });
+}
+
+/** How long move clicks must pause before the reorder is announced as a change. */
+const CHOICE_MOVE_SETTLE_MS = 400;
+const pendingChoiceMoves = new WeakMap<Element, number>();
+/** The change events {@link announceChoiceMove} raised — the ones that must not cancel themselves. */
+const choiceMoveAnnouncements = new WeakSet<Event>();
+
+/**
+ * Announces a reorder in an orderable group as a {@code change} on the moved
+ * box, once the move clicks pause for {@link CHOICE_MOVE_SETTLE_MS}. The value
+ * is read when the event fires, so the last order is the one that is sent. A
+ * tick or a submit in the meantime reports the order itself and cancels it
+ * ({@link cancelChoiceMove}).
+ */
+function announceChoiceMove(input: HTMLInputElement): void {
+    const group = input.closest(".sui-choice-group") ?? input;
+    clearTimeout(pendingChoiceMoves.get(group));
+    pendingChoiceMoves.set(group, window.setTimeout(() => {
+        pendingChoiceMoves.delete(group);
+        if (!input.isConnected) return;
+        const change = new Event("change", { bubbles: true });
+        choiceMoveAnnouncements.add(change);
+        input.dispatchEvent(change);
+    }, CHOICE_MOVE_SETTLE_MS));
+}
+
+/** Drops the move announcement pending for the group an element belongs to, if any. */
+function cancelChoiceMove(el: Element): void {
+    const group = el.closest(".sui-choice-group") ?? el;
+    const timer = pendingChoiceMoves.get(group);
+    if (timer === undefined) return;
+    clearTimeout(timer);
+    pendingChoiceMoves.delete(group);
+}
+
+/**
  * Walks every named editable control inside the given root and returns
  * {@code name → value}. Mirrors native HTML-form semantics with one twist:
  * the semantic field type comes from {@code data-sui-type} on the control
@@ -2092,8 +2196,16 @@ function appendQuery(url: string, payload: Record<string, unknown>): string {
  *   <li>controls without {@code name}</li>
  *   <li>{@code name="_method"} — Spring's hidden-method override is for
  *       form-encoded bodies; the JSON path uses the real HTTP verb.</li>
- *   <li>unchecked radio buttons (only the selected one contributes)</li>
+ *   <li>unchecked radio buttons (only the selected one contributes) — except
+ *       that an expanded {@code SELECT} with nothing chosen still submits its
+ *       name, as {@code null}. (A dropdown never gets there: a browser selects
+ *       its first option when none is marked.)</li>
  * </ul>
+ *
+ * <p>The checkboxes of an expanded {@code MULTISELECT} share one name and fold
+ * into a single list of the checked values, in document order — which is the
+ * order an orderable one shows — and empty when none is checked. A lone
+ * checkbox still submits its own {@code true}/{@code false}.
  */
 function harvestNamedControls(root: HTMLElement): Record<string, unknown> {
     const out: Record<string, unknown> = {};
@@ -2103,7 +2215,14 @@ function harvestNamedControls(root: HTMLElement): Record<string, unknown> {
     for (const ctrl of controls) {
         const name = ctrl.name;
         if (!name || name === "_method") continue;
+        const suiType = ctrl.dataset.suiType;
+        if (ctrl instanceof HTMLInputElement && ctrl.type === "checkbox" && suiType === "MULTISELECT") {
+            const checked = Array.isArray(out[name]) ? out[name] as string[] : (out[name] = []) as string[];
+            if (ctrl.checked) checked.push(ctrl.value);
+            continue;
+        }
         if (ctrl instanceof HTMLInputElement && ctrl.type === "radio" && !ctrl.checked) {
+            if (suiType === "SELECT" && !(name in out)) out[name] = null;
             continue;
         }
         out[name] = readInputValue(ctrl, ctrl.dataset.suiType);

@@ -21,6 +21,7 @@ public class FxFormScope {
     private final String formId;
     private final Map<String, Supplier<Object>> sources = new LinkedHashMap<>();
     private Runnable submit = () -> { };
+    private final java.util.List<Runnable> beforeSubmit = new java.util.ArrayList<>();
 
     public FxFormScope(String formId) {
         this.formId = formId;
@@ -43,7 +44,18 @@ public class FxFormScope {
 
     /** Fires the form's submit. No-op when the form has no action to submit to. */
     public void submit() {
+        beforeSubmit.forEach(Runnable::run);
         submit.run();
+    }
+
+    /**
+     * Runs {@code hook} at the start of every {@link #submit()}, before the
+     * values are read — for a control that has a change of its own still
+     * pending, which the submit reports anyway (an orderable choice group's
+     * delayed move announcement, for one).
+     */
+    public void beforeSubmit(Runnable hook) {
+        if (hook != null) beforeSubmit.add(hook);
     }
 
     /**

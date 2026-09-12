@@ -455,6 +455,8 @@ public final class NodeRegistry {
                         PropertyMeta.of("required", PropertyKind.BOOLEAN),
                         PropertyMeta.of("submitOnEnter", PropertyKind.BOOLEAN),
                         PropertyMeta.of("submitOnChange", PropertyKind.BOOLEAN),
+                        PropertyMeta.of("expanded", PropertyKind.BOOLEAN),
+                        PropertyMeta.of("orderable", PropertyKind.BOOLEAN),
                         PropertyMeta.of("min", PropertyKind.STRING),
                         PropertyMeta.of("max", PropertyKind.STRING),
                         PropertyMeta.of("step", PropertyKind.STRING),

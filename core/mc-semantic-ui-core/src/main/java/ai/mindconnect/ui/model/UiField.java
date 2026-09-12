@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -115,6 +116,25 @@ public class UiField extends UiNode {
     private String accept;
     /** Only for {@link FieldType#FILE}: allow selecting more than one file. */
     private boolean multiple;
+
+    /**
+     * Only for {@link FieldType#SELECT} and {@link FieldType#MULTISELECT}: show
+     * every option at once instead of a dropdown or list box — a radio button
+     * per option for SELECT, a checkbox per option for MULTISELECT. Purely
+     * presentation: the submitted value keeps its shape (one string, or a list
+     * of strings), so the server reads it exactly as before.
+     */
+    private boolean expanded;
+
+    /**
+     * Only for an {@link #expanded} {@link FieldType#MULTISELECT}: the checked
+     * options come first and carry move-up/move-down buttons, and the value is
+     * submitted in the order shown. Checking an option appends it to the end
+     * of the checked ones; unchecking returns it to its place among the rest,
+     * which keep option order. The move buttons need the SPA EventBus (or
+     * JavaFX); a page rendered without it hides them.
+     */
+    private boolean orderable;
 
     // ── factory methods ───────────────────────────────────────────────────
 
@@ -260,6 +280,181 @@ public class UiField extends UiNode {
     public UiField multiple() {
         this.multiple = true;
         return this;
+    }
+
+    /** SELECT as a group of radio buttons. See {@link #expanded}. */
+    public UiField asRadio() {
+        this.expanded = true;
+        return this;
+    }
+
+    /** MULTISELECT as a group of checkboxes. See {@link #expanded}. */
+    public UiField asCheckboxes() {
+        this.expanded = true;
+        return this;
+    }
+
+    /**
+     * MULTISELECT as checkboxes whose checked entries can be reordered; implies
+     * {@link #asCheckboxes()}. See {@link #orderable}.
+     */
+    public UiField orderable() {
+        this.expanded = true;
+        this.orderable = true;
+        return this;
+    }
+
+    /**
+     * One option as a choice field shows it: the option, its position in
+     * {@link #options} (stable across reorders — renderers derive ids from it),
+     * and whether it starts checked.
+     */
+    public record Choice(Option option, int index, boolean checked) { }
+
+    /**
+     * The options in the order a choice field shows them, each marked checked
+     * or not — the rule every renderer shares: SSR, the SPA
+     * ({@code renderers/choices.ts}, kept in step by shared fixtures) and
+     * JavaFX, for dropdowns and expanded groups alike.
+     *
+     * <ul>
+     *   <li>checked follows {@link #isChosen};</li>
+     *   <li>an {@link #orderable} MULTISELECT shows its checked options first,
+     *       in the order of {@link #value}, then the rest in option order;</li>
+     *   <li>anything else keeps option order;</li>
+     *   <li>a null entry in {@link #options} is not an option and is skipped
+     *       (the indexes of the others do not move); options sharing a value
+     *       are both shown, and both checked when that value is.</li>
+     * </ul>
+     */
+    public List<Choice> choicesInDisplayOrder() {
+        List<Option> all = options == null ? List.of() : options;
+        var selected = fieldType == FieldType.MULTISELECT ? selectedValues() : null;
+        var single = fieldType == FieldType.MULTISELECT ? null : valueText(value);
+        var choices = new ArrayList<Choice>(all.size());
+        for (int i = 0; i < all.size(); i++) {
+            var option = all.get(i);
+            if (option == null) continue;
+            var v = option.getValue();
+            boolean checked = v != null && (selected != null ? selected.contains(v) : v.equals(single));
+            choices.add(new Choice(option, i, checked));
+        }
+        if (!orderable || selected == null) return choices;
+        var rank = new java.util.HashMap<String, Integer>();
+        for (int i = 0; i < selected.size(); i++) rank.putIfAbsent(selected.get(i), i);
+        var ordered = new ArrayList<Choice>(choices.size());
+        // Stream.sorted is stable, so options sharing a value keep option order.
+        choices.stream().filter(Choice::checked)
+                .sorted(java.util.Comparator.comparingInt(c -> rank.get(c.option().getValue())))
+                .forEach(ordered::add);
+        choices.stream().filter(c -> !c.checked()).forEach(ordered::add);
+        return ordered;
+    }
+
+    /**
+     * Whether the option with this value is chosen: for a MULTISELECT when
+     * {@link #selectedValues} holds it, otherwise when it equals {@link #value}
+     * as text ({@link #valueText}). An option without a value is never chosen.
+     */
+    public boolean isChosen(String optionValue) {
+        if (optionValue == null) return false;
+        if (fieldType == FieldType.MULTISELECT) return selectedValues().contains(optionValue);
+        return optionValue.equals(valueText(value));
+    }
+
+    /**
+     * The values of a multi-choice {@link #value}: a collection or array (null
+     * entries dropped), or a comma-separated string with each part trimmed —
+     * empty parts included, so {@code "a,"} is {@code ["a", ""]}. Null or a
+     * blank string means none. Each value is taken as text by {@link #valueText}.
+     */
+    public List<String> selectedValues() {
+        if (value == null) return List.of();
+        if (value instanceof java.util.Collection<?> || value.getClass().isArray()) {
+            return elements(value).stream().filter(java.util.Objects::nonNull).map(UiField::valueText).toList();
+        }
+        var text = valueText(value);
+        if (JS_WHITESPACE_ONLY.matcher(text).matches()) return List.of();
+        return java.util.Arrays.stream(text.split(",", -1)).map(UiField::jsTrim).toList();
+    }
+
+    /**
+     * A value as the browser sees it once it has travelled as JSON — the text
+     * JavaScript's {@code String(value)} gives — so SSR and JavaFX compare
+     * values exactly like the SPA: a whole-number double is {@code "2"}, not
+     * {@code "2.0"}; a BigDecimal drops trailing zeros; a collection or array
+     * joins its elements with commas. Null stays null.
+     */
+    public static String valueText(Object value) {
+        if (value == null) return null;
+        if (value instanceof java.util.Collection<?> || value.getClass().isArray()) {
+            return String.join(",", elements(value).stream().map(e -> e == null ? "" : valueText(e)).toList());
+        }
+        if (value instanceof Double || value instanceof Float) {
+            double d = ((Number) value).doubleValue();
+            if (Double.isFinite(d) && d == Math.rint(d) && Math.abs(d) < 1e21) {
+                return new java.math.BigDecimal(d).toPlainString();
+            }
+            return Double.isNaN(d) ? "NaN" : Double.isInfinite(d) ? (d > 0 ? "Infinity" : "-Infinity") : Double.toString(d);
+        }
+        if (value instanceof java.math.BigDecimal bd) {
+            return bd.signum() == 0 ? "0" : bd.stripTrailingZeros().toPlainString();
+        }
+        return value.toString();
+    }
+
+    /**
+     * Where a row of an orderable group belongs after its box was ticked or
+     * unticked, given the rows as shown (the toggled one already carrying its
+     * new state); returns the row's index in the final order. Mirrors
+     * {@code seatAfterToggle} in {@code renderers/choices.ts} — both are held to
+     * the fixtures in {@code src/test/resources/fixtures/choice-seats.json}.
+     *
+     * <p>Checked rows lead; the rest follow in option order. A ticked row that
+     * is already among the leading checked rows stays put, otherwise it joins
+     * the end of them; an unticked row returns to its option place among the
+     * unchecked rows — where a server re-render puts it too.
+     *
+     * @param checked each row's checked state, in the order shown
+     * @param index   each row's position in the field's options
+     * @param at      the row that was toggled
+     */
+    public static int seatAfterToggle(List<Boolean> checked, List<Integer> index, int at) {
+        int checkedOthers = 0;
+        for (int i = 0; i < checked.size(); i++) if (i != at && checked.get(i)) checkedOthers++;
+        if (checked.get(at)) {
+            boolean inBlock = true;
+            for (int i = 0; i < at; i++) inBlock &= checked.get(i);
+            return inBlock ? at : checkedOthers;
+        }
+        int seat = checkedOthers;
+        int others = 0;
+        for (int i = 0; i < checked.size(); i++) {
+            if (i == at) continue;
+            // The first checkedOthers rows other than this one are the checked block.
+            if (others++ < checkedOthers) continue;
+            if (index.get(i) > index.get(at)) break;
+            seat++;
+        }
+        return seat;
+    }
+
+    /** JavaScript's notion of whitespace, which {@code String.prototype.trim} removes. */
+    private static final java.util.regex.Pattern JS_WHITESPACE_ONLY =
+            java.util.regex.Pattern.compile("[\\s\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]*");
+    private static final java.util.regex.Pattern JS_TRIM =
+            java.util.regex.Pattern.compile("^[\\s\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]+|[\\s\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]+$");
+
+    private static String jsTrim(String text) {
+        return JS_TRIM.matcher(text).replaceAll("");
+    }
+
+    private static List<Object> elements(Object collectionOrArray) {
+        if (collectionOrArray instanceof java.util.Collection<?> c) return new ArrayList<>(c);
+        int n = java.lang.reflect.Array.getLength(collectionOrArray);
+        var out = new ArrayList<Object>(n);
+        for (int i = 0; i < n; i++) out.add(java.lang.reflect.Array.get(collectionOrArray, i));
+        return out;
     }
 
     /** Sets lower bound (date/number). See {@link #min}. */
