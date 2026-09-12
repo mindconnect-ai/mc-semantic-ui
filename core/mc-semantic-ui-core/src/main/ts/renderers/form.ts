@@ -6,7 +6,10 @@ import { renderIcon } from "./icon.js";
 import { renderActions, renderLinks } from "./shared.js";
 
 export function renderForm(node: UiForm, r: SuiRenderer): string {
-    const fields = (node.fields || []).map(renderField).join("");
+    // Through the dispatcher, like every other child, so each field's model is
+    // indexed and a MERGE addressed to one field finds it. Type-less legacy
+    // JSON still renders as a field.
+    const fields = (node.fields || []).map(f => f.type ? r.render(f) : renderField(f)).join("");
     // Rich body: any layout nodes (stacks/sections/groups) rendered through the
     // dispatcher, after the flat fields. Named inputs anywhere inside still get
     // collected on submit, so the whole form travels as one payload.

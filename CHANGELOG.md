@@ -55,6 +55,15 @@ fresh empty one, so nothing has to be moved by hand at release time.
   screen near the bottom of the window. A page rendered without the bus lets
   the rail overflow instead, so the fly-outs are at least not clipped.
   `wireRailFlyouts(root)` does the wiring for apps that render without a bus.
+- **A `MERGE` patch keeps what the user has entered.** The client re-renders a
+  merged node from the model of its last render, so a merge that only set a
+  `formError` or a field's `validationError` put every input the user had
+  typed, ticked or selected since back to the server's old value — the form
+  emptied itself while complaining about its content. The current input is
+  now read first and kept, unless the merge sets the field's `value` or
+  replaces the fields. A merge addressed to a single field inside a form also
+  works now; before, those fields were never indexed, and the merge only
+  logged "no known model".
 
 ## [0.3.1] - 2026-09-09
 

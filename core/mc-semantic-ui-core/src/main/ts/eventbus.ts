@@ -279,6 +279,10 @@ export class SuiEventBus {
         this.ensureDialogHost();
         this.registerDefaultBehaviors();
         this.seedModelsFromDocument();
+        // A MERGE re-renders its target from the model; this is how it learns
+        // what the user has entered since, so the re-render keeps it. Optional
+        // call: a bus may be handed a renderer stand-in without the method.
+        this.renderer.setInputReader?.(harvestNamedControls);
         this.installAutoEnhance();
         // A patch SSE event is so universal that we wire it as a built-in
         // stream handler; apps can override by registering another handler

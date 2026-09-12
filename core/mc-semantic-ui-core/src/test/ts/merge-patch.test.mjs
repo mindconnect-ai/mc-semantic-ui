@@ -177,6 +177,92 @@ describe("MERGE", () => {
         assert.match(element.outerHTML, /panel/);
     });
 
+    // ── What the user entered survives a merge ────────────────────────────
+    // The model of a field holds the value the server last sent. A merge that
+    // re-renders from it must not undo what the user has typed since. The
+    // input reader stands in for the event bus's form harvest.
+
+    const editable = (id, value, extra = {}) =>
+        ({ type: "field", id, label: id, fieldType: "TEXT", editable: true, value, ...extra });
+
+    test("a merge on a field keeps what the user typed", () => {
+        const renderer = createDefaultRenderer();
+        renderer.render(editable("email", "old@example.com"));
+        renderer.setInputReader(() => ({ email: "typed@example.com" }));
+
+        merge(renderer, "email", { validationError: "Not a company address." });
+
+        assert.match(element.outerHTML, /value="typed@example.com"/);
+        assert.match(element.outerHTML, /Not a company address\./);
+    });
+
+    test("a merge that sets the value wins over the input", () => {
+        const renderer = createDefaultRenderer();
+        renderer.render(editable("email", "old@example.com"));
+        renderer.setInputReader(() => ({ email: "typed@example.com" }));
+
+        merge(renderer, "email", { value: "fixed@example.com" });
+
+        assert.match(element.outerHTML, /value="fixed@example.com"/);
+    });
+
+    test("a merge on a form keeps its fields' input, and a later merge still does", () => {
+        const renderer = createDefaultRenderer();
+        renderer.render({ type: "form", id: "signup", title: "Sign up",
+                          fields: [editable("name", ""), editable("tags", ["a"], {
+                              fieldType: "MULTISELECT",
+                              options: [{ value: "a", label: "A" }, { value: "b", label: "B" }] })] });
+        let live = { name: "Ada", tags: ["b"] };
+        renderer.setInputReader(() => live);
+
+        merge(renderer, "signup", { formError: "Please check the form." });
+
+        assert.match(element.outerHTML, /value="Ada"/);
+        assert.match(element.outerHTML, /<option value="b" selected>/);
+        assert.doesNotMatch(element.outerHTML, /<option value="a" selected>/);
+
+        // Nothing to read this time (say, the controls were not on the page):
+        // the model kept the input the first merge saw.
+        live = {};
+        merge(renderer, "signup", { formError: null });
+        assert.match(element.outerHTML, /value="Ada"/);
+    });
+
+    test("a merge that replaces the fields wins over the input", () => {
+        const renderer = createDefaultRenderer();
+        renderer.render({ type: "form", id: "signup", fields: [editable("name", "")] });
+        renderer.setInputReader(() => ({ name: "Ada" }));
+
+        merge(renderer, "signup", { fields: [editable("name", "Grace")] });
+
+        assert.match(element.outerHTML, /value="Grace"/);
+    });
+
+    test("read-only and file fields are left to the model", () => {
+        const renderer = createDefaultRenderer();
+        renderer.render({ type: "stack", id: "box", children: [
+            { type: "field", id: "sku", label: "SKU", fieldType: "TEXT", value: "W-1" },
+        ] });
+        renderer.setInputReader(() => ({ sku: "tampered" }));
+
+        merge(renderer, "box", { cssClass: "boxed" });
+
+        assert.match(element.outerHTML, /W-1/);
+        assert.doesNotMatch(element.outerHTML, /tampered/);
+    });
+
+    test("a field inside a form can be merged on its own", () => {
+        const renderer = createDefaultRenderer();
+        renderer.render({ type: "form", id: "signup", fields: [editable("name", "Ada")] });
+
+        merge(renderer, "name", { hint: "As on your passport." });
+
+        // The form used to render its fields past the dispatcher, so their
+        // models were never indexed and this merge found nothing.
+        assert.ok(!warnings.some(w => w.includes("MERGE target has no known model")), warnings.join("\n"));
+        assert.match(element.outerHTML, /As on your passport\./);
+    });
+
     test("a merge on a table row stays a table row", () => {
         const renderer = createDefaultRenderer();
         const table = {
