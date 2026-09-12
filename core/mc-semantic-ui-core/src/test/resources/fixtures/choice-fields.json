@@ -161,5 +161,204 @@
       ]
     },
     "html": "<div class=\"sui-choice-group sui-choice-group--orderable\" id=\"fallbacks__input\" role=\"group\" aria-labelledby=\"fallbacks__label\"><div class=\"sui-choice-row\" data-sui-index=\"3\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"fallbacks__opt3\" name=\"fallbacks\" value=\"c\" data-sui-type=\"MULTISELECT\" checked><span>C</span></label><span class=\"sui-choice-move\"><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"up\" aria-label=\"Move up\" title=\"Move up\"><svg/></button><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"down\" aria-label=\"Move down\" title=\"Move down\"><svg/></button></span></div><div class=\"sui-choice-row\" data-sui-index=\"0\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"fallbacks__opt0\" name=\"fallbacks\" value=\"a\" data-sui-type=\"MULTISELECT\" checked><span>A</span></label><span class=\"sui-choice-move\"><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"up\" aria-label=\"Move up\" title=\"Move up\"><svg/></button><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"down\" aria-label=\"Move down\" title=\"Move down\"><svg/></button></span></div><div class=\"sui-choice-row\" data-sui-index=\"2\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"fallbacks__opt2\" name=\"fallbacks\" value=\"a\" data-sui-type=\"MULTISELECT\" checked><span>A again</span></label><span class=\"sui-choice-move\"><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"up\" aria-label=\"Move up\" title=\"Move up\"><svg/></button><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"down\" aria-label=\"Move down\" title=\"Move down\"><svg/></button></span></div><div class=\"sui-choice-row\" data-sui-index=\"1\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"fallbacks__opt1\" name=\"fallbacks\" value=\"b\" data-sui-type=\"MULTISELECT\"><span>B</span></label><span class=\"sui-choice-move\"><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"up\" aria-label=\"Move up\" title=\"Move up\"><svg/></button><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"down\" aria-label=\"Move down\" title=\"Move down\"><svg/></button></span></div></div>"
+  },
+  {
+    "name": "radio group, option without value or label, null entry skipped",
+    "node": {
+      "type": "field",
+      "id": "pick",
+      "label": "Pick",
+      "fieldType": "SELECT",
+      "editable": true,
+      "expanded": true,
+      "value": "x",
+      "options": [
+        {
+          "value": null,
+          "label": null
+        },
+        null,
+        {
+          "value": "x",
+          "label": "X"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-choice-group\" id=\"pick__input\" role=\"radiogroup\" aria-labelledby=\"pick__label\"><label class=\"sui-choice\"><input type=\"radio\" id=\"pick__opt0\" name=\"pick\" value=\"\" data-sui-type=\"SELECT\"><span></span></label><label class=\"sui-choice\"><input type=\"radio\" id=\"pick__opt2\" name=\"pick\" value=\"x\" data-sui-type=\"SELECT\" checked><span>X</span></label></div>"
+  },
+  {
+    "name": "checkbox group, trailing comma keeps the empty value",
+    "node": {
+      "type": "field",
+      "id": "t",
+      "label": "T",
+      "fieldType": "MULTISELECT",
+      "editable": true,
+      "expanded": true,
+      "value": "a,",
+      "options": [
+        {
+          "value": "",
+          "label": "Empty"
+        },
+        {
+          "value": "a",
+          "label": "A"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-choice-group\" id=\"t__input\" role=\"group\" aria-labelledby=\"t__label\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"t__opt0\" name=\"t\" value=\"\" data-sui-type=\"MULTISELECT\" checked><span>Empty</span></label><label class=\"sui-choice\"><input type=\"checkbox\" id=\"t__opt1\" name=\"t\" value=\"a\" data-sui-type=\"MULTISELECT\" checked><span>A</span></label></div>"
+  },
+  {
+    "name": "radio group, whole-number double matches its option",
+    "node": {
+      "type": "field",
+      "id": "d",
+      "label": "D",
+      "fieldType": "SELECT",
+      "editable": true,
+      "expanded": true,
+      "value": 2.0,
+      "options": [
+        {
+          "value": "2",
+          "label": "Two"
+        },
+        {
+          "value": "2.0",
+          "label": "Two point oh"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-choice-group\" id=\"d__input\" role=\"radiogroup\" aria-labelledby=\"d__label\"><label class=\"sui-choice\"><input type=\"radio\" id=\"d__opt0\" name=\"d\" value=\"2\" data-sui-type=\"SELECT\" checked><span>Two</span></label><label class=\"sui-choice\"><input type=\"radio\" id=\"d__opt1\" name=\"d\" value=\"2.0\" data-sui-type=\"SELECT\"><span>Two point oh</span></label></div>"
+  },
+  {
+    "name": "radio group, numeric option values",
+    "node": {
+      "type": "field",
+      "id": "num",
+      "label": "Num",
+      "fieldType": "SELECT",
+      "editable": true,
+      "expanded": true,
+      "value": "2",
+      "options": [
+        {
+          "value": 1,
+          "label": "One"
+        },
+        {
+          "value": 2,
+          "label": "Two"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-choice-group\" id=\"num__input\" role=\"radiogroup\" aria-labelledby=\"num__label\"><label class=\"sui-choice\"><input type=\"radio\" id=\"num__opt0\" name=\"num\" value=\"1\" data-sui-type=\"SELECT\"><span>One</span></label><label class=\"sui-choice\"><input type=\"radio\" id=\"num__opt1\" name=\"num\" value=\"2\" data-sui-type=\"SELECT\" checked><span>Two</span></label></div>"
+  },
+  {
+    "name": "orderable with onChange and submitOnChange",
+    "node": {
+      "type": "field",
+      "id": "rank",
+      "label": "Rank",
+      "fieldType": "MULTISELECT",
+      "editable": true,
+      "expanded": true,
+      "orderable": true,
+      "submitOnChange": true,
+      "onChange": {
+        "behavior": "INVOKE",
+        "handler": "ranked"
+      },
+      "value": [
+        "b"
+      ],
+      "options": [
+        {
+          "value": "a",
+          "label": "A"
+        },
+        {
+          "value": "b",
+          "label": "B"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-choice-group sui-choice-group--orderable\" id=\"rank__input\" role=\"group\" aria-labelledby=\"rank__label\"><div class=\"sui-choice-row\" data-sui-index=\"1\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"rank__opt1\" name=\"rank\" value=\"b\" data-sui-type=\"MULTISELECT\" data-submit-on-change=\"true\" data-change-trigger='{\"behavior\":\"INVOKE\",\"handler\":\"ranked\"}' checked><span>B</span></label><span class=\"sui-choice-move\"><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"up\" aria-label=\"Move up\" title=\"Move up\"><svg/></button><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"down\" aria-label=\"Move down\" title=\"Move down\"><svg/></button></span></div><div class=\"sui-choice-row\" data-sui-index=\"0\"><label class=\"sui-choice\"><input type=\"checkbox\" id=\"rank__opt0\" name=\"rank\" value=\"a\" data-sui-type=\"MULTISELECT\" data-submit-on-change=\"true\" data-change-trigger='{\"behavior\":\"INVOKE\",\"handler\":\"ranked\"}'><span>A</span></label><span class=\"sui-choice-move\"><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"up\" aria-label=\"Move up\" title=\"Move up\"><svg/></button><button type=\"button\" class=\"sui-icon-btn sui-icon-btn--secondary\" data-sui-move=\"down\" aria-label=\"Move down\" title=\"Move down\"><svg/></button></span></div></div>"
+  },
+  {
+    "name": "dropdown, number value selects its string option",
+    "node": {
+      "type": "field",
+      "id": "dz",
+      "label": "Dz",
+      "fieldType": "SELECT",
+      "editable": true,
+      "value": 0,
+      "options": [
+        {
+          "value": "1",
+          "label": "One"
+        },
+        {
+          "value": "0",
+          "label": "Zero"
+        }
+      ]
+    },
+    "selected": [
+      "0"
+    ]
+  },
+  {
+    "name": "dropdown, null value selects nothing, not an empty option",
+    "node": {
+      "type": "field",
+      "id": "dn",
+      "label": "Dn",
+      "fieldType": "SELECT",
+      "editable": true,
+      "value": null,
+      "options": [
+        {
+          "value": "a",
+          "label": "A"
+        },
+        {
+          "value": "",
+          "label": "None"
+        }
+      ]
+    },
+    "selected": []
+  },
+  {
+    "name": "multi dropdown, trailing comma",
+    "node": {
+      "type": "field",
+      "id": "dm",
+      "label": "Dm",
+      "fieldType": "MULTISELECT",
+      "editable": true,
+      "value": "a,",
+      "options": [
+        {
+          "value": "",
+          "label": "Empty"
+        },
+        {
+          "value": "a",
+          "label": "A"
+        },
+        {
+          "value": "b",
+          "label": "B"
+        }
+      ]
+    },
+    "selected": [
+      "",
+      "a"
+    ]
   }
 ]

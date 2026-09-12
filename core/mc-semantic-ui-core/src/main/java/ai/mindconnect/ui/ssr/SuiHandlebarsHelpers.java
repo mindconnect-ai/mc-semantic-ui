@@ -323,20 +323,33 @@ public final class SuiHandlebarsHelpers {
             return opts.tagType.inline() ? Boolean.valueOf(any) : blockResult(opts, any);
         });
 
-        // {{#each (choices this)}} → a UiField's options as an expanded field
-        // shows them, each a map of value / label / index / checked. The model
-        // owns the order and the checked rule (UiField#choicesInDisplayOrder),
-        // so SSR, SPA and JavaFX paint the same list.
-        hb.registerHelper("choices", (ctx, opts) -> {
-            if (!(ctx instanceof ai.mindconnect.ui.model.UiField f)) return java.util.List.of();
-            return f.choicesInDisplayOrder().stream().map(c -> {
-                var m = new java.util.HashMap<String, Object>();
-                m.put("value", c.option() == null ? null : c.option().getValue());
-                m.put("label", c.option() == null ? null : c.option().getLabel());
-                m.put("index", c.index());
-                m.put("checked", c.checked());
-                return m;
-            }).toList();
+        // {{#each (choices this)}} → a UiField's options in display order, each
+        // a map of value / label / index / checked. The model owns the order and
+        // the checked rule (UiField#choicesInDisplayOrder), so SSR, SPA and
+        // JavaFX agree — for dropdowns and expanded groups alike. value and
+        // label are never null: Handlebars.java looks a null key up in the
+        // parent context, which is the field, and would print the field's own
+        // value and caption for an option that has none.
+        hb.registerHelper("choices", (ctx, opts) ->
+                ctx instanceof ai.mindconnect.ui.model.UiField f ? choiceMaps(f) : java.util.List.of());
+
+        // {{#with (choiceGroup this)}} → everything choice-group.hbs needs about
+        // an expanded field, worked out once: the input type, the group role,
+        // whether rows are orderable, plus the field's id, type, change markers
+        // and its choices — so the template tests nothing per option.
+        hb.registerHelper("choiceGroup", (ctx, opts) -> {
+            if (!(ctx instanceof ai.mindconnect.ui.model.UiField f)) return java.util.Map.of();
+            boolean multi = f.getFieldType() == ai.mindconnect.ui.model.UiField.FieldType.MULTISELECT;
+            var g = new java.util.HashMap<String, Object>();
+            g.put("id", f.getId());
+            g.put("fieldType", f.getFieldType());
+            g.put("inputType", multi ? "checkbox" : "radio");
+            g.put("role", multi ? "group" : "radiogroup");
+            g.put("orderable", multi && f.isOrderable());
+            g.put("submitOnChange", f.isSubmitOnChange());
+            g.put("onChange", f.getOnChange());
+            g.put("choices", choiceMaps(f));
+            return g;
         });
 
         // {{#if (expandedChoice this)}} → true for an editable SELECT or
@@ -697,6 +710,15 @@ public final class SuiHandlebarsHelpers {
     }
 
     /** Truthiness for the {@code or} helper: non-null, non-false, non-empty. */
+    /** A field's choices as template maps; value and label never null (see the `choices` helper). */
+    private static java.util.List<java.util.Map<String, Object>> choiceMaps(ai.mindconnect.ui.model.UiField f) {
+        return f.choicesInDisplayOrder().stream().map(c -> java.util.Map.<String, Object>of(
+                "value", c.option().getValue() == null ? "" : c.option().getValue(),
+                "label", c.option().getLabel() == null ? "" : c.option().getLabel(),
+                "index", c.index(),
+                "checked", c.checked())).toList();
+    }
+
     private static boolean isTruthy(Object o) {
         if (o == null || Boolean.FALSE.equals(o)) return false;
         // Empty collections/maps are falsy, matching Handlebars' own {{#if}}

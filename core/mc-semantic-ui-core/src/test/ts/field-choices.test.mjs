@@ -35,6 +35,13 @@ function choiceGroup(html) {
     assert.fail("unclosed choice group: " + html);
 }
 
+/** The values of the options marked selected in a field's dropdown (whitespace inside <option> differs per renderer). */
+function selectedOptions(html, id) {
+    const select = html.match(new RegExp(`<select id="${id}__input"[\\s\\S]*?</select>`));
+    assert.ok(select, html);
+    return [...select[0].matchAll(/<option value="([^"]*)"\s*selected/g)].map(m => m[1]);
+}
+
 let render;
 let choices;
 
@@ -47,10 +54,18 @@ describe("expanded choice fields", () => {
     });
 
     for (const f of fields) {
-        test(`markup matches field.hbs: ${f.name}`, () => {
-            assert.equal(choiceGroup(render(f.node)), f.html);
+        test(`matches field.hbs: ${f.name}`, () => {
+            const html = render(f.node);
+            if (f.html !== undefined) assert.equal(choiceGroup(html), f.html);
+            else assert.deepEqual(selectedOptions(html, f.node.id), f.selected);
         });
     }
+
+    test("an icon does not wrap an expanded group", () => {
+        const html = render({ ...fields[0].node, icon: "search" });
+        assert.doesNotMatch(html, /sui-input-icon/);
+        assert.match(render({ ...fields[0].node, icon: "search", expanded: false }), /sui-input-icon/);
+    });
 
     test("the caption labels the group by id, not a control by for", () => {
         const html = render(fields[0].node);
@@ -77,5 +92,6 @@ describe("expanded choice fields", () => {
         assert.deepEqual(choices.selectedValues("   "), []);
         assert.deepEqual(choices.selectedValues(null), []);
         assert.deepEqual(choices.selectedValues(0), ["0"]);
+        assert.deepEqual(choices.selectedValues("a,"), ["a", ""]);
     });
 });

@@ -179,25 +179,99 @@ class SuiFxRendererTest {
     }
 
     @Test
-    void aBurstOfMovesIsAnnouncedAsOneChange() {
+    void aBurstOfMovesIsAnnouncedAsOneChange() throws Exception {
         var changes = new java.util.concurrent.atomic.AtomicInteger();
+        var bus = new SuiFxEventBus();
+        var group = orderableGroup(bus, changes);
+
+        // l to the top in two clicks, in one go — well inside the settle time.
+        onFxThread(() -> {
+            moveButton(group, 2, "up").fire();
+            moveButton(group, 1, "up").fire();
+            return null;
+        });
+        assertThat(changes.get()).isZero();
+        awaitOnFxThread("a change after the moves settle", () -> changes.get() >= 1);
+        // …and only one: wait past a second settle period.
+        Thread.sleep((long) FieldRenderer.CHOICE_MOVE_SETTLE.toMillis() + 200);
+        assertThat(changes.get()).isEqualTo(1);
+        assertThat(onFxThread(() -> labels(group))).containsExactly("Large", "Small", "Medium");
+    }
+
+    @Test
+    void aTickReportsAPendingMoveInsteadOfRepeatingIt() throws Exception {
+        var changes = new java.util.concurrent.atomic.AtomicInteger();
+        var bus = new SuiFxEventBus();
+        var group = orderableGroup(bus, changes);
+
+        onFxThread(() -> {
+            moveButton(group, 2, "up").fire();
+            checkBox(group, 0).setSelected(false);   // untick s within the settle time
+            return null;
+        });
+        awaitOnFxThread("the tick's change", () -> changes.get() >= 1);
+        Thread.sleep((long) FieldRenderer.CHOICE_MOVE_SETTLE.toMillis() + 200);
+        assertThat(changes.get()).isEqualTo(1);
+    }
+
+    @Test
+    void aMoveAnnouncementDiesWithItsForm() throws Exception {
+        var changes = new java.util.concurrent.atomic.AtomicInteger();
+        var bus = new SuiFxEventBus();
+        var group = orderableGroup(bus, changes);
+
+        onFxThread(() -> {
+            moveButton(group, 2, "up").fire();
+            // The form is replaced on screen before the moves settle.
+            var stack = (javafx.scene.layout.StackPane) group.getScene().getRoot();
+            stack.getChildren().setAll(bus.mount(UiForm.of("other", "Other").field(UiField.text("x", "X", "").asEditable())));
+            return null;
+        });
+        Thread.sleep((long) FieldRenderer.CHOICE_MOVE_SETTLE.toMillis() + 300);
+        assertThat(changes.get()).isZero();
+    }
+
+    @Test
+    void nullOptionsAndValuelessOptionsPaintAndSubmitLikeTheWeb() {
+        var options = new java.util.ArrayList<UiField.Option>(java.util.Arrays.asList(
+                null, UiField.Option.of(null, "None"), UiField.Option.of("x", "X")));
+        var field = UiField.multiselect("n", "N", null, options).asEditable().asCheckboxes();
+        var form = UiForm.of("f", "F").field(field)
+                .field(UiField.select("d", "D", 2.0, SIZES_WITH_NUMBERS).asEditable())
+                .field(UiField.multiselect("m", "M", "a,", java.util.List.of(
+                        UiField.Option.of("", "Empty"), UiField.Option.of("a", "A"), UiField.Option.of("b", "B"))).asEditable());
+
+        var bus = new SuiFxEventBus();
+        var root = onFxThread(() -> bus.mount(form));
+        var group = onFxThread(() -> (javafx.scene.layout.VBox) root.lookup(".sui-choice-group"));
+        // The null entry is skipped; the valueless option is a box that submits "".
+        assertThat(onFxThread(() -> group.getChildren().size())).isEqualTo(2);
+        onFxThread(() -> { ((javafx.scene.control.CheckBox) group.getChildren().get(0)).setSelected(true); return null; });
+
+        var payload = capturePayload(bus, "save",
+                () -> bus.dispatch(UiTrigger.invoke("save", "f"), form, bus.context()));
+        assertThat(payload)
+                .containsEntry("n", java.util.List.of(""))
+                .containsEntry("d", "2");
+        assertThat((java.util.List<Object>) payload.get("m")).containsExactlyInAnyOrder("", "a");
+    }
+
+    private static final java.util.List<UiField.Option> SIZES_WITH_NUMBERS = java.util.List.of(
+            UiField.Option.of("1", "One"), UiField.Option.of("2", "Two"));
+
+    /** An orderable s, m, l group — all checked — with an onChange that counts. */
+    private static javafx.scene.layout.VBox orderableGroup(SuiFxEventBus bus, java.util.concurrent.atomic.AtomicInteger changes) {
         var field = UiField.multiselect("order", "Order", java.util.List.of("s", "m", "l"), SIZES)
                 .asEditable().orderable().onChange(UiTrigger.invoke("changed"));
         var form = UiForm.of("prefs", "Prefs").field(field);
-
-        var bus = new SuiFxEventBus();
         var root = onFxThread(() -> {
             bus.registerClientHandler("changed", ctx -> changes.incrementAndGet(), FxHandlerThread.FX);
-            return bus.mount(form);
+            var node = bus.mount(form);
+            // A scene, as on screen: the move announcement only fires for a group that is shown.
+            new javafx.scene.Scene(new javafx.scene.layout.StackPane(node));
+            return node;
         });
-        var group = onFxThread(() -> (javafx.scene.layout.VBox) root.lookup(".sui-choice-group"));
-
-        // l to the top in two clicks, then a pause.
-        onFxThread(() -> { moveButton(group, 2, "up").fire(); return null; });
-        onFxThread(() -> { moveButton(group, 1, "up").fire(); return null; });
-        assertThat(changes.get()).isZero();
-        awaitOnFxThread("one change after the moves settle", () -> changes.get() == 1);
-        assertThat(onFxThread(() -> labels(group))).containsExactly("Large", "Small", "Medium");
+        return onFxThread(() -> (javafx.scene.layout.VBox) root.lookup(".sui-choice-group"));
     }
 
     private static javafx.scene.control.CheckBox checkBox(javafx.scene.layout.VBox group, int row) {

@@ -251,15 +251,19 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
     private Bound comboBox(UiField node, FxRenderContext ctx) {
         var combo = new ComboBox<UiField.Option>();
         combo.setPromptText(node.getPlaceholder());
-        combo.setItems(FXCollections.observableArrayList(options(node)));
+        var choices = node.choicesInDisplayOrder();
+        combo.setItems(FXCollections.observableArrayList(choices.stream().map(UiField.Choice::option).toList()));
         combo.setConverter(optionConverter());
-        combo.setValue(findOption(node, node.getValue()));
+        // The same rule decides the starting choice as for a radio group and the web.
+        combo.setValue(choices.stream().filter(UiField.Choice::checked).map(UiField.Choice::option).findFirst().orElse(null));
         onChanged(combo.valueProperty(), node, ctx);
         return new Bound(combo, () -> combo.getValue() == null ? null : combo.getValue().getValue());
     }
 
     private Bound multiSelect(UiField node, FxRenderContext ctx) {
-        var list = new ListView<UiField.Option>(FXCollections.observableArrayList(options(node)));
+        var choices = node.choicesInDisplayOrder();
+        var list = new ListView<UiField.Option>(FXCollections.observableArrayList(
+                choices.stream().map(UiField.Choice::option).toList()));
         list.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         list.setCellFactory(v -> new javafx.scene.control.ListCell<>() {
             @Override
@@ -270,15 +274,14 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
         });
         list.setPrefHeight(120);
 
-        for (var selected : node.selectedValues()) {
-            var option = findOption(node, selected);
-            if (option != null) list.getSelectionModel().select(option);
+        for (int i = 0; i < choices.size(); i++) {
+            if (choices.get(i).checked()) list.getSelectionModel().select(i);
         }
         list.getSelectionModel().getSelectedItems().addListener(
                 (javafx.collections.ListChangeListener<UiField.Option>) c -> fireChange(node, ctx));
 
         return new Bound(list, () -> list.getSelectionModel().getSelectedItems().stream()
-                .map(UiField.Option::getValue)
+                .map(FieldRenderer::submittedValue)
                 .toList());
     }
 
@@ -295,7 +298,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
         for (var choice : node.choicesInDisplayOrder()) {
             var radio = new RadioButton(optionLabel(choice.option()));
             radio.setToggleGroup(toggles);
-            radio.setUserData(choice.option().getValue());
+            radio.setUserData(submittedValue(choice.option()));
             radio.setSelected(choice.checked());
             box.getChildren().add(radio);
         }
@@ -312,7 +315,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
         var checks = new ArrayList<CheckBox>();
         for (var choice : node.choicesInDisplayOrder()) {
             var check = new CheckBox(optionLabel(choice.option()));
-            check.setUserData(choice.option().getValue());
+            check.setUserData(submittedValue(choice.option()));
             check.setSelected(choice.checked());
             onChanged(check.selectedProperty(), node, ctx);
             checks.add(check);
@@ -325,46 +328,12 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
     }
 
     /** How long move clicks must pause before a reorder is announced as a change. */
-    static final Duration CHOICE_MOVE_SETTLE = Duration.millis(400);
-
-    /**
-     * Where a row of an orderable group belongs after its box was ticked or
-     * unticked — the rule of {@code seatAfterToggle} in the web renderer's
-     * {@code renderers/choices.ts}, kept identical so a re-render from the
-     * server lands where the user already sees the row. Checked rows lead; a
-     * tick already among them stays, otherwise it joins their end; an untick
-     * returns to its option place among the unchecked rows.
-     *
-     * @param checked the rows' checked state as shown, the toggled row's new state included
-     * @param index   the rows' positions in the field's options
-     * @param at      the toggled row
-     * @return the toggled row's index in the final order
-     */
-    static int seatAfterToggle(List<Boolean> checked, List<Integer> index, int at) {
-        if (checked.get(at)) {
-            for (int i = 0; i < at; i++) {
-                if (!checked.get(i)) return (int) checked.stream().filter(c -> c).count() - 1;
-            }
-            return at;
-        }
-        int seat = 0;
-        for (int i = 0; i < checked.size(); i++) {
-            if (i != at && checked.get(i)) seat++;
-        }
-        int checkedOthers = seat;
-        for (int i = 0, others = 0; i < checked.size(); i++) {
-            if (i == at) continue;
-            if (others++ < checkedOthers) continue;
-            if (index.get(i) > index.get(at)) break;
-            seat++;
-        }
-        return seat;
-    }
+    public static final Duration CHOICE_MOVE_SETTLE = Duration.millis(400);
 
     /**
      * An orderable MULTISELECT: checkboxes in rows with move-up / move-down
      * buttons, the checked rows first, submitted in the order shown. Follows
-     * the web renderers' rules — {@link #seatAfterToggle} for ticks, moves only
+     * the web renderers' rules — {@link UiField#seatAfterToggle} for ticks, moves only
      * within the checked block, focus kept on the pressed button unless it
      * just reached the edge, and one change per burst of moves.
      */
@@ -382,13 +351,20 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
             this.node = node;
             this.ctx = ctx;
             box.getStyleClass().add("sui-choice-group");
-            moved.setOnFinished(e -> fireChange(node, ctx));
+            // Announce a burst of moves once — unless the group has left the
+            // scene meanwhile (the form was re-rendered): its node and form
+            // scope are stale, and the new controls report their own state.
+            moved.setOnFinished(e -> {
+                if (box.getScene() != null) fireChange(node, ctx);
+            });
+            // A submit reports the current order itself.
+            if (ctx.form() != null) ctx.form().beforeSubmit(moved::stop);
             // One tooltip per direction, installed on every button of the group.
             var upTip = new Tooltip("Move up");
             var downTip = new Tooltip("Move down");
             for (var choice : node.choicesInDisplayOrder()) {
                 var check = new CheckBox(optionLabel(choice.option()));
-                check.setUserData(choice.option().getValue());
+                check.setUserData(submittedValue(choice.option()));
                 check.setSelected(choice.checked());
                 var up = moveButton("chevron-up", "Move up", upTip);
                 var down = moveButton("chevron-down", "Move down", downTip);
@@ -416,7 +392,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
 
         private void toggled(Row row) {
             int at = rows.indexOf(row);
-            int seat = seatAfterToggle(
+            int seat = UiField.seatAfterToggle(
                     rows.stream().map(r -> r.check().isSelected()).toList(),
                     rows.stream().map(Row::index).toList(), at);
             if (seat != at) {
@@ -430,6 +406,8 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
                 if (focused) row.check().requestFocus();
             }
             refreshMoves();
+            // This change reports the order too; a pending move announcement would repeat it.
+            moved.stop();
             fireChange(node, ctx);
         }
 
@@ -539,17 +517,9 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
 
     // ── value helpers ─────────────────────────────────────────────────────
 
-    private static List<UiField.Option> options(UiField node) {
-        return node.getOptions() == null ? List.of() : node.getOptions();
-    }
-
-    private static UiField.Option findOption(UiField node, Object value) {
-        if (value == null) return null;
-        var wanted = value.toString();
-        return options(node).stream()
-                .filter(o -> wanted.equals(o.getValue()))
-                .findFirst()
-                .orElse(null);
+    /** What an option submits: its value, or "" for one without — as the web's {@code value=""} does. */
+    private static String submittedValue(UiField.Option option) {
+        return option == null || option.getValue() == null ? "" : option.getValue();
     }
 
     private static String optionLabel(UiField.Option option) {

@@ -97,17 +97,21 @@ group the same way.
 
 One difference to plan for: a radio group can have nothing chosen. When
 `value` is null or matches no option, no radio is checked and the field
-submits `null` (a native form post sends no key at all). A dropdown never gets
-there, because the browser selects its first option when none is marked. Set
+submits `null` (a native form post sends no key at all). A dropdown in the
+browser never gets there, because the browser selects its first option when
+none is marked. Set
 a `value` if the server needs one, or treat `null` as "not chosen". Likewise a
 checkbox group with nothing checked submits `[]` over the SPA, and no key in a
 native form post.
 
-Which options start checked follows one rule on every renderer: for a
-`MULTISELECT` the option's value is in `value` (a list, or a comma-separated
-string; blank means none), for a `SELECT` it equals `value` as a string, so
-`0` checks the option `"0"` and `null` checks nothing — not even an option
-whose value is `""`.
+Which options start checked or selected follows one rule on every renderer,
+for dropdowns and groups alike: for a `MULTISELECT` the option's value is in
+`value` (a list or array, or a comma-separated string with each part trimmed —
+`"a,"` is `a` and the empty value; blank means none), for a `SELECT` it equals
+`value` as text. Values are compared as JavaScript prints them, so `0` selects
+`"0"`, `2.0` selects `"2"`, and `null` selects nothing — not even an option
+whose value is `""`. A `null` entry in `options` is skipped; an option without
+a value is drawn and submits `""`.
 
 `.orderable()` goes one step further for a list whose order matters — a
 preference ranking, fallback models tried top to bottom. The checked options
@@ -118,11 +122,13 @@ unchecking returns it to its place among the unchecked ones — exactly where a
 re-render from the server puts it, so a form that answers each change with a
 fresh render does not shuffle rows under the user's cursor. Reordering counts
 as a change: `onChange` and `submitOnChange` fire once the move clicks pause,
-not once per step. The move buttons need the SPA EventBus (or the JavaFX
-client); on a page rendered without it they are not shown, and the order is
-the one the server rendered.
+not once per step, and not at all when a tick or a submit reports the order
+first. The move buttons need the SPA EventBus (or the JavaFX client) and show
+only inside the part of the page a bus drives; on a page rendered without one
+they are not shown, and the order is the one the server rendered.
 
-`icon`, `submitOnChange` and `onChange` work with every type but `HIDDEN`. `CURRENCY` and
+`submitOnChange` and `onChange` work with every type but `HIDDEN`; `icon` with
+every single-line control — not with `HIDDEN` or a radio / checkbox group. `CURRENCY` and
 `PERCENT` are semantic labels only: the renderer emits the same number input as
 `NUMBER`, so format the display value yourself for the read-only case.
 

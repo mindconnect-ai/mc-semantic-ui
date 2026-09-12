@@ -28,16 +28,28 @@ fresh empty one, so nothing has to be moved by hand at release time.
   version, context the server needs back. It renders as a bare
   `<input type="hidden">` in SSR and the SPA, takes no room in JavaFX, always
   submits regardless of `editable`, and gets no row in a `detail`.
-
 - **Radio buttons and checkbox groups.** `UiField.select(...).asRadio()` shows
   a `SELECT` as radio buttons, `UiField.multiselect(...).asCheckboxes()` a
   `MULTISELECT` as checkboxes (`expanded: true`). The submitted value keeps its
-  shape — one string, or a list of strings. Unlike a dropdown, a radio group
-  with no matching `value` has nothing chosen and submits `null`.
-  `.orderable()` adds move-up/down buttons to the checked options and submits
-  the list in the order shown, for rankings such as fallback models; the
-  buttons need the SPA EventBus or JavaFX. In SSR, the SPA and JavaFX, with the
-  same markup, order and checked state on each.
+  shape — one string, or a list of strings. A radio group with no matching
+  `value` has nothing chosen and submits `null`, where a dropdown in the
+  browser would fall back to its first option. `.orderable()` adds move-up/down
+  buttons to the checked options and submits the list in the order shown, for
+  rankings such as fallback models; the buttons need the SPA EventBus or
+  JavaFX. SSR, the SPA and JavaFX render the same options in the same order
+  with the same ones checked.
+
+### Changed
+
+- **Dropdowns pick their selected options by the same rule on every
+  renderer.** SSR, the SPA and JavaFX used to disagree on edge cases, so a page
+  could change its selection when the SPA re-rendered it. Now, for `SELECT` and
+  `MULTISELECT`: `value` is compared as JavaScript prints it (`0` selects `"0"`,
+  `2.0` selects `"2"`, `false` selects `"false"`); `null` selects nothing, not
+  an option whose value is `""`; a comma-separated `MULTISELECT` value is split
+  and trimmed everywhere — including the JavaFX list box, which used to look
+  for one option named `"a,b"` — and a trailing comma counts as an empty value;
+  a Java array works like a list; a `null` entry in `options` is skipped.
 
 ### Fixed
 
@@ -46,6 +58,12 @@ fresh empty one, so nothing has to be moved by hand at release time.
   with `.hidden()` stayed on screen (JavaFX already hid it).
 - **The visual editor offers `PASSWORD` as a field type.** It was missing from
   the editor's `fieldType` list.
+- **The SBB theme honours `.hidden()` and `.blank()`.** The theme replaces
+  `sui.css` and had no rule for the markers, so hidden or blanked nodes of any
+  kind stayed visible under it.
+- **Checkboxes and radios keep their native size under the SBB theme.** The
+  theme's input rule stretched a BOOLEAN field's checkbox to the full width of
+  the form.
 - **A button that replaces itself via a patch shows its new label.** Clicking
   a button whose response REPLACEs it — a toggle flipping "Add" to "Remove",
   say — used to leave the old label and icon in place under the new

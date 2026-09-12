@@ -530,10 +530,11 @@ a.sui-tree-label:hover { text-decoration: underline; }
     padding: 0 var(--sui-space-xs); margin: 0 calc(-1 * var(--sui-space-xs));
 }
 .sui-choice-row:has(input:checked):hover { background: var(--sui-color-border-soft); }
-/* The move buttons need the EventBus; without it (a page rendered with no
-   SPA script) they would only look usable, so they appear once it is live. */
+/* The move buttons need an EventBus; without one (a page rendered with no
+   SPA script) they would only look usable, so they appear inside what a bus
+   drives — its root and its dialog host carry data-sui-live. */
 .sui-choice-move { display: none; gap: 2px; }
-.sui-live .sui-choice-move { display: inline-flex; }
+[data-sui-live] .sui-choice-move { display: inline-flex; }
 .sui-choice-move .sui-icon-btn { min-width: 28px; height: 28px; padding: 0 4px; }
 .sui-choice-row:not(:has(input:checked)) .sui-choice-move,
 .sui-choice-row:first-child [data-sui-move="up"],

@@ -281,11 +281,12 @@ export class SuiEventBus {
         this.registerDefaultBehaviors();
         this.seedModelsFromDocument();
         this.installAutoEnhance();
-        // Marks the document as driven by a live bus, for controls that do
-        // nothing without one — an orderable group's move buttons stay hidden
-        // on a page rendered without it. On <html>, not the root: dialogs mount
-        // outside it.
-        document.documentElement?.classList?.add("sui-live");
+        // Marks what this bus drives, for controls that do nothing without it —
+        // an orderable group's move buttons stay hidden on a page rendered
+        // without a bus. On the root (and the dialog host, below), not <html>:
+        // exactly the elements inScope() accepts, and out of reach of theme
+        // switchers that overwrite the document's class attribute.
+        root.setAttribute?.("data-sui-live", "");
         // A patch SSE event is so universal that we wire it as a built-in
         // stream handler; apps can override by registering another handler
         // under the same name.
@@ -806,6 +807,7 @@ export class SuiEventBus {
         // the same bound handlers every time, and addEventListener ignores a
         // duplicate.
         this.installListenersOn(host);
+        host.setAttribute?.("data-sui-live", "");
         // inScope() consults this so events from within dialogs are handled.
         this.dialogListenerHost = host;
         return host;
@@ -1225,6 +1227,9 @@ export class SuiEventBus {
         // buttons (or anyone else) leaves the user's ordering alone.
         if (target instanceof HTMLInputElement && target.type === "checkbox") {
             settleOrderableChoice(target);
+            // This change reports the group's current order too, so a move
+            // announcement still pending for it would only repeat it.
+            if (!choiceMoveAnnouncements.has(e)) cancelChoiceMove(target);
         }
         // A node-level change (UiNode.events) fires first — it sits on a
         // wrapper, so a field's own data-change-trigger below still wins for
@@ -1607,6 +1612,9 @@ export class SuiEventBus {
         // theme stylesheet, the SPA bootstrap script) also gets refreshed.
         if (form.dataset.suiReload === "true") return;
         e.preventDefault();
+        // The submit carries every group's current order; a move announcement
+        // still pending would fire the same change again afterwards.
+        form.querySelectorAll(".sui-choice-group--orderable").forEach(cancelChoiceMove);
         // Prefer the form's PRIMARY-styled action as the default submitter —
         // Enter should send/save, not fire whatever helper button happens to
         // come first in the footer (e.g. a chat form's attach "+").
@@ -2144,19 +2152,35 @@ function settleOrderableChoice(input: HTMLInputElement): void {
 /** How long move clicks must pause before the reorder is announced as a change. */
 const CHOICE_MOVE_SETTLE_MS = 400;
 const pendingChoiceMoves = new WeakMap<Element, number>();
+/** The change events {@link announceChoiceMove} raised — the ones that must not cancel themselves. */
+const choiceMoveAnnouncements = new WeakSet<Event>();
 
 /**
  * Announces a reorder in an orderable group as a {@code change} on the moved
  * box, once the move clicks pause for {@link CHOICE_MOVE_SETTLE_MS}. The value
- * is read when the event fires, so the last order is the one that is sent.
+ * is read when the event fires, so the last order is the one that is sent. A
+ * tick or a submit in the meantime reports the order itself and cancels it
+ * ({@link cancelChoiceMove}).
  */
 function announceChoiceMove(input: HTMLInputElement): void {
     const group = input.closest(".sui-choice-group") ?? input;
     clearTimeout(pendingChoiceMoves.get(group));
     pendingChoiceMoves.set(group, window.setTimeout(() => {
         pendingChoiceMoves.delete(group);
-        if (input.isConnected) input.dispatchEvent(new Event("change", { bubbles: true }));
+        if (!input.isConnected) return;
+        const change = new Event("change", { bubbles: true });
+        choiceMoveAnnouncements.add(change);
+        input.dispatchEvent(change);
     }, CHOICE_MOVE_SETTLE_MS));
+}
+
+/** Drops the move announcement pending for the group an element belongs to, if any. */
+function cancelChoiceMove(el: Element): void {
+    const group = el.closest(".sui-choice-group") ?? el;
+    const timer = pendingChoiceMoves.get(group);
+    if (timer === undefined) return;
+    clearTimeout(timer);
+    pendingChoiceMoves.delete(group);
 }
 
 /**

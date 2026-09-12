@@ -752,7 +752,17 @@ class SuiServerRendererTest {
         assertTrue(fixtures.size() > 0);
         for (var fixture : fixtures) {
             var node = mapper.treeToValue(fixture.get("node"), ai.mindconnect.ui.model.UiNode.class);
-            assertEquals(fixture.get("html").asText(), choiceGroup(renderer.render(node)), fixture.get("name").asText());
+            String html = renderer.render(node);
+            String name = fixture.get("name").asText();
+            if (fixture.has("html")) {
+                assertEquals(fixture.get("html").asText(), choiceGroup(html), name);
+            } else {
+                // A dropdown: the renderers differ in whitespace inside <option>, so
+                // the fixture pins which values come out selected.
+                var expected = new java.util.ArrayList<String>();
+                fixture.get("selected").forEach(v -> expected.add(v.asText()));
+                assertEquals(expected, selectedOptions(html, fixture.get("node").get("id").asText()), name);
+            }
         }
     }
 
@@ -768,6 +778,16 @@ class SuiServerRendererTest {
         assertTrue(expanded.contains("aria-labelledby=\"size__label\""), expanded);
         assertFalse(expanded.contains("for=\"size__input\""), expanded);
         assertTrue(dropdown.contains("<label for=\"size__input\">Size</label>"), dropdown);
+    }
+
+    /** The values of the options marked selected in a field's dropdown — mirrors the TS test helper. */
+    private static java.util.List<String> selectedOptions(String html, String fieldId) {
+        var select = java.util.regex.Pattern.compile("<select id=\"" + java.util.regex.Pattern.quote(fieldId) + "__input\"[\\s\\S]*?</select>").matcher(html);
+        assertTrue(select.find(), html);
+        var option = java.util.regex.Pattern.compile("<option value=\"([^\"]*)\"\\s*selected").matcher(select.group());
+        var values = new java.util.ArrayList<String>();
+        while (option.find()) values.add(option.group(1));
+        return values;
     }
 
     /** The choice group's outer div, icons reduced to {@code <svg/>} — mirrors the TS test helper. */
