@@ -371,22 +371,40 @@ body {
  *
  * The gap is the other half. Without it the description ran to within 2px of
  * the first button — not an overlap, but close enough to read as one. 24px
- * is a gutter the text has to respect, so it wraps early instead. */
+ * is a gutter the text has to respect, so it wraps early instead.
+ *
+ * And when the row is too narrow for both, the actions go underneath instead
+ * of on top. The text column asks for 20rem before it shares a line; short of
+ * that the row wraps, the text takes the full width and the buttons follow on
+ * their own line, left-aligned under it — a phone, a sidebar, a dialog. No
+ * breakpoint: the row's own width decides, wherever the list sits. Before,
+ * the actions kept their width and the text column was squeezed to a sliver,
+ * so a label carrying a badge ran under the buttons. */
 .sui-list-item {
-    display: flex; align-items: flex-start; justify-content: space-between;
-    gap: 24px;
+    display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+    gap: var(--sui-space-sm) 24px;
     padding: var(--sui-space-md) var(--sui-space-xl); border-bottom: 1px solid var(--sui-color-border-soft);
     transition: background var(--sui-duration-fast);
 }
 .sui-list-item:hover { background: var(--sui-color-surface-alt); }
 .sui-list-item:last-child { border-bottom: none; }
-.sui-list-item-main { display: flex; flex-direction: column; gap: var(--sui-space-hair); min-width: 0; }
+/* Grows into the row, and claims 20rem (or the whole row, if that is less)
+   before it shares a line with the actions — which is what makes the row
+   wrap. A minimum width and not a flex-basis: an app that turns a row into a
+   column would otherwise get 20rem of height. */
+.sui-list-item-main {
+    display: flex; flex-direction: column; gap: var(--sui-space-hair);
+    flex: 1 1 0; min-width: min(20rem, 100%);
+}
 .sui-list-item-label { font-weight: 500; color: var(--sui-color-primary); text-decoration: none; cursor: pointer; }
 .sui-list-item-label:hover { text-decoration: underline; }
 .sui-list-item-desc { font-size: 14px; color: var(--sui-color-text-muted); }
-/* Never squeezed by a long description: the text column shrinks, the
-   buttons do not. */
-.sui-list-item-actions { display: flex; gap: var(--sui-space-sm); flex: 0 0 auto; }
+/* Never squeezed by a long description: sharing a line, the text column
+   gives way and the buttons keep their width. On a line of their own that is
+   still too narrow, the buttons wrap among themselves rather than overflow. */
+.sui-list-item-actions { display: flex; flex-wrap: wrap; gap: var(--sui-space-sm); flex: 0 1 auto; }
+/* A row without actions must not wrap an empty box onto a second line. */
+.sui-list-item-actions:empty { display: none; }
 
 /* ── Tree ───────────────────────────────────────────────────────────────── */
 
