@@ -38,6 +38,17 @@ fresh empty one, so nothing has to be moved by hand at release time.
   `<head>`, puts the remembered theme on before the first paint and takes
   `?theme=` from the address. See the new Themes page in the docs.
 
+### Fixed
+
+- **List rows wrap instead of overlapping.** When a `UiList` row is too narrow
+  for its text and its actions side by side — a phone, a sidebar, a dialog —
+  the actions now move onto their own line under the text, and wrap among
+  themselves if even that is too narrow. Before, the buttons kept their width
+  and squeezed the text column to a sliver, so a rich label (an icon, a badge)
+  ran underneath them. The text column claims 20rem before it shares a line;
+  no breakpoint, the row's own width decides. A row without actions no longer
+  reserves the gutter for them.
+
 ## [0.3.2] - 2026-09-12
 
 ### Added
