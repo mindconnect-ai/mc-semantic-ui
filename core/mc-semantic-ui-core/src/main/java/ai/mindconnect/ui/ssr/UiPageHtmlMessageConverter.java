@@ -322,11 +322,6 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
         return null;
     }
 
-    /**
-     * Reads {@link #EXTRA_HEAD_ATTRIBUTE} off the current request. Returns
-     * the verbatim HTML to splice into {@code <head>}, or {@code ""} when
-     * unset / blank.
-     */
     /** Request attribute under which Spring Security exposes the request's {@code CsrfToken}. */
     static final String CSRF_ATTRIBUTE = "_csrf";
 
@@ -385,6 +380,11 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
         return types;
     }
 
+    /**
+     * Reads {@link #EXTRA_HEAD_ATTRIBUTE} off the current request. Returns
+     * the verbatim HTML to splice into {@code <head>}, or {@code ""} when
+     * unset / blank.
+     */
     private static String currentExtraHead() {
         RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
         if (attrs == null) return "";

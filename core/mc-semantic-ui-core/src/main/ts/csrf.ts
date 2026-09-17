@@ -39,6 +39,11 @@ export interface CsrfToken {
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS", "TRACE"]);
 
+/** A Request object, where the runtime has the type at all. */
+function isRequest(input: RequestInfo | URL): input is Request {
+    return typeof Request !== "undefined" && input instanceof Request;
+}
+
 /**
  * The token for this page, or `null` when the page carries none. Meta tags
  * first, then the cookie.
@@ -78,10 +83,10 @@ export function findCsrfToken(options: CsrfOptions = {}): CsrfToken | null {
 
 /** Whether a request with this method and target should carry the token. */
 export function needsCsrfToken(input: RequestInfo | URL, method: string | undefined): boolean {
-    const verb = (method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
+    const verb = (method ?? (isRequest(input) ? input.method : "GET")).toUpperCase();
     if (SAFE_METHODS.has(verb)) return false;
     if (typeof location === "undefined") return false;
-    const href = input instanceof Request ? input.url : String(input);
+    const href = isRequest(input) ? input.url : String(input);
     try {
         return new URL(href, location.href).origin === location.origin;
     } catch {
@@ -103,7 +108,7 @@ export function withCsrf(fetcher: typeof fetch, options: CsrfOptions | false = {
         if (!found) return fetcher(input, init);
         // The Headers constructor, not object spread: a Headers instance
         // spreads to {} and would drop Content-Type and Accept.
-        const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+        const headers = new Headers(init?.headers ?? (isRequest(input) ? input.headers : undefined));
         if (!headers.has(found.headerName)) headers.set(found.headerName, found.token);
         return fetcher(input, { ...init, headers });
     };

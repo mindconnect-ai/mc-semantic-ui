@@ -37,14 +37,14 @@ export interface EditorBackend {
 /** Fixed API root — see EditorRestController for why it never moves. */
 const API_BASE = "/editor/api";
 
+/** Saving is a PUT: it carries the page's CSRF token when the host protects against forgery. */
+const request = withCsrf((input, init) => fetch(input, init));
+
 /**
  * The original Spring-backed behaviour: talk to {@code /editor/api/*}. Kept
  * byte-for-byte compatible with the pre-refactor free functions so the
  * Spring-hosted editor is unaffected.
  */
-/** Saving is a PUT: it carries the page's CSRF token when the host protects against forgery. */
-const request = withCsrf((input, init) => fetch(input, init));
-
 export class RestBackend implements EditorBackend {
     constructor(private readonly base: string = API_BASE) {}
 
