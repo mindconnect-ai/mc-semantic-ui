@@ -16,6 +16,7 @@
  * defaults to the REST backend so the Spring-hosted editor keeps working with
  * no wiring.
  */
+import { withCsrf } from "@mindconnect-ai/mc-semantic-ui-core";
 import type { EditorContent, Schema, UiNodeJson } from "./types.js";
 
 /**
@@ -41,6 +42,9 @@ const API_BASE = "/editor/api";
  * byte-for-byte compatible with the pre-refactor free functions so the
  * Spring-hosted editor is unaffected.
  */
+/** Saving is a PUT: it carries the page's CSRF token when the host protects against forgery. */
+const request = withCsrf((input, init) => fetch(input, init));
+
 export class RestBackend implements EditorBackend {
     constructor(private readonly base: string = API_BASE) {}
 
@@ -60,7 +64,7 @@ export class RestBackend implements EditorBackend {
     }
 
     async saveContent(content: EditorContent): Promise<void> {
-        const res = await fetch(`${this.base}/state`, {
+        const res = await request(`${this.base}/state`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", Accept: "application/json" },
             body: JSON.stringify(content),

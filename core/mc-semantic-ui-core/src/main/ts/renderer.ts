@@ -55,6 +55,8 @@ export { wireHeaderOverflow } from "./renderers/header-overflow.js";
 // Menu-button popovers — apps call it once after mount to activate the
 // click-positioned dropdown / context menus (UiMenuButton).
 export { wireMenuButtons } from "./renderers/menu-button.js";
+// CSRF tokens for requests the app makes itself; the SuiEventBus adds them on its own.
+export { withCsrf, findCsrfToken, needsCsrfToken, type CsrfOptions, type CsrfToken } from "./csrf.js";
 // Themes: which one is on, and a picker the app can put in its header.
 export {
     applyTheme, currentTheme, installThemeSwitch, renderThemeSwitch,

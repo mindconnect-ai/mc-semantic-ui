@@ -7,6 +7,9 @@ import { wireMenuButtons } from "./renderers/menu-button.js";
 import { wireAutoScroll } from "./renderers/autoscroll.js";
 import { t } from "./i18n.js";
 import { seatAfterToggle } from "./renderers/choices.js";
+import { withCsrf, type CsrfOptions } from "./csrf.js";
+
+export { withCsrf, findCsrfToken, needsCsrfToken, type CsrfOptions, type CsrfToken } from "./csrf.js";
 
 /**
  * Context handed to every {@link BehaviorHandler}. Captures the trigger
@@ -265,7 +268,10 @@ export class SuiEventBus {
     private navigateHandler: NavigateHandler | null = null;
     private unauthenticatedHandler: UnauthenticatedHandler | null = null;
     private errorHandler: ErrorHandler = (e) => this.showErrorToast(e);
-    private fetcher: typeof fetch = (input, init) => fetch(input, init);
+    /** What {@link #setFetcher} was given; {@link #fetcher} is it with the CSRF token added. */
+    private rawFetcher: typeof fetch = (input, init) => fetch(input, init);
+    private csrfOptions: CsrfOptions | false = {};
+    private fetcher: typeof fetch = withCsrf(this.rawFetcher, this.csrfOptions);
     private loadingPolicy: LoadingPolicy = "auto";
     private historyEnabled = true;
     private popstateInstalled = false;
@@ -346,9 +352,28 @@ export class SuiEventBus {
         return this;
     }
 
-    /** Replaces the fetcher used by every built-in behaviour and by {@link #navigate}. */
+    /**
+     * Replaces the fetcher used by every built-in behaviour and by {@link #navigate}.
+     * Whatever it is, unsafe same-origin requests still get the page's CSRF token
+     * (see {@link #setCsrf}); a fetcher that sets the header itself is left alone.
+     */
     setFetcher(fetcher: typeof fetch): this {
-        this.fetcher = fetcher;
+        this.rawFetcher = fetcher;
+        this.fetcher = withCsrf(fetcher, this.csrfOptions);
+        return this;
+    }
+
+    /**
+     * How the CSRF token is found. By default the bus sends it on every POST, PUT,
+     * PATCH and DELETE to this origin when the page carries one — the
+     * {@code _csrf} / {@code _csrf_header} meta tags, or else the
+     * {@code XSRF-TOKEN} cookie as {@code X-XSRF-TOKEN} — and sends nothing when
+     * it carries none. Rename the cookie or header here, or pass {@code false} to
+     * turn it off.
+     */
+    setCsrf(options: CsrfOptions | false): this {
+        this.csrfOptions = options;
+        this.fetcher = withCsrf(this.rawFetcher, options);
         return this;
     }
 

@@ -221,6 +221,35 @@ const bus = new SuiEventBus(renderer, host)
 
 No other change — the rest of the app is identical.
 
+### CSRF tokens
+
+There is nothing to switch on. On every `POST`, `PUT`, `PATCH` and `DELETE` to
+its own origin the bus sends the token the page carries, and on nothing else:
+
+- **Meta tags** `<meta name="_csrf">` and `<meta name="_csrf_header">` — a page
+  rendered by `UiPageHtmlMessageConverter` gets them whenever Spring Security put
+  a token on the request, and its plain POST forms get a hidden `_csrf` field.
+- **Otherwise the `XSRF-TOKEN` cookie**, as the `X-XSRF-TOKEN` header — what
+  Spring's `CookieCsrfTokenRepository.withHttpOnlyFalse()` sets for a static SPA
+  shell.
+
+A page with neither sends exactly the requests it always did, and a header your
+own fetcher sets is left alone. `bus.setCsrf({ cookieName, headerName })`
+renames the cookie or header, `bus.setCsrf(false)` turns it off, and `withCsrf`
+wraps a `fetch` of your own the same way.
+
+On the Spring side, a cookie token is only written once something reads it, and
+the raw cookie value is only accepted by the plain request handler — the default
+one expects a masked token. For a static shell:
+
+```java
+http.csrf(csrf -> csrf
+        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()));
+// …plus a filter that calls csrfToken.getToken() on each request, so the
+// cookie is there before the first POST.
+```
+
 ## Forms, structure &amp; validation
 
 Fields, multi-column / tabbed / grouped layout, and server-driven validation

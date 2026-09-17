@@ -13,9 +13,12 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -123,6 +126,7 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
         String html = renderer.renderPage(page);
         String bootstrapUrl = currentBootstrapUrl();
         String extraHead = currentExtraHead();
+        String csrfMeta = csrfMetaTags(RequestContextHolder.getRequestAttributes());
         String theme = currentTheme();
 
         // The body always wraps the rendered HTML in #sui-root so a SPA
@@ -138,6 +142,7 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
 
         String document = "<!DOCTYPE html>\n<html class=\"sui-theme-" + theme + "\"><head><meta charset=\"UTF-8\">"
                 + themeStylesheets(theme)
+                + csrfMeta
                 + extraHead
                 + "</head><body>"
                 + body
@@ -267,6 +272,14 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
             + "var f=t.form||t.closest('form');"
             + "if(f&&f.requestSubmit)f.requestSubmit();"
             + "});"
+            // CSRF: a POST form submits the token the page carries as a hidden field
+            + "var cm=document.querySelector('meta[name=\"_csrf\"]');"
+            + "if(cm){var cp=document.querySelector('meta[name=\"_csrf_parameter\"]');"
+            + "var pn=(cp&&cp.content)||'_csrf';"
+            + "Array.prototype.forEach.call(document.querySelectorAll('form'),function(f){"
+            + "if((f.getAttribute('method')||'get').toLowerCase()==='get'||f.querySelector('input[name=\"'+pn+'\"]'))return;"
+            + "var i=document.createElement('input');i.type='hidden';i.name=pn;i.value=cm.content;f.appendChild(i);"
+            + "});}"
             // toast close button
             + "document.addEventListener('click',function(e){"
             + "var b=e.target&&e.target.closest&&e.target.closest('.sui-toast-close');"
@@ -314,6 +327,64 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
      * the verbatim HTML to splice into {@code <head>}, or {@code ""} when
      * unset / blank.
      */
+    /** Request attribute under which Spring Security exposes the request's {@code CsrfToken}. */
+    static final String CSRF_ATTRIBUTE = "_csrf";
+
+    /**
+     * The request's CSRF token as {@code <meta name="_csrf">}, {@code _csrf_header} and
+     * {@code _csrf_parameter} — Spring Security's convention for server-rendered pages —
+     * or nothing when the request carries no token.
+     *
+     * <p>The page needs no wiring for them to matter: the SPA's event bus sends the token
+     * in that header on every unsafe request, and the SSR script adds it as a hidden field
+     * to every POST form, so a plain form submit passes the same check.
+     *
+     * <p>Read by reflection, not through Spring Security's {@code CsrfToken} type: the core
+     * does not depend on Spring Security, and an app without it simply has no such
+     * attribute. Reading the token is also what makes a deferred one real.
+     */
+    static String csrfMetaTags(RequestAttributes attrs) {
+        if (attrs == null) return "";
+        Object token = attrs.getAttribute(CSRF_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);
+        if (token == null) return "";
+        String value = invokeString(token, "getToken");
+        if (value == null || value.isBlank()) return "";
+        String header = invokeString(token, "getHeaderName");
+        String parameter = invokeString(token, "getParameterName");
+        return "<meta name=\"_csrf\" content=\"" + escapeAttr(value) + "\">"
+                + (header == null ? "" : "<meta name=\"_csrf_header\" content=\"" + escapeAttr(header) + "\">")
+                + (parameter == null ? "" : "<meta name=\"_csrf_parameter\" content=\"" + escapeAttr(parameter) + "\">");
+    }
+
+    /**
+     * Calls a public no-argument method through a public type that declares it. Spring
+     * Security hands out its token as a private class implementing the public
+     * {@code CsrfToken} interface, and a method looked up on the private class itself
+     * cannot be invoked from here.
+     */
+    private static String invokeString(Object target, String method) {
+        for (Class<?> type = target.getClass(); type != null; type = type.getSuperclass()) {
+            for (Class<?> candidate : publicTypes(type)) {
+                try {
+                    Object result = candidate.getMethod(method).invoke(target);
+                    return result instanceof String s ? s : null;
+                } catch (ReflectiveOperationException | RuntimeException e) {
+                    // not declared here, or not callable through this type; try the next
+                }
+            }
+        }
+        return null;
+    }
+
+    private static List<Class<?>> publicTypes(Class<?> type) {
+        var types = new ArrayList<Class<?>>();
+        if (Modifier.isPublic(type.getModifiers())) types.add(type);
+        for (Class<?> i : type.getInterfaces()) {
+            if (Modifier.isPublic(i.getModifiers())) types.add(i);
+        }
+        return types;
+    }
+
     private static String currentExtraHead() {
         RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
         if (attrs == null) return "";
