@@ -47,9 +47,19 @@
       "types": "./dist/i18n.d.ts",
       "default": "./dist/i18n.js"
     },
+    "./theme": {
+      "types": "./dist/theme.d.ts",
+      "default": "./dist/theme.js"
+    },
+    "./theme-boot.js": "./dist/theme-boot.js",
     "./sui.css": "./dist/sui.css",
     "./sui-dark.css": "./dist/sui-dark.css",
     "./sui-sbb.css": "./dist/sui-sbb.css",
+    "./sui-compact.css": "./dist/sui-compact.css",
+    "./sui-clody.css": "./dist/sui-clody.css",
+    "./sui-gipiti.css": "./dist/sui-gipiti.css",
+    "./sui-sorbet.css": "./dist/sui-sorbet.css",
+    "./sui-amethyst.css": "./dist/sui-amethyst.css",
     "./icons.svg": "./dist/icons.svg",
     "./package.json": "./package.json"
   },

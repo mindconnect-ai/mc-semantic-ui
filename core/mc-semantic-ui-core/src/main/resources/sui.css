@@ -1264,6 +1264,16 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
    class) when the popover is too close to the viewport's right edge. */
 .sui-menu-button--submenu-left .sui-menu-button-submenu { left: auto; right: 100%; }
 
+/* The theme picker (theme.ts) is a menu button like any other; it only adds a
+   second line under each name and a check on the one that is on — a choice
+   among several, not a list of things to do, so no fill. */
+.sui-theme-switch .sui-menu-button-item { flex-direction: column; align-items: flex-start; gap: 1px; }
+.sui-theme-switch-hint { font-size: var(--sui-text-xs, 12px); color: var(--sui-color-text-muted); }
+.sui-theme-switch .sui-menu-button-item[aria-checked="true"] { font-weight: 500; }
+.sui-theme-switch .sui-menu-button-item[aria-checked="true"] .sui-menu-button-item-label::after {
+    content: " ✓"; color: var(--sui-color-text-muted);
+}
+
 /* ── Activity (collapsible detail) ──────────────────────────────────────── */
 
 .sui-activity { border: none; }

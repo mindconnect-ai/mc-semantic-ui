@@ -21,6 +21,23 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **Five more themes.** `sui-compact.css` (the default, tighter), `sui-clody.css`
+  (warm, one plane), `sui-gipiti.css` (neutral, two planes), `sui-sorbet.css`
+  (pastels) and `sui-amethyst.css` (violet on a dark ground) ship next to
+  `sui-dark.css`. Like dark, each is an overlay on `sui.css` that acts only
+  while `sui-theme-<name>` is on `<html>`, so an app loads them once and
+  switches with a class. Server-rendered pages accept the new names in
+  `THEME_ATTRIBUTE`. A theme that makes the sidebar transparent keeps a solid
+  ground once the menu floats as a drawer, so the page no longer shows through.
+- **A theme picker.** `installThemeSwitch()` puts a palette button in the
+  `UiHeader` that switches among `SUI_THEMES` (or a list you pass) and
+  remembers the choice in `localStorage`; `applyTheme` and `currentTheme` give
+  the same state to your own controls. `theme-boot.js`, a classic script for
+  `<head>`, puts the remembered theme on before the first paint and takes
+  `?theme=` from the address. See the new Themes page in the docs.
+
 ## [0.3.2] - 2026-09-12
 
 ### Added

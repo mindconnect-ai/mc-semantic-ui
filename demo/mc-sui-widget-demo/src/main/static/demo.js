@@ -15,7 +15,10 @@
  *     import { createDefaultRenderer } from "./sui/renderer.js";
  *     createDefaultRenderer().attach(el).mount({ type: "text", id: "t", text: "hi" });
  */
-import { createDefaultRenderer, escapeHtml, renderIcon } from "./sui/renderer.js";
+import {
+    createDefaultRenderer, escapeHtml, renderIcon,
+    SUI_THEMES, applyTheme, currentTheme, installThemeSwitch,
+} from "./sui/renderer.js";
 import { SuiEventBus } from "./sui/eventbus.js";
 // Diagram extension: a separate browser bundle (served under /sui-ext). Its
 // install() registers the "diagram" node handler on the renderer — the same
@@ -1129,15 +1132,14 @@ function wireViewportToggle() {
     });
 }
 
-/** Current theme class from the top-bar selector (empty string = light). */
+/** The theme class this browser has chosen (empty string = the default). */
 function currentDemoTheme() {
-    const sel = document.getElementById("demo-theme");
-    return sel ? sel.value : "";
+    const theme = currentTheme();
+    return theme === "default" ? "" : `sui-theme-${theme}`;
 }
 
-/** Applies a theme class to the shell AND the phone-frame iframe, if present. */
+/** Mirrors the page's theme into the phone-frame iframe, if present. */
 function applyDemoTheme(value) {
-    document.documentElement.className = value;
     const frame = document.querySelector(".demo-device iframe");
     if (frame && frame.contentDocument) {
         frame.contentDocument.documentElement.className = value;
@@ -1192,12 +1194,23 @@ async function boot() {
     wireLiveProgress(renderer);   // animate the "live" progress bar + ring
     if (!embedded) wireViewportToggle();   // 📱 phone-frame preview button
 
-    // Theme switcher — toggles the class on <html>; the stylesheets are all loaded.
+    // Themes — the framework's picker in the header specimen, plus the top-bar
+    // select for the same choice. Both go through applyTheme (class on <html>,
+    // remembered in localStorage); whichever is used, the other follows.
+    installThemeSwitch();
     const themeSelect = document.getElementById("demo-theme");
     if (themeSelect) {
+        themeSelect.innerHTML = SUI_THEMES
+            .map(t => `<option value="${t.id}">${escapeHtml(t.label)}</option>`).join("");
+        themeSelect.value = currentTheme();
         themeSelect.addEventListener("change", () => {
-            applyDemoTheme(themeSelect.value);   // shell + phone-frame iframe
+            applyTheme(themeSelect.value);
+            installThemeSwitch();   // redraws the picker with the new tick
         });
+        new MutationObserver(() => {
+            themeSelect.value = currentTheme();
+            applyDemoTheme(currentDemoTheme());   // phone-frame iframe
+        }).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     }
 }
 

@@ -9,8 +9,8 @@ Clients that are **just HTML** — no Spring Boot app serving `/sui/*` from the
 core JAR, no build step, no npm — can load the browser runtime straight from
 this docs site. The bundle is the exact output of `mc-semantic-ui-core`'s
 TypeScript build: `renderer.js`, `eventbus.js`, `model.js` (+ `.d.ts`), the
-per-node renderers, and the stylesheets (`sui.css`, `sui-dark.css`,
-`sui-sbb.css`).
+per-node renderers, the stylesheets (`sui.css` and the [themes](./themes.md)),
+and `theme-boot.js`.
 
 ## Two URL shapes
 

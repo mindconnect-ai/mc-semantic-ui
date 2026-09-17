@@ -42,7 +42,8 @@ function mergeDir(from, to, label) {
 copyDir(resolve(CORE, "target/ts-dist"), resolve(STATIC, "sui"),
         "core/mc-semantic-ui-core/target/ts-dist (run: mvn -pl core/mc-semantic-ui-core install)");
 
-for (const css of ["sui.css", "sui-dark.css", "sui-sbb.css"]) {
+for (const css of ["sui.css", "sui-dark.css", "sui-sbb.css", "sui-compact.css",
+                   "sui-clody.css", "sui-gipiti.css", "sui-sorbet.css", "sui-amethyst.css"]) {
     const src = resolve(CORE, "src/main/resources", css);
     if (existsSync(src)) cpSync(src, resolve(STATIC, "sui", css));
 }

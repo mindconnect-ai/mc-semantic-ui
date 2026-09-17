@@ -437,7 +437,8 @@ mc-semantic-ui/                            — repo root (the build reactor)
 │       │                                    handlebars helpers
 │       ├── src/main/resources/
 │       │   ├── sui.css                    — base styles
-│       │   ├── sui-dark.css / sui-sbb.css — themes
+│       │   ├── sui-<theme>.css            — themes (dark, compact, clody,
+│       │   │                                gipiti, sorbet, amethyst, sbb)
 │       │   └── templates/sui/*.hbs        — one template per UiNode
 │       └── src/main/ts/
 │           ├── model.ts                   — TS interfaces (mirrors Java)

@@ -16,6 +16,7 @@ import java.io.IOException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
 
 /**
  * Renders {@link UiPage} return values to {@code text/html} via the
@@ -67,14 +68,16 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
     /**
      * Request attribute selecting which theme stylesheet to load. Value is
      * a {@link String} matching one of the built-in theme names: {@code "light"}
-     * (default), {@code "dark"}, {@code "sbb"}. Unknown / null falls back to
-     * {@code light}.
+     * (default), {@code "sbb"}, or one of the overlays {@code "dark"},
+     * {@code "compact"}, {@code "clody"}, {@code "gipiti"}, {@code "sorbet"},
+     * {@code "amethyst"}. Unknown / null falls back to {@code light}.
      *
      * <p>Effect on the rendered HTML:
      * <ul>
      *   <li>{@code light}: only {@code /sui/sui.css}.</li>
-     *   <li>{@code dark}: {@code /sui/sui.css} + {@code /sui/sui-dark.css}
-     *       (override-on-top — dark only sets CSS custom properties).</li>
+     *   <li>an overlay, e.g. {@code dark}: {@code /sui/sui.css} +
+     *       {@code /sui/sui-dark.css} — the theme sheet only restyles on top,
+     *       scoped to its class on {@code <html>}.</li>
      *   <li>{@code sbb}: {@code /sui/sui-sbb.css} <strong>instead of</strong>
      *       sui.css — a fully self-contained stylesheet.</li>
      * </ul>
@@ -84,8 +87,10 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
     public static final String THEME_ATTRIBUTE = "mindconnect.sui.theme";
 
     private static final String THEME_LIGHT = "light";
-    private static final String THEME_DARK  = "dark";
     private static final String THEME_SBB   = "sbb";
+    /** Themes that layer on sui.css, each as {@code /sui/sui-<name>.css}. */
+    private static final Set<String> OVERLAY_THEMES =
+            Set.of("dark", "compact", "clody", "gipiti", "sorbet", "amethyst");
 
     private final SuiServerRenderer renderer;
     /**
@@ -280,16 +285,15 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
             + "})();</script>";
 
     /**
-     * Picks the right stylesheet(s) for the theme. Light is the default; dark
-     * stacks an override on top of sui.css; sbb replaces sui.css entirely.
+     * Picks the right stylesheet(s) for the theme. Light is the default; an
+     * overlay stacks its sheet on top of sui.css; sbb replaces sui.css entirely.
      */
-    private static String themeStylesheets(String theme) {
-        return switch (theme) {
-            case THEME_DARK -> "<link rel=\"stylesheet\" href=\"/sui/sui.css\">"
-                             + "<link rel=\"stylesheet\" href=\"/sui/sui-dark.css\">";
-            case THEME_SBB  -> "<link rel=\"stylesheet\" href=\"/sui/sui-sbb.css\">";
-            default         -> "<link rel=\"stylesheet\" href=\"/sui/sui.css\">";
-        };
+    static String themeStylesheets(String theme) {
+        if (THEME_SBB.equals(theme)) return "<link rel=\"stylesheet\" href=\"/sui/sui-sbb.css\">";
+        String base = "<link rel=\"stylesheet\" href=\"/sui/sui.css\">";
+        return OVERLAY_THEMES.contains(theme)
+                ? base + "<link rel=\"stylesheet\" href=\"/sui/sui-" + theme + ".css\">"
+                : base;
     }
 
     /**
@@ -327,10 +331,7 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
         if (attrs == null) return THEME_LIGHT;
         Object value = attrs.getAttribute(THEME_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);
         if (!(value instanceof String s)) return THEME_LIGHT;
-        return switch (s) {
-            case THEME_DARK, THEME_SBB, THEME_LIGHT -> s;
-            default -> THEME_LIGHT;
-        };
+        return THEME_SBB.equals(s) || OVERLAY_THEMES.contains(s) ? s : THEME_LIGHT;
     }
 
     private static String escapeAttr(String s) {

@@ -55,6 +55,12 @@ export { wireHeaderOverflow } from "./renderers/header-overflow.js";
 // Menu-button popovers — apps call it once after mount to activate the
 // click-positioned dropdown / context menus (UiMenuButton).
 export { wireMenuButtons } from "./renderers/menu-button.js";
+// Themes: which one is on, and a picker the app can put in its header.
+export {
+    applyTheme, currentTheme, installThemeSwitch, renderThemeSwitch,
+    SUI_THEMES, STORAGE_KEY as THEME_STORAGE_KEY, DEFAULT_THEME,
+    type SuiTheme, type ThemeSwitchOptions,
+} from "./theme.js";
 // Default item-handler for the UiList rendering — set on the SuiRenderer
 // at construction time. List items have no type discriminator so they
 // can't go through the dispatcher; they get their own handler slot.
