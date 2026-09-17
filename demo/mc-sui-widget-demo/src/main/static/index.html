@@ -6,14 +6,22 @@
     <title>Semantic UI — Widget Showcase</title>
 
     <!--
-        Both theme stylesheets are loaded up front. Only one is active at a
+        Every theme stylesheet is loaded up front. Only one is active at a
         time, selected by the class on <html>:
-          (none)          → default light theme (sui.css)
-          sui-theme-dark  → dark overrides (sui-dark.css)
-        The theme <select> in the top bar toggles that class — no reload.
+          (none)              → the default theme (sui.css)
+          sui-theme-<name>    → that overlay (sui-<name>.css)
+        The theme <select> in the top bar and the picker in the header both
+        swap that class — no reload. theme-boot.js puts the remembered one on
+        before the first paint, so a reload does not flash the default.
     -->
     <link rel="stylesheet" href="./sui/sui.css">
     <link rel="stylesheet" href="./sui/sui-dark.css">
+    <link rel="stylesheet" href="./sui/sui-compact.css">
+    <link rel="stylesheet" href="./sui/sui-clody.css">
+    <link rel="stylesheet" href="./sui/sui-gipiti.css">
+    <link rel="stylesheet" href="./sui/sui-sorbet.css">
+    <link rel="stylesheet" href="./sui/sui-amethyst.css">
+    <script src="./sui/theme-boot.js"></script>
     <!-- Diagram extension styles (the client-side diagram specimen). -->
     <link rel="stylesheet" href="./sui-ext/diagram/diagram.css">
     <link rel="stylesheet" href="./sui-ext/chart/chart.css">
@@ -120,10 +128,8 @@
         <span class="demo-spacer"></span>
         <button id="demo-viewport" class="demo-vp-btn" type="button" title="Preview the widgets at a phone width">Mobile view</button>
         <label for="demo-theme">Theme</label>
-        <select id="demo-theme">
-            <option value="">Light</option>
-            <option value="sui-theme-dark">Dark</option>
-        </select>
+        <!-- Filled from SUI_THEMES by demo.js. -->
+        <select id="demo-theme"></select>
     </div>
 
     <main class="demo-main">

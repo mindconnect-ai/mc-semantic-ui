@@ -53,13 +53,18 @@ document.querySelector("#app")!.innerHTML = createDefaultRenderer().render(tree)
 | `…/model` | The `UiNode` union and every node type |
 | `…/bff` | `bffFetch`, `redirectToLogin` for a session-cookie backend |
 | `…/i18n` | Message lookup used by the renderers |
-| `…/sui.css`, `…/sui-dark.css`, `…/sui-sbb.css` | Stylesheets |
+| `…/theme` | `applyTheme`, `currentTheme`, `installThemeSwitch`, `SUI_THEMES` (also re-exported from the root) |
+| `…/theme-boot.js` | Classic script for `<head>`: the remembered theme before the first paint |
+| `…/sui.css`, `…/sui-<theme>.css` | Stylesheets |
 | `…/icons.svg` | The curated icon sprite |
 
 ### Themes
 
-`sui.css` is the base and is always required. `sui-dark.css` and `sui-sbb.css`
-layer on top of it — import the base first.
+`sui.css` is the base and is always required. The overlays — `sui-dark.css`,
+`sui-compact.css`, `sui-clody.css`, `sui-gipiti.css`, `sui-sorbet.css`,
+`sui-amethyst.css` — load after it and act only while `sui-theme-<name>` is on
+`<html>`; `sui-sbb.css` replaces the base instead. How to let the user switch:
+[Themes](../../website/docs/semantic-ui/themes.md).
 
 ### Icons
 

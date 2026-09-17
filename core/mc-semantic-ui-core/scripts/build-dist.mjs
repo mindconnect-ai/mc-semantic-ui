@@ -27,7 +27,11 @@ const OUT = join(ROOT, "dist");
 
 // Stylesheets and the sprite live under src/main/resources because Maven owns
 // that tree; they are part of the client all the same.
-const ASSETS = ["sui.css", "sui-dark.css", "sui-sbb.css", "icons.svg"];
+const ASSETS = [
+  "sui.css", "sui-dark.css", "sui-sbb.css",
+  "sui-compact.css", "sui-clody.css", "sui-gipiti.css", "sui-sorbet.css", "sui-amethyst.css",
+  "icons.svg",
+];
 
 if (!existsSync(TS_DIST)) {
   console.error(
