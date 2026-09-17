@@ -18,6 +18,11 @@
  *       .setOnUnauthenticated(() => redirectToLogin("/oauth2/authorization/keycloak"));
  * </pre>
  *
+ * <p>The CSRF header does not need this module: the {@link SuiEventBus} adds it
+ * to unsafe same-origin requests on its own, whatever fetcher it has (see
+ * {@code csrf.ts}). {@link bffFetch} still sets it, so it keeps working for
+ * requests made outside the bus.
+ *
  * <p>There is no client-side redirect-loop guard. A loop only happens when
  * the OAuth setup is structurally broken (Keycloak issues a token Spring
  * doesn't accept, or the post-login redirect lands on a URL that 401s on

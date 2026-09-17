@@ -47,6 +47,10 @@
       "types": "./dist/i18n.d.ts",
       "default": "./dist/i18n.js"
     },
+    "./csrf": {
+      "types": "./dist/csrf.d.ts",
+      "default": "./dist/csrf.js"
+    },
     "./theme": {
       "types": "./dist/theme.d.ts",
       "default": "./dist/theme.js"

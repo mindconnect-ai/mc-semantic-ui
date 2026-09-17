@@ -21,6 +21,18 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **CSRF tokens go out without wiring.** The `SuiEventBus` now sends the
+  page's CSRF token on every `POST`, `PUT`, `PATCH` and `DELETE` to its own
+  origin — from the `_csrf` / `_csrf_header` meta tags, or else the
+  `XSRF-TOKEN` cookie as `X-XSRF-TOKEN` — whatever fetcher it was given. A page
+  without a token sends what it always did; `setCsrf(false)` turns it off,
+  `setCsrf({ cookieName, headerName })` renames. Server-rendered pages get the
+  meta tags when Spring Security put a token on the request (no dependency on
+  Spring Security), and their plain POST forms a hidden `_csrf` field. The
+  editor's save carries the token too. `withCsrf` wraps your own `fetch`.
+
 ## [0.3.3] - 2026-09-17
 
 ### Added

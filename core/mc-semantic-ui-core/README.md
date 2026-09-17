@@ -52,6 +52,7 @@ document.querySelector("#app")!.innerHTML = createDefaultRenderer().render(tree)
 | `…/eventbus` | `SuiEventBus` — the SPA driver |
 | `…/model` | The `UiNode` union and every node type |
 | `…/bff` | `bffFetch`, `redirectToLogin` for a session-cookie backend |
+| `…/csrf` | `withCsrf`, `findCsrfToken` — the CSRF header the bus adds on its own, for your own fetches |
 | `…/i18n` | Message lookup used by the renderers |
 | `…/theme` | `applyTheme`, `currentTheme`, `installThemeSwitch`, `SUI_THEMES` (also re-exported from the root) |
 | `…/theme-boot.js` | Classic script for `<head>`: the remembered theme before the first paint |
