@@ -21,6 +21,22 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- `UiMenu.toggleIcon` — the glyph on a menu's own toggle, `menu` (the
+  hamburger) when unset. A menu that folds to a rail beside its content is not
+  the same gesture as a drawer over it, and `panel-left-close` says so where
+  three stacked lines do not.
+
+### Fixed
+
+- `UiAppShell` no longer leaves a headerless shell with no way to fold its
+  menu. The shell switched the menu's own toggle off unconditionally, on the
+  grounds of "one burger, not two" — but with no header there is no second
+  burger, so a shell that renders its title in the content (as the chat does)
+  had none at all. The toggle is now silenced only when there is a header to
+  carry one instead.
+
 ## [0.3.4] - 2026-09-17
 
 ### Added

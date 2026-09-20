@@ -10,7 +10,8 @@ import { cls, evt } from "./util.js";
  * instead of by the caller:
  * <ul>
  *   <li>the header's burger is pointed at the menu's id, and the menu's own
- *       toggle is switched off — one burger, not two;</li>
+ *       toggle is switched off when there is a header to carry one
+ *       instead — one burger, not two, and not none;</li>
  *   <li>the shell fills the viewport by default, so the sidebar reaches the
  *       bottom of the window and the content scrolls inside it;</li>
  *   <li>the content area is a <em>slot</em> ({@code data-sui-slot}), so a
@@ -26,7 +27,7 @@ export function renderAppShell(node: UiAppShell, r: SuiRenderer): string {
 
     // Copy, don't mutate: the caller may hold this menu for the next page.
     const menu: UiMenu | undefined = node.menu
-        ? { ...node.menu, toggle: false }
+        ? { ...node.menu, toggle: node.header ? false : node.menu.toggle }
         : undefined;
     const header: UiHeader | undefined = node.header
         ? { ...node.header, menuToggle: menuId ?? node.header.menuToggle }
