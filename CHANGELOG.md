@@ -21,6 +21,14 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Fixed
+
+- A menu folded to a rail no longer shifts its icons. `.sui-menu--rail`
+  centred every link's contents, so folding moved the whole icon column four
+  pixels sideways — the panel looked like it wobbled rather than closed. Rail
+  links and the rail head now start at the same left edge the expanded menu
+  uses, which is what the fly-out rule beside them has always done.
+
 ## [0.3.4] - 2026-09-17
 
 ### Added
