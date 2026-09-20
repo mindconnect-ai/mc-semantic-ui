@@ -1582,8 +1582,14 @@ a[data-trigger].is-loading::before,
 .sui-menu--rail .sui-menu-title,
 .sui-menu--rail .sui-menu-label,
 .sui-menu--rail .sui-menu-caret { display: none; }
-.sui-menu--rail .sui-menu-link { justify-content: center; padding: 8px; }
-.sui-menu--rail .sui-menu-head { justify-content: center; padding: 6px; }
+/* Icons stay where they are. A rail is the same column of icons the expanded
+   menu has, minus the words — so centring them moves every icon four pixels
+   the moment the panel folds, and the panel reads as wobbling rather than
+   closing. The padding is already the same 8px the expanded link uses
+   (--sui-space-sm), so flex-start alone lines the two states up exactly.
+   The fly-out rule twelve lines down has said flex-start all along. */
+.sui-menu--rail .sui-menu-link { justify-content: flex-start; padding: 8px; }
+.sui-menu--rail .sui-menu-head { justify-content: flex-start; padding: 6px 8px; }
 .sui-menu--rail .sui-menu-item:not(.sui-menu-item--group):hover > .sui-menu-tip { display: block; }
 .sui-menu--rail .sui-menu-sublist {
     display: none;
