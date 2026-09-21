@@ -89,6 +89,7 @@ const sidebars = {
               label: 'Overlays & feedback',
               items: [
                 'semantic-ui/elements/dialog',
+                'semantic-ui/elements/drawer',
                 'semantic-ui/elements/toast',
                 'semantic-ui/elements/spinner',
                 'semantic-ui/elements/progress',

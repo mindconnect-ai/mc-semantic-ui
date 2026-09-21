@@ -1,0 +1,74 @@
+[
+  {
+    "name": "the chat: bottom, in its container, resizable, closable, with triggers",
+    "node": {
+      "type": "drawer",
+      "id": "ai-chat",
+      "title": "Draft with AI",
+      "icon": "sparkles",
+      "badge": "2",
+      "content": {
+        "type": "text",
+        "id": "t1",
+        "text": "Hello <you>"
+      },
+      "edge": "BOTTOM",
+      "size": "45%",
+      "minSize": "200px",
+      "maxSize": "80%",
+      "resizable": true,
+      "scope": "CONTAINER",
+      "closable": true,
+      "onClose": {
+        "url": "/chat/1",
+        "method": "DELETE",
+        "behavior": "APPLY_RESPONSE"
+      },
+      "onStateChange": {
+        "url": "/chat/1/state/{state}",
+        "method": "POST",
+        "behavior": "APPLY_RESPONSE"
+      }
+    },
+    "html": "<div class=\"sui-drawer sui-drawer--bottom sui-drawer--open sui-drawer--container sui-drawer--overlay sui-drawer--resizable\" id=\"ai-chat\" data-sui=\"drawer\" data-state=\"open\" data-state-trigger='{\"url\":\"/chat/1/state/{state}\",\"method\":\"POST\",\"behavior\":\"APPLY_RESPONSE\"}' data-close-trigger='{\"url\":\"/chat/1\",\"method\":\"DELETE\",\"behavior\":\"APPLY_RESPONSE\"}' style=\"--sui-drawer-size:45%;--sui-drawer-min:200px;--sui-drawer-max:80%;\"><button type=\"button\" class=\"sui-drawer-handle\" data-sui-drawer=\"open\" aria-controls=\"ai-chat__panel\" aria-expanded=\"true\"><span class=\"sui-drawer-icon\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#sparkles\"></use></svg></span><span class=\"sui-drawer-title\">Draft with AI</span><span class=\"sui-drawer-badge\">2</span></button><div class=\"sui-drawer-panel\" id=\"ai-chat__panel\" role=\"region\" aria-label=\"Draft with AI\" tabindex=\"-1\"><div class=\"sui-drawer-header\"><span class=\"sui-drawer-icon\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#sparkles\"></use></svg></span><span class=\"sui-drawer-title\">Draft with AI</span><button type=\"button\" class=\"sui-drawer-btn\" data-sui-drawer=\"minimize\" aria-label=\"Minimize\" title=\"Minimize\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#minus\"></use></svg></button><button type=\"button\" class=\"sui-drawer-btn\" data-sui-drawer=\"close\" aria-label=\"Close\" title=\"Close\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#x\"></use></svg></button></div><div class=\"sui-drawer-body\"><span class=\"sui-text\" id=\"t1\">Hello &lt;you&gt;</span></div><div class=\"sui-drawer-resize\" data-sui-drawer=\"resize\" role=\"separator\" aria-orientation=\"horizontal\" aria-label=\"Resize\"></div></div></div>"
+  },
+  {
+    "name": "defaults: right, open, over the window",
+    "node": {
+      "type": "drawer",
+      "id": "insp",
+      "title": "Inspector",
+      "content": {
+        "type": "text",
+        "id": "t2",
+        "text": "x"
+      }
+    },
+    "html": "<div class=\"sui-drawer sui-drawer--right sui-drawer--open sui-drawer--viewport sui-drawer--overlay\" id=\"insp\" data-sui=\"drawer\" data-state=\"open\"><button type=\"button\" class=\"sui-drawer-handle\" data-sui-drawer=\"open\" aria-controls=\"insp__panel\" aria-expanded=\"true\"><span class=\"sui-drawer-title\">Inspector</span></button><div class=\"sui-drawer-panel\" id=\"insp__panel\" role=\"region\" aria-label=\"Inspector\" tabindex=\"-1\"><div class=\"sui-drawer-header\"><span class=\"sui-drawer-title\">Inspector</span><button type=\"button\" class=\"sui-drawer-btn\" data-sui-drawer=\"minimize\" aria-label=\"Minimize\" title=\"Minimize\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#minus\"></use></svg></button></div><div class=\"sui-drawer-body\"><span class=\"sui-text\" id=\"t2\">x</span></div></div></div>"
+  },
+  {
+    "name": "minimized, pushing, from the left",
+    "node": {
+      "type": "drawer",
+      "id": "nav",
+      "title": "Filters",
+      "edge": "LEFT",
+      "state": "MINIMIZED",
+      "mode": "PUSH",
+      "size": "320px",
+      "cssClass": "wide"
+    },
+    "html": "<div class=\"sui-drawer sui-drawer--left sui-drawer--minimized sui-drawer--viewport sui-drawer--push wide\" id=\"nav\" data-sui=\"drawer\" data-state=\"minimized\" style=\"--sui-drawer-size:320px;\"><button type=\"button\" class=\"sui-drawer-handle\" data-sui-drawer=\"open\" aria-controls=\"nav__panel\" aria-expanded=\"false\"><span class=\"sui-drawer-title\">Filters</span></button><div class=\"sui-drawer-panel\" id=\"nav__panel\" role=\"region\" aria-label=\"Filters\" tabindex=\"-1\"><div class=\"sui-drawer-header\"><span class=\"sui-drawer-title\">Filters</span><button type=\"button\" class=\"sui-drawer-btn\" data-sui-drawer=\"minimize\" aria-label=\"Minimize\" title=\"Minimize\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#minus\"></use></svg></button></div><div class=\"sui-drawer-body\"></div></div></div>"
+  },
+  {
+    "name": "closed, at the top",
+    "node": {
+      "type": "drawer",
+      "id": "news",
+      "title": "News",
+      "edge": "TOP",
+      "state": "CLOSED"
+    },
+    "html": "<div class=\"sui-drawer sui-drawer--top sui-drawer--closed sui-drawer--viewport sui-drawer--overlay\" id=\"news\" data-sui=\"drawer\" data-state=\"closed\"><button type=\"button\" class=\"sui-drawer-handle\" data-sui-drawer=\"open\" aria-controls=\"news__panel\" aria-expanded=\"false\"><span class=\"sui-drawer-title\">News</span></button><div class=\"sui-drawer-panel\" id=\"news__panel\" role=\"region\" aria-label=\"News\" tabindex=\"-1\"><div class=\"sui-drawer-header\"><span class=\"sui-drawer-title\">News</span><button type=\"button\" class=\"sui-drawer-btn\" data-sui-drawer=\"minimize\" aria-label=\"Minimize\" title=\"Minimize\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#minus\"></use></svg></button></div><div class=\"sui-drawer-body\"></div></div></div>"
+  }
+]

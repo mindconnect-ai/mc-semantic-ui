@@ -674,6 +674,146 @@ a.sui-tree-label:hover { text-decoration: underline; }
 }
 .sui-custom-missing::before { content: attr(data-type); }
 
+/* ── Drawer (UiDrawer) ────────────────────────────────────────────────────
+   A panel that slides in from an edge. The element spans its area — the
+   window (--viewport) or the nearest positioned container (--container) —
+   and lets clicks through; the panel sits at the edge with the size, the
+   handle stands in for it when minimized. Open / minimized / closed are
+   classes: nothing inside is redrawn when they change. --push takes room in a
+   flex row or column instead of lying over the content. */
+.sui-drawer {
+    --sui-drawer-size: 40%; --sui-drawer-min: 0px; --sui-drawer-max: 100%;
+    --sui-drawer-offset: 0px; --sui-drawer-duration: var(--sui-duration-base, .22s);
+    z-index: 60; pointer-events: none;
+}
+.sui-drawer--viewport { position: fixed; inset: 0; }
+/* In a container it only has to lie over that container's content — not over
+   the page's sticky header when the container scrolls under it. */
+.sui-drawer--container { position: absolute; inset: 0; overflow: hidden; z-index: 2; }
+.sui-drawer--closed { display: none; }
+/* A minimized drawer is only its handle (the rest lets clicks through): it
+   stays above the open panels, so an open drawer never hides a handle. */
+.sui-drawer--minimized { z-index: 61; }
+.sui-drawer--container.sui-drawer--minimized { z-index: 3; }
+/* A container that hosts CONTAINER drawers (a dialog already is one). */
+.sui-drawer-host { position: relative; }
+
+.sui-drawer-panel {
+    position: absolute; pointer-events: auto; box-sizing: border-box;
+    display: flex; flex-direction: column; min-width: 0; min-height: 0;
+    background: var(--sui-color-surface); color: var(--sui-color-text);
+    border: 0 solid var(--sui-color-border); box-shadow: var(--sui-shadow-pop);
+    transition: transform var(--sui-drawer-duration) ease, visibility 0s linear 0s;
+    outline: none;
+}
+.sui-drawer--bottom .sui-drawer-panel, .sui-drawer--top .sui-drawer-panel {
+    left: 0; right: 0; height: var(--sui-drawer-size);
+    min-height: var(--sui-drawer-min); max-height: var(--sui-drawer-max);
+}
+.sui-drawer--left .sui-drawer-panel, .sui-drawer--right .sui-drawer-panel {
+    top: 0; bottom: 0; width: var(--sui-drawer-size);
+    min-width: var(--sui-drawer-min); max-width: var(--sui-drawer-max);
+}
+.sui-drawer--bottom .sui-drawer-panel { bottom: 0; border-top-width: 1px; border-radius: var(--sui-radius-lg) var(--sui-radius-lg) 0 0; }
+.sui-drawer--top    .sui-drawer-panel { top: 0; border-bottom-width: 1px; border-radius: 0 0 var(--sui-radius-lg) var(--sui-radius-lg); }
+.sui-drawer--left   .sui-drawer-panel { left: 0; border-right-width: 1px; }
+.sui-drawer--right  .sui-drawer-panel { right: 0; border-left-width: 1px; }
+/* Minimized: the panel slides out past its edge and is hidden once there —
+   still in the document, with everything in it as it was. */
+.sui-drawer--minimized .sui-drawer-panel {
+    visibility: hidden; transition: transform var(--sui-drawer-duration) ease, visibility 0s linear var(--sui-drawer-duration);
+}
+.sui-drawer--bottom.sui-drawer--minimized .sui-drawer-panel { transform: translateY(calc(100% + 16px)); }
+.sui-drawer--top.sui-drawer--minimized    .sui-drawer-panel { transform: translateY(calc(-100% - 16px)); }
+.sui-drawer--left.sui-drawer--minimized   .sui-drawer-panel { transform: translateX(calc(-100% - 16px)); }
+.sui-drawer--right.sui-drawer--minimized  .sui-drawer-panel { transform: translateX(calc(100% + 16px)); }
+
+.sui-drawer-header {
+    flex: none; display: flex; align-items: center; gap: var(--sui-space-sm);
+    padding: var(--sui-space-sm) var(--sui-space-sm) var(--sui-space-sm) var(--sui-space-md);
+    border-bottom: 1px solid var(--sui-color-border-soft); background: var(--sui-color-surface-alt);
+    font-weight: 600; font-size: var(--sui-text-md); color: var(--sui-color-text-strong);
+}
+.sui-drawer-header .sui-drawer-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sui-drawer-btn {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--sui-radius-sm);
+    background: transparent; color: var(--sui-color-text-muted); cursor: pointer;
+}
+.sui-drawer-btn:hover { background: var(--sui-color-border-soft); color: var(--sui-color-text-strong); }
+.sui-drawer-btn:focus-visible { outline: none; box-shadow: var(--sui-focus-ring); }
+.sui-drawer-body { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.sui-drawer-icon { display: inline-flex; flex: none; }
+
+/* The handle: a button-sized pill at the edge, shown only when minimized.
+   Handles at the same edge line up (--sui-drawer-offset, set by the bus). */
+.sui-drawer-handle {
+    position: absolute; pointer-events: auto; display: none; align-items: center; gap: 6px;
+    max-width: min(320px, calc(100% - 32px)); box-sizing: border-box;
+    padding: var(--sui-space-sm) var(--sui-space-md); line-height: 1;
+    font: inherit; font-size: var(--sui-text-md); font-weight: 500; white-space: nowrap;
+    color: var(--sui-color-text-body); background: var(--sui-color-surface);
+    border: 1px solid var(--sui-color-border-strong); box-shadow: var(--sui-shadow-pop);
+    cursor: pointer; touch-action: manipulation;
+}
+.sui-drawer-handle .sui-drawer-title { overflow: hidden; text-overflow: ellipsis; }
+.sui-drawer-handle:hover { background: var(--sui-color-surface-alt); }
+.sui-drawer-handle:focus-visible { outline: none; box-shadow: var(--sui-focus-ring), var(--sui-shadow-pop); }
+.sui-drawer--minimized .sui-drawer-handle { display: inline-flex; animation: sui-drawer-handle-in var(--sui-drawer-duration) ease-out; }
+.sui-drawer--bottom .sui-drawer-handle { bottom: 0; right: calc(16px + var(--sui-drawer-offset)); border-bottom: 0; border-radius: var(--sui-radius-md) var(--sui-radius-md) 0 0; }
+.sui-drawer--top    .sui-drawer-handle { top: 0; right: calc(16px + var(--sui-drawer-offset)); border-top: 0; border-radius: 0 0 var(--sui-radius-md) var(--sui-radius-md); }
+.sui-drawer--left   .sui-drawer-handle { left: 0; top: calc(16px + var(--sui-drawer-offset)); border-left: 0; border-radius: 0 var(--sui-radius-md) var(--sui-radius-md) 0; }
+.sui-drawer--right  .sui-drawer-handle { right: 0; top: calc(16px + var(--sui-drawer-offset)); border-right: 0; border-radius: var(--sui-radius-md) 0 0 var(--sui-radius-md); }
+.sui-drawer-badge {
+    flex: none; min-width: 18px; padding: 2px 6px; border-radius: 999px; box-sizing: border-box; text-align: center;
+    font-size: var(--sui-text-xs); font-weight: 600; background: var(--sui-color-primary); color: var(--sui-color-on-primary);
+}
+@keyframes sui-drawer-handle-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* The resize grip on the inner edge. */
+.sui-drawer-resize { position: absolute; z-index: 1; }
+.sui-drawer--bottom .sui-drawer-resize { top: -3px; left: 0; right: 0; height: 6px; cursor: ns-resize; }
+.sui-drawer--top    .sui-drawer-resize { bottom: -3px; left: 0; right: 0; height: 6px; cursor: ns-resize; }
+.sui-drawer--left   .sui-drawer-resize { right: -3px; top: 0; bottom: 0; width: 6px; cursor: ew-resize; }
+.sui-drawer--right  .sui-drawer-resize { left: -3px; top: 0; bottom: 0; width: 6px; cursor: ew-resize; }
+.sui-drawer-resize:hover, .sui-drawer.is-resizing .sui-drawer-resize { background: var(--sui-color-primary); opacity: .35; }
+.sui-drawer.is-resizing .sui-drawer-panel { transition: none; user-select: none; }
+
+/* PUSH: a flex item beside the content, which moves over as it opens. */
+/* align-self: stretch — it spans the row (or column) it stands in, whatever
+   the row centres; its own size is only along the edge's axis. */
+.sui-drawer--push { position: relative; inset: auto; flex: none; align-self: stretch; pointer-events: auto; transition: width var(--sui-drawer-duration) ease, height var(--sui-drawer-duration) ease; }
+.sui-drawer--push.sui-drawer--open.sui-drawer--left, .sui-drawer--push.sui-drawer--open.sui-drawer--right {
+    width: var(--sui-drawer-size); min-width: var(--sui-drawer-min); max-width: var(--sui-drawer-max);
+}
+.sui-drawer--push.sui-drawer--open.sui-drawer--top, .sui-drawer--push.sui-drawer--open.sui-drawer--bottom {
+    height: var(--sui-drawer-size); min-height: var(--sui-drawer-min); max-height: var(--sui-drawer-max);
+}
+.sui-drawer--push .sui-drawer-panel { inset: 0; width: auto; height: auto; min-width: 0; max-width: none; min-height: 0; max-height: none; box-shadow: none; border-radius: 0; }
+.sui-drawer--push.sui-drawer--minimized .sui-drawer-panel { transform: none; }
+.sui-drawer--push .sui-drawer-handle { position: static; border-radius: var(--sui-radius-md); border: 1px solid var(--sui-color-border-strong); box-shadow: none; }
+
+/* Narrow screens: a LEFT or RIGHT drawer comes up from the bottom. */
+@media (max-width: 640px) {
+    .sui-drawer--left, .sui-drawer--right { --sui-drawer-size: 70%; --sui-drawer-min: 0px; --sui-drawer-max: 90%; }
+    .sui-drawer--left.sui-drawer--push, .sui-drawer--right.sui-drawer--push { position: fixed; inset: 0; width: auto; height: auto; min-width: 0; max-width: none; pointer-events: none; }
+    .sui-drawer--left .sui-drawer-panel, .sui-drawer--right .sui-drawer-panel {
+        top: auto; bottom: 0; left: 0; right: 0; width: auto; height: var(--sui-drawer-size);
+        min-width: 0; max-width: none; min-height: var(--sui-drawer-min); max-height: var(--sui-drawer-max);
+        border-width: 1px 0 0; border-radius: var(--sui-radius-lg) var(--sui-radius-lg) 0 0; box-shadow: var(--sui-shadow-pop);
+    }
+    .sui-drawer--left.sui-drawer--minimized .sui-drawer-panel, .sui-drawer--right.sui-drawer--minimized .sui-drawer-panel { transform: translateY(calc(100% + 16px)); }
+    .sui-drawer--left .sui-drawer-handle, .sui-drawer--right .sui-drawer-handle {
+        position: absolute; top: auto; left: auto; bottom: 0; right: calc(16px + var(--sui-drawer-offset));
+        border: 1px solid var(--sui-color-border-strong); border-bottom: 0; border-radius: var(--sui-radius-md) var(--sui-radius-md) 0 0;
+    }
+    .sui-drawer--left .sui-drawer-resize, .sui-drawer--right .sui-drawer-resize { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .sui-drawer, .sui-drawer-panel, .sui-drawer--minimized .sui-drawer-panel { transition: none; }
+    .sui-drawer--minimized .sui-drawer-handle { animation: none; }
+}
+
 /* ── Icons ──────────────────────────────────────────────────────────────
    Rendered by the swappable icon resolver (renderers/icon.ts) as an
    <svg class="sui-icon"><use href="/sui/icons.svg#token"></svg>. Size is

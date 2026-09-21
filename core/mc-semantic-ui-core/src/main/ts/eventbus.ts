@@ -4,6 +4,7 @@ import { applyMenuState, nextMenuState, restoreMenuState, wireRailFlyouts } from
 import { renderIcon } from "./renderers/icon.js";
 import { wireOverflow } from "./renderers/overflow.js";
 import { wireMenuButtons } from "./renderers/menu-button.js";
+import { wireDrawers, type DrawerState } from "./renderers/drawer.js";
 import { wireAutoScroll } from "./renderers/autoscroll.js";
 import { wireRichText } from "./renderers/richtext.js";
 import { snapTimeValue } from "./renderers/field.js";
@@ -919,6 +920,9 @@ export class SuiEventBus {
         // tab bars, header extras, application toolbars.
         try { wireOverflow(this.root); } catch { /* ignore */ }
         try { wireMenuButtons(this.root); } catch { /* ignore */ }
+        // Drawers: handle, minimize, close, Escape, resize — and the user's
+        // changes reported to the server through onStateChange / onClose.
+        try { wireDrawers((drawer, state, closed) => this.drawerChanged(drawer, state, closed)); } catch { /* ignore */ }
         // Live feeds marked .sui-autoscroll stick to their newest entry and
         // surface a jump-to-latest arrow when the user scrolls up.
         try { wireAutoScroll(this.root); } catch { /* ignore */ }
@@ -1715,6 +1719,32 @@ export class SuiEventBus {
         const form = sourceElement.closest<HTMLFormElement>("form[data-sui='form']");
         if (form && form.id) {
             trigger.payload = form.id;
+        }
+    }
+
+    /**
+     * A drawer the user opened, minimized or closed: its onStateChange fires
+     * with {state} filled in, and a close by the X fires onClose as well.
+     */
+    private drawerChanged(drawer: HTMLElement, state: DrawerState, closedByUser: boolean): void {
+        const fire = (attr: string): void => {
+            const trigger = this.parseTriggerAttr(drawer, attr);
+            if (!trigger) return;
+            if (trigger.url) trigger.url = trigger.url.split("{state}").join(encodeURIComponent(state.toUpperCase()));
+            void this.dispatch(trigger, drawer);
+        };
+        fire("data-state-trigger");
+        if (closedByUser) fire("data-close-trigger");
+    }
+
+    private parseTriggerAttr(el: HTMLElement, attr: string): UiTrigger | null {
+        const raw = el.getAttribute(attr);
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw) as UiTrigger;
+        } catch (err) {
+            console.error(`SuiEventBus: bad ${attr} JSON`, err, raw);
+            return null;
         }
     }
 
