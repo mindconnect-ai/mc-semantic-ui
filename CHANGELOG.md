@@ -39,11 +39,6 @@ fresh empty one, so nothing has to be moved by hand at release time.
   leave a submenu; Esc closes and returns to the trigger; Tab closes and
   moves on. A menu with room on neither side of its trigger takes the larger
   side and scrolls, and a disabled menu entry is drawn disabled.
-
-## [0.4.1] - 2026-09-21
-
-### Added
-
 - **A rich-text editor whose toolbar stays put.** `UiField.richtext(…)
   .editorHeight("320px")` gives the whole editor, toolbar included, a fixed
   height, and `.fill()` makes it fill the height of its flex parent, such as
@@ -53,6 +48,18 @@ fresh empty one, so nothing has to be moved by hand at release time.
   editor grows with its content as before. `editorHeight` must be a CSS
   length; anything else is refused on the server and ignored by the
   browser's renderer. Both renderers write the same markup.
+
+### Changed
+
+- `.sui-richtext` is a flex column with `overflow: clip` instead of
+  `overflow: hidden`: the corners are still rounded, but the box is no longer
+  a scroll container. The selection frame of an image hides while the image
+  is scrolled out of the editor's view.
+
+## [0.4.1] - 2026-09-21
+
+### Added
+
 - **`UiCustom`: a plugin's node type without a Java class.** A widget that
   exists only as a browser renderer (`renderer.register("chat-widget", fn)` in
   its extension) is sent as
@@ -93,13 +100,6 @@ fresh empty one, so nothing has to be moved by hand at release time.
   the active resolver instead of replacing it — `setIconResolver` still
   replaces everything, icon sets included, and so took every other plugin's
   icons with it.
-
-### Changed
-
-- `.sui-richtext` is a flex column with `overflow: clip` instead of
-  `overflow: hidden`: the corners are still rounded, but the box is no longer
-  a scroll container. The selection frame of an image hides while the image
-  is scrolled out of the editor's view.
 
 ### Fixed
 
