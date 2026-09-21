@@ -684,6 +684,52 @@ a.sui-tree-label:hover { text-decoration: underline; }
 /* Password reveal (FieldType.PASSWORD): input with a trailing eye toggle.
    The EventBus flips the input's type and the .is-revealed class; the two
    glyph spans swap visibility accordingly. */
+/* RICHTEXT: a toolbar over an editable area, in the same box an input has. */
+.sui-richtext {
+    position: relative; border: 1px solid var(--sui-color-border); border-radius: var(--sui-radius-md);
+    background: var(--sui-color-surface); overflow: hidden;
+}
+.sui-richtext:focus-within { border-color: var(--sui-color-primary); box-shadow: var(--sui-focus-ring); }
+.sui-richtext-toolbar {
+    display: flex; flex-wrap: wrap; gap: 2px; padding: 4px;
+    border-bottom: 1px solid var(--sui-color-border-soft); background: var(--sui-color-surface-alt);
+}
+.sui-richtext-btn {
+    display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 26px;
+    border: 0; border-radius: var(--sui-radius-sm); background: transparent; color: var(--sui-color-text-body);
+    cursor: pointer; padding: 0;
+}
+.sui-richtext-btn:hover { background: var(--sui-color-border-soft); }
+.sui-richtext-btn.is-active { background: var(--sui-color-primary-soft); color: var(--sui-color-primary); }
+.sui-richtext-btn .sui-icon { width: 16px; height: 16px; }
+.sui-richtext-editor {
+    min-height: 120px; padding: var(--sui-space-sm) var(--sui-space-md); outline: none;
+    font-size: var(--sui-text-md); line-height: 1.5; color: var(--sui-color-text-body); overflow-wrap: anywhere;
+}
+.sui-richtext-editor:empty::before { content: attr(data-placeholder); color: var(--sui-color-text-subtle); pointer-events: none; }
+.sui-richtext-editor p, .sui-richtext-view p { margin: 0 0 .5em; }
+.sui-richtext-editor ul, .sui-richtext-editor ol, .sui-richtext-view ul, .sui-richtext-view ol { margin: 0 0 .5em; padding-left: 1.5em; }
+.sui-richtext-editor blockquote, .sui-richtext-view blockquote {
+    margin: 0 0 .5em; padding-left: .8em; border-left: 3px solid var(--sui-color-blockquote-border, var(--sui-color-border));
+    color: var(--sui-color-text-muted);
+}
+.sui-richtext-editor a, .sui-richtext-view a { color: var(--sui-color-primary); }
+.sui-richtext-editor img, .sui-richtext-view img { max-width: 100%; height: auto; border-radius: var(--sui-radius-sm); }
+.sui-richtext-editor img { cursor: move; }
+/* The frame around a selected image and its resize handle: an overlay beside
+   the editor, positioned over the image, so nothing of it is in the value. */
+.sui-richtext-imgframe {
+    position: absolute; box-sizing: border-box; pointer-events: none;
+    border: 2px solid var(--sui-color-primary); border-radius: var(--sui-radius-sm);
+}
+.sui-richtext-imghandle {
+    position: absolute; right: -7px; bottom: -7px; width: 12px; height: 12px; pointer-events: auto;
+    background: var(--sui-color-surface); border: 2px solid var(--sui-color-primary); border-radius: 2px;
+    cursor: nwse-resize;
+}
+.sui-field--error .sui-richtext { border-color: var(--sui-color-danger); }
+.sui-richtext-view { font-size: var(--sui-text-md); line-height: 1.5; color: var(--sui-color-text-body); }
+
 .sui-input-reveal { position: relative; display: block; }
 .sui-input-reveal > input { width: 100%; padding-right: 40px; box-sizing: border-box; }
 .sui-input-reveal-btn {

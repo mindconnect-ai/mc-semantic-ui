@@ -5,6 +5,7 @@ import { renderIcon } from "./renderers/icon.js";
 import { wireOverflow } from "./renderers/overflow.js";
 import { wireMenuButtons } from "./renderers/menu-button.js";
 import { wireAutoScroll } from "./renderers/autoscroll.js";
+import { wireRichText } from "./renderers/richtext.js";
 import { t } from "./i18n.js";
 import { seatAfterToggle } from "./renderers/choices.js";
 import { withCsrf, type CsrfOptions } from "./csrf.js";
@@ -917,6 +918,9 @@ export class SuiEventBus {
         // Live feeds marked .sui-autoscroll stick to their newest entry and
         // surface a jump-to-latest arrow when the user scrolls up.
         try { wireAutoScroll(this.root); } catch { /* ignore */ }
+        // RICHTEXT fields: toolbar, paste hygiene, and the hidden input that
+        // carries the HTML — plus a server value that a patch just changed.
+        try { wireRichText(this.root); } catch { /* ignore */ }
         // The DOM changed: a stream event that waited for its target may
         // have one now.
         for (const handle of this.streams.values()) {

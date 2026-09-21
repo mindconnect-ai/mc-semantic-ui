@@ -21,7 +21,30 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Changed
+
+- A `calendar` moves without a server: previous, next, today and the view
+  switch re-render it from the model it was drawn from, so a calendar with no
+  `onNavigate` still navigates, and one whose server answers with nothing
+  still shows the period asked for. The trigger, when there is one, fires
+  after the re-render as before. `onSelect` fills `{date}`, `{hour}` and the
+  new `{time}` wherever the trigger carries them, an inline patch included,
+  and `updateCalendar(id, mutate)` lets the page change a drawn calendar —
+  together, a "new event" dialog needs no server.
+
 ### Added
+
+- `UiField.richtext(id, label, html)` — `FieldType.RICHTEXT`, formatted text.
+  The value is an HTML string and comes back as a string under the field id,
+  like a `TEXTAREA`'s; `asEditable()`, `asRequired()` and `placeholder()`
+  work as usual. A toolbar offers bold, italic, underline, bulleted and
+  numbered lists, link, quote and remove formatting; what is pasted is
+  reduced to that same vocabulary on the client (no `<script>`, `<style>`,
+  `on*` attributes or external CSS); an image on the clipboard — a
+  screenshot, say — is embedded in the HTML as a `data:` URL, scaled to at
+  most 1280px on its longer side; a click on an image shows a corner handle
+  that resizes it (as `width`/`height` attributes), and dragging moves it. A `MERGE` of `value` replaces the
+  content, focused or not. Read-only, the HTML is shown as formatted text.
 
 - `UiField.time(id, label, value)` — `FieldType.TIME`, a time of day as
   `HH:mm` in the browser's own time picker (`<input type="time">`), with

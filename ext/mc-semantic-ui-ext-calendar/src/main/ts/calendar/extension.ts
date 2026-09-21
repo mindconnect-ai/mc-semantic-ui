@@ -337,21 +337,29 @@ function shift(c: Ctx, n: number): Ymd {
     return c.view === "DAY" ? addDays(c.date, n) : c.view === "WEEK" ? addDays(c.date, 7 * n) : addMonths(c.date, n);
 }
 
+/**
+ * The header: previous / today / next, the title, and the view switch. Every
+ * button carries where it goes as `data-nav-date` / `data-nav-view`, which
+ * the `<sui-calendar>` element turns into a re-render from the model it
+ * already has — no server needed. With an `onNavigate` it carries the
+ * trigger as well, so the server hears and may answer with the events of
+ * the new period.
+ */
 function header(c: Ctx): string {
     const t = c.node.onNavigate;
     const title = `<h2 class="sui-calendar-title">${esc(heading(c))}</h2>`;
-    if (!t) return `<header class="sui-calendar-head">${title}</header>`;
-    const btn = (label: string, values: Record<string, string>, extra = ""): string =>
-        `<a class="sui-calendar-btn${extra}" href="#" data-trigger='${encodeTrigger(fill(t, values))}'>${label}</a>`;
+    const btn = (label: string, date: string, view: CalendarView, extra = "", aria = ""): string =>
+        `<a class="sui-calendar-btn${extra}" href="#" data-nav-date="${date}" data-nav-view="${view}"`
+        + (t ? ` data-trigger='${encodeTrigger(fill(t, { date, view }))}'` : "") + aria + `>${label}</a>`;
     const nav = `<div class="sui-calendar-nav">`
-        + `<a class="sui-calendar-btn" href="#" data-trigger='${encodeTrigger(fill(t, { date: toIso(shift(c, -1)), view: c.view }))}' aria-label="${esc(c.labels.previous)}">&lsaquo;</a>`
-        + (c.today ? btn(esc(c.labels.today), { date: toIso(c.today), view: c.view }) : "")
-        + `<a class="sui-calendar-btn" href="#" data-trigger='${encodeTrigger(fill(t, { date: toIso(shift(c, 1)), view: c.view }))}' aria-label="${esc(c.labels.next)}">&rsaquo;</a>`
+        + btn("&lsaquo;", toIso(shift(c, -1)), c.view, "", ` aria-label="${esc(c.labels.previous)}"`)
+        + (c.today ? btn(esc(c.labels.today), toIso(c.today), c.view) : "")
+        + btn("&rsaquo;", toIso(shift(c, 1)), c.view, "", ` aria-label="${esc(c.labels.next)}"`)
         + `</div>`;
     const views = `<div class="sui-calendar-views">`
         + (["DAY", "WEEK", "MONTH"] as CalendarView[]).map(v =>
             btn(esc(v === "DAY" ? c.labels.day : v === "WEEK" ? c.labels.week : c.labels.month),
-                { date: toIso(c.date), view: v }, v === c.view ? " is-active" : "")).join("")
+                toIso(c.date), v, v === c.view ? " is-active" : "")).join("")
         + `</div>`;
     return `<header class="sui-calendar-head">${nav}${title}${views}</header>`;
 }
@@ -420,7 +428,12 @@ function timeBody(c: Ctx): string {
         + `<div class="sui-calendar-times"><div class="sui-calendar-hours">${hourLabels}</div>${cols}</div></div>`;
 }
 
+/** The node behind each rendered calendar, by id — what a client-side navigation re-renders from. */
+const models = new Map<string, UiCalendarWire>();
+let rendererRef: SuiRenderer | null = null;
+
 export function renderCalendar(node: UiCalendarWire): string {
+    models.set(node.id, node);
     const c = context(node);
     const select = node.onSelect ? ` data-select-trigger='${encodeTrigger(node.onSelect)}'` : "";
     return `<sui-calendar class="${cls(`sui-calendar sui-calendar--${c.view.toLowerCase()}`, node)}"${evt(node)} id="${esc(node.id)}" data-sui="calendar"`
@@ -437,20 +450,50 @@ let bus: CalendarBus | null = null;
  * the `<sui-calendar>` element that turns a click on a day or an hour slot
  * into the calendar's `onSelect` trigger — `{date}` and `{hour}` filled in.
  *
- * <p>Previous / next / today and the view switch need none of this: they are
- * ordinary `data-trigger` links the event bus handles by itself. Pass the bus
- * so picking a day goes through it too; without one the element emits a
+ * <p>Previous / next / today and the view switch re-render the calendar from
+ * the model it was drawn from, so they work with no server at all; with an
+ * `onNavigate` the trigger fires as well, through the bus when one is passed
+ * and through the page's own event bus otherwise. Pass the bus so picking a
+ * day goes through it too; without one the element emits a
  * `sui-calendar-select` event (`detail: { date, hour }`) instead.
  */
 export function install(renderer: SuiRenderer, options: { bus?: CalendarBus } = {}): void {
     renderer.register<UiCalendarWire>("calendar", renderCalendar);
+    rendererRef = renderer;
     if (options.bus) bus = options.bus;
     defineElement();
 }
 
-/** The trigger to fire for a pick: `onSelect` with `{date}` and `{hour}` filled in. */
+/**
+ * The trigger to fire for a pick: `onSelect` with `{date}`, `{hour}` and
+ * `{time}` (`HH:00`, or empty for a day) filled in wherever the trigger
+ * carries them — its URL, or any string inside an inline patch, so a PATCH
+ * that opens a "new event" dialog can pre-fill the form with the pick.
+ */
 export function selectTrigger(template: Trigger, date: string, hour: number | null): Trigger {
-    return fill(template, { date, hour: hour === null ? "" : String(hour) });
+    const values: Record<string, string> = {
+        date, hour: hour === null ? "" : String(hour), time: hour === null ? "" : `${pad2(hour)}:00`,
+    };
+    let json = JSON.stringify(template);
+    for (const [k, v] of Object.entries(values)) json = json.split(`{${k}}`).join(v);
+    return JSON.parse(json) as Trigger;
+}
+
+/**
+ * Changes a rendered calendar from the outside — an event added by the
+ * page, say — by rewriting the model it was drawn from and drawing it again.
+ * Returns false when no calendar of that id has been rendered here.
+ */
+export function updateCalendar(id: string, mutate: (node: UiCalendarWire) => UiCalendarWire): boolean {
+    const node = models.get(id);
+    if (!node || !rendererRef) return false;
+    const next = mutate(node);
+    models.set(id, next);
+    if (typeof document !== "undefined") {
+        const el = document.getElementById(id);
+        if (el) el.outerHTML = rendererRef.render(next as never);
+    }
+    return true;
 }
 
 function defineElement(): void {
@@ -466,9 +509,14 @@ function defineElement(): void {
             this.addEventListener("click", e => this.onClick(e));
         }
 
+        private navigate(e: MouseEvent, btn: HTMLElement): void { navigateFrom(this, e, btn); }
+
         private onClick(e: MouseEvent): void {
             const target = e.target instanceof Element ? e.target : null;
-            if (!target || target.closest(".sui-calendar-event, .sui-calendar-btn, a, button")) return;
+            if (!target) return;
+            const nav = target.closest<HTMLElement>(".sui-calendar-btn[data-nav-date]");
+            if (nav && this.contains(nav)) { this.navigate(e, nav); return; }
+            if (target.closest(".sui-calendar-event, .sui-calendar-btn, a, button")) return;
             const slot = target.closest<HTMLElement>(".sui-calendar-slot");
             const cell = target.closest<HTMLElement>(".sui-calendar-day, .sui-calendar-allday-day, .sui-calendar-daycol");
             if (!cell || !this.contains(cell)) return;
@@ -487,4 +535,33 @@ function defineElement(): void {
     }
 
     customElements.define("sui-calendar", SuiCalendarElement);
+}
+
+/**
+ * A navigation button pressed: the calendar re-renders itself for the new
+ * date and view from the model it has, and fires the button's trigger, if
+ * any — through the bus it was given, or by leaving the click to the page's
+ * own bus. The re-render is deferred a tick so that a bus looking at the
+ * click still finds the button in the page.
+ */
+function navigateFrom(el: HTMLElement, e: MouseEvent, btn: HTMLElement): void {
+    const node = models.get(el.id);
+    const date = btn.dataset.navDate, view = btn.dataset.navView as CalendarView | undefined;
+    if (!node || !rendererRef || !date || !view) return;   // not ours to handle: the trigger link stands
+    const raw = btn.getAttribute("data-trigger");
+    let trigger: Trigger | null = null;
+    if (raw && bus) {
+        try { trigger = JSON.parse(raw) as Trigger; } catch { trigger = null; }
+    }
+    const next: UiCalendarWire = { ...node, date, view };
+    if (trigger) { e.preventDefault(); e.stopPropagation(); }
+    else if (!raw) e.preventDefault();
+    const id = el.id;
+    queueMicrotask(() => {
+        const current = document.getElementById(id);
+        if (!current) return;
+        current.outerHTML = rendererRef!.render(next as never);
+        const fresh = document.getElementById(id) ?? undefined;
+        if (trigger && bus) void bus.dispatch(trigger, fresh);
+    });
 }

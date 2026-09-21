@@ -1126,4 +1126,25 @@ class SuiServerRendererTest {
         assertTrue(plain.contains("<h2>Plain</h2>"), plain);
     }
 
+    @Test
+    void richtextRendersAnEditableAreaWithToolbarAndHiddenInput() {
+        var f = UiField.richtext("notes", "Notes", "<p>Hi <b>there</b></p>").asEditable().placeholder("Write…");
+        String html = renderer.render(f);
+        assertTrue(html.contains("<div class=\"sui-richtext\" data-sui-richtext><div class=\"sui-richtext-toolbar\" role=\"toolbar\""), html);
+        for (String cmd : new String[]{"bold", "italic", "underline", "bullets", "numbers", "link", "quote", "clear"}) {
+            assertTrue(html.contains("data-sui-richtext-cmd=\"" + cmd + "\""), cmd);
+        }
+        // The editor holds the HTML as-is; the hidden input carries it escaped, under the field id.
+        assertTrue(html.contains("<div class=\"sui-richtext-editor\" id=\"notes__input\" contenteditable=\"true\" role=\"textbox\" aria-multiline=\"true\" data-placeholder=\"Write…\"><p>Hi <b>there</b></p></div>"), html);
+        assertTrue(html.contains("<input type=\"hidden\" name=\"notes\" value=\"&lt;p&gt;Hi &lt;b&gt;there&lt;/b&gt;&lt;/p&gt;\" data-sui-type=\"RICHTEXT\">"), html);
+    }
+
+    @Test
+    void richtextReadOnlyShowsTheHtmlAsFormattedText() {
+        String html = renderer.render(UiField.richtext("n", "Notes", "<p>Hi <b>there</b></p>"));
+        assertTrue(html.contains("<div class=\"sui-richtext-view\"><p>Hi <b>there</b></p></div>"), html);
+        String empty = renderer.render(UiField.richtext("n", "Notes", null));
+        assertTrue(empty.contains("<span class=\"sui-value\">—</span>"), empty);
+    }
+
 }
