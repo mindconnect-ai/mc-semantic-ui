@@ -123,6 +123,35 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <!--
+                sui/assets.js, written from the classpath: every extension
+                dependency above declares its files in META-INF/sui/assets.json,
+                and SuiAssetsExport writes the module the asset registry would
+                serve — the same one a Spring Boot host gets from /sui/assets.js.
+                demo.js installs what it lists; adding an extension here is all
+                it takes. Base ".." because the module sits in sui/, beside
+                sui-ext/, and resolves its urls against itself.
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>export-sui-assets</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>java</goal></goals>
+                        <configuration>
+                            <mainClass>ai.mindconnect.ui.assets.SuiAssetsExport</mainClass>
+                            <classpathScope>compile</classpathScope>
+                            <arguments>
+                                <argument>${project.build.directory}/dist/sui/assets.js</argument>
+                                <argument>..</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 

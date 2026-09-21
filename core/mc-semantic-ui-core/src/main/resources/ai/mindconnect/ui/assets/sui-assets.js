@@ -9,6 +9,14 @@
 /** The resolved assets, in load order: `{ id, kind, url }`, kind one of css, module, extension. */
 const ASSETS = /*SUI_ASSETS*/[];
 
+/**
+ * An asset's url, resolved against this module's own location — so a server
+ * path (`/sui-ext/…`) stays on the module's origin, and a relative one
+ * (`../sui-ext/…`, as a static export writes it) works wherever the files are
+ * hosted, for a stylesheet linked into the page as much as for an import.
+ */
+const resolve = (url) => new URL(url, import.meta.url).href;
+
 export const assets = ASSETS;
 
 /**
@@ -26,7 +34,7 @@ export function linkStyles(doc = globalThis.document) {
         if (asset.kind !== "css" || present.has(asset.id)) continue;
         const link = doc.createElement("link");
         link.rel = "stylesheet";
-        link.href = asset.url;
+        link.href = resolve(asset.url);
         link.setAttribute("data-sui-asset", asset.id);
         pending.push(new Promise(resolve => { link.onload = link.onerror = () => resolve(); }));
         doc.head.appendChild(link);
@@ -51,7 +59,7 @@ export function linkStyles(doc = globalThis.document) {
 export async function installAll(renderer, bus, options = {}) {
     const styles = linkStyles(options.document ?? globalThis.document);
     const code = ASSETS.filter(asset => asset.kind !== "css");
-    const loads = code.map(asset => import(asset.url).then(mod => ({ mod }), error => ({ error })));
+    const loads = code.map(asset => import(resolve(asset.url)).then(mod => ({ mod }), error => ({ error })));
     const report = [];
     for (let i = 0; i < code.length; i++) {
         const asset = code[i];

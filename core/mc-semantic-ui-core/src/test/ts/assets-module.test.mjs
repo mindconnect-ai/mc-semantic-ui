@@ -79,8 +79,22 @@ describe("/sui/assets.js", () => {
     test("links the stylesheets the page does not have yet, and waits for them", async () => {
         const doc = fakeDocument(["base.css"]);
         await mod.linkStyles(doc);
-        assert.deepEqual(doc.head.children.map(l => [l.attrs["data-sui-asset"], l.href, l.rel]),
+        assert.deepEqual(doc.head.children.map(l => [l.attrs["data-sui-asset"], new URL(l.href).pathname, l.rel]),
             [["theme.css", "/theme.css", "stylesheet"]]);
+    });
+
+    test("a relative url is resolved against the module, not the page", async () => {
+        const source = readFileSync(TEMPLATE, "utf8").replace("/*SUI_ASSETS*/[]",
+            JSON.stringify([{ id: "x.css", kind: "css", url: "../sui-ext/x/x.css" }]));
+        const file = path.join(dir, "sui", "assets.mjs");
+        (await import("node:fs")).mkdirSync(path.dirname(file), { recursive: true });
+        writeFileSync(file, source);
+        const relative = await import(pathToFileURL(file).href);
+        const doc = fakeDocument([]);
+        await relative.linkStyles(doc);
+        // Against the module's real location (a temp dir can sit behind a symlink, as /var does on macOS).
+        const real = (await import("node:fs")).realpathSync(dir);
+        assert.equal(doc.head.children[0].href, pathToFileURL(path.join(real, "sui-ext", "x", "x.css")).href);
     });
 
     test("with no document there is nothing to link", async () => {

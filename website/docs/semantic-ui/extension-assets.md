@@ -148,9 +148,44 @@ its copy and revalidates, getting a `304` until something changes. Switch the
 registry off with `mindconnect.sui.assets.enabled=false`; define a
 `SuiAssetRegistry` bean of your own to replace it.
 
+## A page without a server
+
+A static page — a demo, a docs site — has no `/sui/assets.js` to ask for.
+`SuiAssetsExport` writes the same module as a file at build time, from the
+`assets.json` of every jar on the build's classpath:
+
+```xml
+<plugin>
+  <groupId>org.codehaus.mojo</groupId>
+  <artifactId>exec-maven-plugin</artifactId>
+  <executions>
+    <execution>
+      <id>export-sui-assets</id>
+      <phase>process-resources</phase>
+      <goals><goal>java</goal></goals>
+      <configuration>
+        <mainClass>ai.mindconnect.ui.assets.SuiAssetsExport</mainClass>
+        <classpathScope>compile</classpathScope>
+        <arguments>
+          <argument>${project.build.directory}/dist/sui/assets.js</argument>
+          <argument>..</argument>   <!-- base in front of every href -->
+        </arguments>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+```
+
+The module resolves every url against its own location, so a relative base
+works wherever the files are hosted: `..` for a module in `sui/` beside
+`sui-ext/`. The page imports it as it would the served one —
+`import { installAll } from "./sui/assets.js"`. The widget demo
+(`demo/mc-sui-widget-demo`) is built this way: its extensions are Maven
+dependencies, and `demo.js` lists none of them.
+
 ## An example
 
-The file-explorer demo (`demo/mc-sui-file-explorer-demo`) depends on the
+With a server: the file-explorer demo (`demo/mc-sui-file-explorer-demo`) depends on the
 calendar and kanban extensions and wires neither: `/agenda` shows both, its
 bootstrap calls `installAll`, and `DemoAssets` contributes the demo's own
 stylesheet and overrides `calendar.css` with order 10.

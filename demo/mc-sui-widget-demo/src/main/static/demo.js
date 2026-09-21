@@ -20,21 +20,13 @@ import {
     SUI_THEMES, applyTheme, currentTheme, installThemeSwitch,
 } from "./sui/renderer.js";
 import { SuiEventBus } from "./sui/eventbus.js";
-// Diagram extension: a separate browser bundle (served under /sui-ext). Its
-// install() registers the "diagram" node handler on the renderer — the same
-// way this demo registers its own chart/code handlers below.
-import { install as installDiagram } from "./sui-ext/diagram/extension.js";
-// Chart extension: the shipped painter for the core's chart node. The demo
-// used to carry its own inline-SVG handler here; showing the real extension is
-// both less code and an honest picture of what a consumer gets.
-import { install as installChart } from "./sui-ext/chart/extension.js";
-// Kanban extension: a board whose cards are dragged between lanes. Its
-// install() takes the bus too, so a drop can fire the board's onMove trigger.
-import { install as installKanban } from "./sui-ext/kanban/extension.js";
 
-// Calendar extension: month, week and day views. Its install() takes the bus
-// too, so picking a day or an hour can fire the calendar's onSelect trigger.
-import { install as installCalendar, updateCalendar } from "./sui-ext/calendar/extension.js";
+import { updateCalendar } from "./sui-ext/calendar/extension.js";
+// Every extension the demo's pom depends on, installed from sui/assets.js —
+// written at build time from the jars' META-INF/sui/assets.json by the asset
+// registry's exporter, the same module a Spring Boot host serves as
+// /sui/assets.js. No list to keep here: add the dependency, rebuild.
+import { installAll } from "./sui/assets.js";
 
 // All icon tokens in the sprite, filled at boot from ./sui/icons.svg so the
 // gallery always reflects whatever the sprite actually ships.
@@ -1346,15 +1338,16 @@ async function boot() {
 
     const root = document.getElementById("sui-root");
     const renderer = createDefaultRenderer().attach(root);
-    installChart(renderer);                               // "chart" node (extension)
     renderer.register("code", renderCode);                // custom code-block node
     renderer.register("codepen", renderCodePen);          // "Open in CodePen" button
     renderer.register("icon-gallery", renderIconGallery); // searchable icon grid
-    installDiagram(renderer);                             // "diagram" node (extension)
 
     const bus = new SuiEventBus(renderer, root);
-    installKanban(renderer, { bus });                     // "kanban" node (extension); drops go through the bus
-    installCalendar(renderer, { bus });                   // "calendar" node (extension); picks go through the bus
+    // The extensions — chart, diagram, kanban, calendar — from sui/assets.js,
+    // with their stylesheets, before the first render. A failing one is
+    // logged and skipped; the rest of the showcase still comes up.
+    const installed = await installAll(renderer, bus);
+    console.info("Extensions installed:", installed.map(r => r.ok ? r.id : `${r.id} (failed)`).join(", "));
     // Save in the calendar's New event dialog: the form's values arrive as the
     // payload; the event goes into every calendar on the tab (they share one
     // list in this demo) and the dialog closes — a patch the handler returns.

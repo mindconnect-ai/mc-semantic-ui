@@ -311,6 +311,13 @@
                         </execution>
                     </executions>
                 </plugin>
+                <!-- Runs a main class during the build — the widget demo writes its
+                     sui/assets.js with ai.mindconnect.ui.assets.SuiAssetsExport. -->
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>3.5.0</version>
+                </plugin>
                 <!-- Frontend (TS renderers + editor SPA) build.
                      installDirectory points at ONE shared location at the repo root, so
                      Node is unpacked once and every module reuses it. Per-module
