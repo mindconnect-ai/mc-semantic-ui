@@ -1668,6 +1668,19 @@ a[data-trigger].is-loading::before,
     content: ""; position: absolute; top: 0; bottom: 0; right: 100%; width: 8px;
 }
 .sui-menu--right.sui-menu--rail .sui-menu-sublist::before { right: auto; left: 100%; }
+/* A fly-out's heading: the group's name, which the rail shows only as an
+   icon — without it a fly-out of folders did not say whose folders they are.
+   Only on a fly-out from the rail itself; everywhere else the group's own
+   summary is right above its children and says it already. */
+.sui-menu-flyout-title { display: none; }
+.sui-menu--rail .sui-menu-list > .sui-menu-item--group > .sui-menu-group > .sui-menu-sublist > .sui-menu-flyout-title {
+    display: block;
+    padding: 4px 10px 6px; margin-bottom: 4px;
+    border-bottom: 1px solid var(--sui-color-border-soft);
+    color: var(--sui-color-text-muted);
+    font-size: 12px; font-weight: 600;
+    white-space: nowrap;
+}
 /* A group nested inside a fly-out opens inline there, as in the expanded menu. */
 .sui-menu--rail .sui-menu-sublist .sui-menu-sublist {
     position: static; display: flex; min-width: 0; padding: 0 0 0 22px;
