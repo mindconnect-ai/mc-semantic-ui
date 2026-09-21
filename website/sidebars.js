@@ -101,6 +101,7 @@ const sidebars = {
           type: 'category',
           label: 'Extensions',
           items: [
+            'semantic-ui/extension-assets',
             'semantic-ui/chart-extension',
             'semantic-ui/diagram-extension',
             'semantic-ui/kanban-extension',

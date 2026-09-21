@@ -1,0 +1,12 @@
+[
+  {
+    "id": "diagram.css",
+    "kind": "css",
+    "href": "/sui-ext/diagram/diagram.css"
+  },
+  {
+    "id": "diagram",
+    "kind": "extension",
+    "href": "/sui-ext/diagram/extension.js"
+  }
+]

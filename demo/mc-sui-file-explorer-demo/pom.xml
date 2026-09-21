@@ -39,6 +39,21 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!--
+            Two extensions, and nothing else to wire: each jar declares its
+            stylesheet and browser module in META-INF/sui/assets.json, the
+            asset registry picks them up, and /sui/assets.js installs them.
+            The /agenda page shows both.
+        -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-ext-calendar</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-ext-kanban</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>

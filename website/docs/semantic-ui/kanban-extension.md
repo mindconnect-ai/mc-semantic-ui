@@ -30,6 +30,12 @@ Java model, in Jackson, in the browser renderer and in SSR at once.
 
 ## Install
 
+:::tip With the asset registry
+A Spring Boot host with the core's asset registry needs none of the browser
+wiring below: the jar declares its files, and `installAll(renderer, bus)` from
+`/sui/assets.js` installs it. See [the asset registry](./extension-assets.md).
+:::
+
 <Tabs groupId="ui-lang">
 <TabItem value="java" label="Java / server-side">
 

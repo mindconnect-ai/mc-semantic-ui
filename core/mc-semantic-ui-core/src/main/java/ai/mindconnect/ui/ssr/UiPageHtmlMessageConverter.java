@@ -103,9 +103,21 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
      */
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
+    /**
+     * The stylesheets of the asset registry, linked in every page's head so
+     * an extension's CSS is there before the first paint. Null without one.
+     */
+    private final ai.mindconnect.ui.assets.SuiAssetRegistry assets;
+
     public UiPageHtmlMessageConverter(SuiServerRenderer renderer) {
+        this(renderer, null);
+    }
+
+    /** With the stylesheets of {@code assets} linked in every page's head. */
+    public UiPageHtmlMessageConverter(SuiServerRenderer renderer, ai.mindconnect.ui.assets.SuiAssetRegistry assets) {
         super(StandardCharsets.UTF_8, MediaType.TEXT_HTML);
         this.renderer = renderer;
+        this.assets = assets;
     }
 
     @Override
@@ -142,6 +154,7 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
 
         String document = "<!DOCTYPE html>\n<html class=\"sui-theme-" + theme + "\"><head><meta charset=\"UTF-8\">"
                 + themeStylesheets(theme)
+                + (assets == null ? "" : assets.headTags(currentContextPath()))
                 + csrfMeta
                 + extraHead
                 + "</head><body>"
@@ -378,6 +391,15 @@ public class UiPageHtmlMessageConverter extends AbstractHttpMessageConverter<UiP
             if (Modifier.isPublic(i.getModifiers())) types.add(i);
         }
         return types;
+    }
+
+    /** The servlet context path of the current request, {@code ""} at the root or outside a request. */
+    private static String currentContextPath() {
+        RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
+        if (attrs instanceof org.springframework.web.context.request.ServletRequestAttributes servlet) {
+            return servlet.getRequest().getContextPath();
+        }
+        return "";
     }
 
     /**

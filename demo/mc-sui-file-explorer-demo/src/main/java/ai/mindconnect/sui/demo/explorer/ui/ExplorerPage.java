@@ -45,6 +45,7 @@ public class ExplorerPage {
         var stack = UiStack.of("explorer")
                 .gap(20)
                 .child(UiText.of("explorer-title", "📁 File Explorer").withCssClass("explorer-title"))
+                .child(UiLink.of("to-agenda", "/agenda", "Agenda — a calendar and a board, from two extension jars →"))
                 .child(breadcrumb())
                 .child(newFolderForm("", null))
                 .child(entryList())
