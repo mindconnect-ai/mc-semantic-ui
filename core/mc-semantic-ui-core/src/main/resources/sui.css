@@ -1274,16 +1274,26 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
 .sui-menu-button-trigger {
     list-style: none; cursor: pointer; user-select: none;
     display: inline-flex; align-items: center; gap: 6px; box-sizing: border-box;
+    transition: background var(--sui-duration-fast), color var(--sui-duration-fast), box-shadow var(--sui-duration-fast); touch-action: manipulation;
+}
+/* The look of a plain trigger. A form's menu (UiActionMenu) wears the button
+   classes instead (sui-btn sui-btn--secondary), and those decide its look. */
+.sui-menu-button-trigger:not(.sui-btn) {
     font: inherit; color: var(--sui-color-text-muted);
     border: 1px solid transparent; border-radius: var(--sui-radius-md);
-    transition: background var(--sui-duration-fast), color var(--sui-duration-fast), box-shadow var(--sui-duration-fast); touch-action: manipulation;
 }
 .sui-menu-button-trigger::-webkit-details-marker { display: none; }
 .sui-menu-button-trigger::marker { content: ""; }
-.sui-menu-button-trigger:hover,
-.sui-menu-button[open] > .sui-menu-button-trigger {
+.sui-menu-button-trigger:not(.sui-btn):hover,
+.sui-menu-button[open] > .sui-menu-button-trigger:not(.sui-btn) {
     background: var(--sui-color-surface-alt); color: var(--sui-color-text-strong);
 }
+/* A menu in a button bar: a button with a caret, pressed while open. */
+.sui-menu-button--action > .sui-menu-button-trigger { line-height: 1; }
+.sui-menu-button--action > .sui-menu-button-trigger .sui-menu-button-glyph .sui-icon { width: 1em; height: 1em; }
+.sui-menu-button--action > .sui-menu-button-trigger .sui-menu-button-caret { color: inherit; opacity: .7; }
+.sui-menu-button--action[open] > .sui-btn--secondary { background: var(--sui-color-surface-alt); }
+.sui-menu-button--action > .sui-menu-button-trigger[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
 .sui-menu-button-glyph { display: inline-flex; }
 .sui-menu-button-glyph .sui-icon { width: 18px; height: 18px; }
 .sui-menu-button-caret { display: inline-flex; color: var(--sui-color-text-subtle); margin-left: 2px; }
@@ -1333,6 +1343,15 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
     background: var(--sui-color-surface-alt); border-radius: 999px; padding: 1px 7px;
 }
 .sui-menu-button-sep { height: 1px; margin: 5px 6px; background: var(--sui-color-border); }
+/* A heading over the entries that follow (UiMenuItem.heading): a label, not an item. */
+.sui-menu-button-heading {
+    padding: 8px 10px 4px; font-size: var(--sui-text-xs, 11px); font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase; color: var(--sui-color-text-subtle);
+    white-space: nowrap; user-select: none;
+}
+.sui-menu-button-item:disabled, .sui-menu-button-item[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.sui-menu-button-item:disabled:hover, .sui-menu-button-item[aria-disabled="true"]:hover { background: none; color: var(--sui-color-text-body); }
+.sui-menu-button-item:focus-visible { outline: none; background: var(--sui-color-surface-alt); box-shadow: var(--sui-focus-ring); }
 
 /* Nested submenu: a group header (with a trailing ›) + a side-flyout that opens
    on hover / focus (desktop) or an `.is-open` class the SPA toggles on click

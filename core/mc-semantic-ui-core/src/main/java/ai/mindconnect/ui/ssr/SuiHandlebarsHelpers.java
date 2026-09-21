@@ -59,6 +59,7 @@ public final class SuiHandlebarsHelpers {
         // shape (anchor or form-wrapped button) for stand-alone use (detail
         // page action bar, list-item actions, etc.).
         hb.registerHelper("action", (ctx, opts) -> {
+            if (ctx instanceof ai.mindconnect.ui.model.UiActionMenu menu) return actionMenu(renderer, menu);
             if (!(ctx instanceof ai.mindconnect.ui.model.UiAction a)) return "";
             return new com.github.jknack.handlebars.Handlebars.SafeString(
                     SsrTriggerMapper.render(a));
@@ -106,6 +107,7 @@ public final class SuiHandlebarsHelpers {
         // trigger would otherwise wrap itself in a form. The outer UiForm
         // wrapper carries the action URL and HTTP method instead.
         hb.registerHelper("formAction", (ctx, opts) -> {
+            if (ctx instanceof ai.mindconnect.ui.model.UiActionMenu menu) return actionMenu(renderer, menu);
             if (!(ctx instanceof ai.mindconnect.ui.model.UiAction a)) return "";
             return new com.github.jknack.handlebars.Handlebars.SafeString(
                     SsrTriggerMapper.renderButtonOnly(a));
@@ -116,6 +118,7 @@ public final class SuiHandlebarsHelpers {
         // so a Delete-button's href becomes /admin/products/abc-123 instead
         // of the literal /admin/products/{id}.
         hb.registerHelper("rowAction", (ctx, opts) -> {
+            if (ctx instanceof ai.mindconnect.ui.model.UiActionMenu menu) return actionMenu(renderer, menu);
             if (!(ctx instanceof ai.mindconnect.ui.model.UiAction a)) return "";
             Object row = opts.param(0, null);
             // Accept either a UiRow (preferred — has its own id + data map)
@@ -657,6 +660,16 @@ public final class SuiHandlebarsHelpers {
     }
 
     /**
+     * A {@link ai.mindconnect.ui.model.UiActionMenu} where a button goes: its
+     * own template, {@code action-menu.hbs}, through the renderer — the same
+     * markup {@code renderActionMenu()} writes in the browser.
+     */
+    private static com.github.jknack.handlebars.Handlebars.SafeString actionMenu(
+            SuiServerRenderer renderer, ai.mindconnect.ui.model.UiActionMenu menu) {
+        return new com.github.jknack.handlebars.Handlebars.SafeString(renderer.render(menu));
+    }
+
+    /**
      * Form → primary submit action. Prefers a PRIMARY-styled action;
      * falls back to the first action in the list. Returns null when the
      * form has no actions at all.
@@ -664,10 +677,13 @@ public final class SuiHandlebarsHelpers {
     private static ai.mindconnect.ui.model.UiAction primaryFormAction(Object formCtx) {
         if (!(formCtx instanceof ai.mindconnect.ui.model.UiForm f)) return null;
         if (f.getActions() == null || f.getActions().isEmpty()) return null;
-        for (var a : f.getActions()) {
+        // A menu is never the form's submit: it opens, its entries act.
+        var buttons = f.getActions().stream()
+                .filter(a -> !(a instanceof ai.mindconnect.ui.model.UiActionMenu)).toList();
+        for (var a : buttons) {
             if (a.getStyle() == ai.mindconnect.ui.model.UiAction.Style.PRIMARY) return a;
         }
-        return f.getActions().get(0);
+        return buttons.isEmpty() ? null : buttons.get(0);
     }
 
     /** UiForm → primary action's HTTP method, defaulting to GET. */

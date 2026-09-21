@@ -1549,6 +1549,11 @@ export class SuiEventBus {
             if (link.dataset.confirm && !window.confirm(link.dataset.confirm)) return;
             const trigger = this.parseTrigger(link);
             if (trigger) {
+                // A menu in a form's button bar is one of the form's buttons:
+                // its entries send the form, like any button there. By the
+                // form's id, not by where the open menu sits (it is fixed to
+                // the window), so collectPayload finds the fields wherever.
+                if (link.closest(".sui-form-footer .sui-menu-button--action")) this.inferImplicitPayload(trigger, link);
                 await this.dispatch(trigger, link);
             } else if (link.dataset.href) {
                 await this.navigateFrom(link, link.dataset.href);

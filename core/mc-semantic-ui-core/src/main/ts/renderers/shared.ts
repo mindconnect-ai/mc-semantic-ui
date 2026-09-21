@@ -1,11 +1,13 @@
-import type { UiAction, UiLink, UiListItem, UiTrigger, Pagination } from "../model.js";
+import type { UiAnyAction, UiLink, UiListItem, UiTrigger, Pagination } from "../model.js";
 import { escapeHtml, encodeTrigger, type SuiRenderer } from "../renderer.js";
 import { renderAction } from "./action.js";
+import { renderActionMenu } from "./menu-button.js";
 import { renderIcon } from "./icon.js";
 import { renderLink } from "./link.js";
 
-export function renderActions(actions: UiAction[]): string {
-    return actions.map(renderAction).join("");
+/** A button bar: buttons, and menus of buttons ({@link renderActionMenu}), in the order given. */
+export function renderActions(actions: UiAnyAction[]): string {
+    return actions.map(a => a.type === "action-menu" ? renderActionMenu(a) : renderAction(a)).join("");
 }
 
 export function renderLinks(links: UiLink[]): string {

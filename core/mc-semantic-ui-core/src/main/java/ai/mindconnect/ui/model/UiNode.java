@@ -43,6 +43,7 @@ import java.util.Map;
     @JsonSubTypes.Type(value = UiDetail.class,    name = "detail"),
     @JsonSubTypes.Type(value = UiHeader.class,    name = "header"),
     @JsonSubTypes.Type(value = UiAction.class,    name = "action"),
+    @JsonSubTypes.Type(value = UiActionMenu.class, name = "action-menu"),
     @JsonSubTypes.Type(value = UiField.class,     name = "field"),
     @JsonSubTypes.Type(value = UiFieldGroup.class, name = "fieldgroup"),
     @JsonSubTypes.Type(value = UiUpload.class,    name = "upload"),

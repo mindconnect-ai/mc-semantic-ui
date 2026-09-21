@@ -346,6 +346,18 @@ function formsTab() {
         actions: [
             { type: "action", id: "f-save",   label: "Save",   style: "PRIMARY",   onClick: formPatch(withError, { level: "ERROR", message: "Please fix the errors below", durationMs: 3000 }) },
             { type: "action", id: "f-cancel", label: "Cancel", style: "SECONDARY", onClick: formPatch(f => f, { level: "INFO", message: "Changes discarded", durationMs: 2500 }) },
+            // A menu in the button bar (UiActionMenu). Each entry sends the
+            // form's fields: "Draft" names the form, the quick actions name
+            // nothing and get it because they sit in its button bar. Handled
+            // by the client-side "demo-ai" handler in boot(): no backend.
+            { type: "action-menu", id: "f-ai", label: "AI", icon: "sparkles", style: "SECONDARY", items: [
+                { type: "menu-item", id: "f-ai-draft", label: "Draft with AI", icon: "wand-sparkles", onClick: { behavior: "INVOKE", handler: "demo-ai", payload: "demo-form" } },
+                { type: "menu-item", divider: true },
+                { type: "menu-item", heading: true, label: "Quick actions" },
+                { type: "menu-item", id: "f-ai-shorten", label: "Shorten", icon: "scissors", onClick: { behavior: "INVOKE", handler: "demo-ai" } },
+                { type: "menu-item", id: "f-ai-summary", label: "Summarize", icon: "list-collapse", onClick: { behavior: "INVOKE", handler: "demo-ai" } },
+                { type: "menu-item", id: "f-ai-translate", label: "Translate", icon: "file-text", enabled: false, disabledReason: "Not in this demo", onClick: { behavior: "INVOKE", handler: "demo-ai" } },
+            ] },
             { type: "action", id: "f-delete", label: "Delete", style: "DANGER", confirm: "Delete this product?", onClick: api("DELETE", "/products/1") },
         ],
         links: [{ type: "link", id: "f-help", rel: "ref", href: "#", label: "Need help?" }],
@@ -374,6 +386,13 @@ function formsTab() {
     // applied by the bus with no server call at all.
     .action(UiAction.primary("f-save", "Save").onClick(UiTrigger.patch(allFieldsError)))
     .action(UiAction.secondary("f-cancel", "Cancel").onClick(UiTrigger.patch(allFieldsClean)))
+    .action(UiAction.menu("f-ai", "AI",
+            UiMenuItem.of("f-ai-draft", "Draft with AI").icon("wand-sparkles").onClick(UiTrigger.invoke("demo-ai", "demo-form")),
+            UiMenuItem.divider(),
+            UiMenuItem.heading("Quick actions"),
+            UiMenuItem.of("f-ai-shorten", "Shorten").icon("scissors").onClick(UiTrigger.invoke("demo-ai")),
+            UiMenuItem.of("f-ai-summary", "Summarize").icon("list-collapse").onClick(UiTrigger.invoke("demo-ai")))
+        .icon("sparkles"))
     .action(UiAction.danger("f-delete", "Delete").confirm("Delete this product?").onClick(UiTrigger.api("DELETE", "/products/1")))
     .link(UiLink.of("ref", "#", "Need help?"));`;
 
@@ -1373,6 +1392,13 @@ async function boot() {
         storeEvent(ev);
         for (const id of CALENDAR_IDS) updateCalendar(id, n => ({ ...n, events: [...(n.events || []), withDialog(ev)] }));
         return { patches: [{ op: "REMOVE", targetId: "ev-new-dlg" }], toasts: [{ level: "SUCCESS", message: `Added “${title}”`, durationMs: 2200 }] };
+    });
+    // The form's AI menu: shows what the entry would have sent.
+    bus.registerClientHandler("demo-ai", (ctx) => {
+        const p = ctx.payload || {};
+        const what = ctx.sourceElement?.textContent?.trim() || "AI";
+        return { patches: [], toasts: [{ level: "INFO", durationMs: 3500,
+            message: `${what}: would send ${Object.keys(p).length} fields — Name “${p["f-name"] ?? ""}”` }] };
     });
     // Forget added: drops the stored events and takes them out of the calendars.
     bus.registerClientHandler("demo-forget-events", () => {

@@ -21,6 +21,25 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **A menu in a form's button bar.** `UiAction.menu("ai", "AI", items…)`
+  (a `UiActionMenu`, type `action-menu`) goes where a button goes and keeps
+  the order it was added in, so a bar reads `Send · Attach · ✨ AI ▾ · Check`
+  instead of six separate buttons. It looks like its neighbours (style, icon,
+  label, a caret) and opens like a `UiMenuButton`. Its entries send the form's
+  fields, whether the trigger names the form or, inside the bar, names
+  nothing; the fields are collected by the form's id, not from where the
+  fixed popover sits. A menu is never the form's native submit.
+- **`UiMenuItem.heading("Quick actions")`**: a label over a run of menu
+  entries, not an item.
+- **Menus work from the keyboard.** Enter, Space or ↓ open a menu on its first
+  entry and ↑ on its last. The arrows move and wrap past headings, dividers
+  and disabled entries; Home and End jump to the ends; → and ← enter and
+  leave a submenu; Esc closes and returns to the trigger; Tab closes and
+  moves on. A menu with room on neither side of its trigger takes the larger
+  side and scrolls, and a disabled menu entry is drawn disabled.
+
 ## [0.4.1] - 2026-09-21
 
 ### Added

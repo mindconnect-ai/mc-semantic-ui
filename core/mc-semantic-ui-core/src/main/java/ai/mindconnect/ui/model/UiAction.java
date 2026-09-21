@@ -111,6 +111,20 @@ public class UiAction extends UiNode {
         return build(id, iconGlyph, Style.SECONDARY, Appearance.ICON);
     }
 
+    /**
+     * A button that opens a menu of {@code items} — see {@link UiActionMenu}.
+     * Secondary by default, like the other buttons of a button bar.
+     */
+    public static UiActionMenu menu(String id, String label, UiMenuItem... items) {
+        var m = new UiActionMenu();
+        m.setId(id);
+        m.setLabel(label);
+        m.setStyle(Style.SECONDARY);
+        m.setAppearance(Appearance.BUTTON);
+        for (UiMenuItem item : items) m.item(item);
+        return m;
+    }
+
     private static UiAction build(String id, String label, Style style, Appearance appearance) {
         var a = new UiAction();
         a.setId(id);

@@ -1,0 +1,8 @@
+{{!--
+  UiActionMenu → a button that opens a menu, where a button goes (a form's
+  button bar). Mirror of renderActionMenu() in renderers/menu-button.ts. The
+  same <details> a UiMenuButton is, so the same wiring opens, positions and
+  drives it; the trigger wears the button classes so it looks like its
+  neighbours. The entries share menu-button-item.hbs.
+--}}
+<details class="sui-menu-button sui-menu-button--action sui-menu-button--align-start{{#if cssClass}} {{cssClass}}{{/if}}" id="{{id}}" data-sui="menu-button"><summary class="sui-menu-button-trigger sui-btn sui-btn--{{lower style "SECONDARY"}}{{#if loading}} is-loading{{/if}}" role="button" aria-haspopup="menu" aria-expanded="false"{{#if loading}} aria-disabled="true"{{else}}{{#unless enabled}} aria-disabled="true"{{/unless}}{{/if}} title="{{#if disabledReason}}{{disabledReason}}{{else}}{{label}}{{/if}}">{{#if icon}}<span class="sui-menu-button-glyph">{{{icon icon}}}</span>{{/if}}<span class="sui-menu-button-text">{{label}}</span><span class="sui-menu-button-caret">{{{icon "chevron-down"}}}</span></summary><div class="sui-menu-button-popover" role="menu">{{#each items}}{{> menu-button-item}}{{/each}}</div></details>

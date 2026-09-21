@@ -38,7 +38,7 @@ run a client handler that returns a patch.*
 | `title` | `String` | Rendered as an `<h2>` above the fields. Omit for an untitled form. |
 | `fields` | `List<UiField>` | The flat, vertical list of inputs. Empty by default. |
 | `content` | `List<UiNode>` | Rich body rendered *after* `fields` — any node tree, for columns, tabs or groups. |
-| `actions` | `List<UiAction>` | Footer buttons. The first `PRIMARY` one (else the first) supplies the native `method`/`action` fallback. |
+| `actions` | `List<UiAction>` | Footer buttons, and menus of them (`UiAction.menu(…)`, [below](#a-menu-in-the-button-bar)), in the order added. The first `PRIMARY` button (else the first button, never a menu) supplies the native `method`/`action` fallback. |
 | `links` | `List<UiLink>` | Footer links, rendered next to the actions. |
 | `formError` | `String` | Form-level error banner above the fields, `role="alert"`. For cross-field or save failures. |
 | `reloadOnSubmit` | `boolean` | `true` makes submit a native full-page navigation instead of an event-bus fetch. |
@@ -136,6 +136,56 @@ lives outside the mounted `#sui-root` subtree — swapping the stylesheet in
 `action` onto the `<form>` from the primary action's trigger, tunnelling
 `PUT`/`DELETE` through a hidden `_method` input. A form without actions has no
 native submit target.
+
+## A menu in the button bar
+
+Several related actions — a mail composer's AI tools — fit behind one button,
+so the bar stays short: `Send · Attach · ✨ AI ▾ · Check`.
+
+```java
+UiForm.of("compose", "New mail")
+    .field(UiField.text("subject", "Subject", null).asEditable())
+    .field(UiField.richtext("body", "Message", null).asEditable())
+    .action(UiAction.primary("send", "Send").onClick(UiTrigger.api("POST", "/mail/send", "compose")))
+    .action(UiAction.secondary("attach", "Attach").icon("paperclip").onClick(/* … */))
+    .action(UiAction.menu("ai", "AI",
+                UiMenuItem.of("draft", "Draft with AI").icon("wand-sparkles")
+                        .onClick(UiTrigger.api("POST", "/ai/draft", "compose")),
+                UiMenuItem.divider(),
+                UiMenuItem.heading("Quick actions"),
+                UiMenuItem.of("shorten", "Shorten").icon("scissors")
+                        .onClick(UiTrigger.api("POST", "/ai/shorten")),
+                UiMenuItem.of("translate", "Translate").disabled("No translation service"))
+            .icon("sparkles"))
+    .action(UiAction.secondary("check", "Check").onClick(/* … */));
+```
+
+- **It looks like its neighbours.** `UiAction.menu` is a `UiActionMenu`, an
+  action with `items`, so it has the button's `style` (secondary by default),
+  `icon`, `label` and `enabled`/`disabledReason`, plus a small caret.
+- **Its entries send the form**, like any button of the form. They send it
+  when the trigger names the form as `payload`, and also, inside the button
+  bar, when it names nothing. The fields are collected through the form's id,
+  not from where the menu happens to be: the open popover is fixed to the
+  window.
+- **It is never the submit.** The form's native `method`/`action` come from a
+  button, never from a menu. A form whose only action is a menu has no native
+  submit.
+- **It stays in the window.** It opens above the button when there is no room
+  below it, such as a button bar fixed to the bottom of a dialog. It is kept
+  inside the window sideways. When neither side has room, it takes the larger
+  side and scrolls.
+- **Keyboard.** <kbd>Enter</kbd>/<kbd>Space</kbd> open the menu on its first
+  entry, and <kbd>↓</kbd>/<kbd>↑</kbd> on the button open it on the first or
+  last entry. Inside, the arrows move and wrap, skipping headings, dividers
+  and disabled entries; <kbd>Home</kbd>/<kbd>End</kbd> jump to the ends.
+  <kbd>→</kbd>/<kbd>←</kbd> enter and leave a submenu. <kbd>Esc</kbd> closes
+  the menu and returns to the button, <kbd>Tab</kbd> closes it and moves on,
+  and choosing an entry closes it.
+- **Where else.** A menu can go wherever an action goes (`UiDetail`,
+  `UiList`, a table's header actions), and it renders the same way there. The
+  entries work only with the event bus: without JS the menu still opens, but
+  its buttons do nothing.
 
 ## See also
 
