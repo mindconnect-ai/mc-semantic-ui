@@ -464,9 +464,36 @@ export function install(renderer: SuiRenderer, options: { bus?: CalendarBus } = 
     defineElement();
 }
 
-/** The trigger to fire for a pick: `onSelect` with `{date}` and `{hour}` filled in. */
+/**
+ * The trigger to fire for a pick: `onSelect` with `{date}`, `{hour}` and
+ * `{time}` (`HH:00`, or empty for a day) filled in wherever the trigger
+ * carries them — its URL, or any string inside an inline patch, so a PATCH
+ * that opens a "new event" dialog can pre-fill the form with the pick.
+ */
 export function selectTrigger(template: Trigger, date: string, hour: number | null): Trigger {
-    return fill(template, { date, hour: hour === null ? "" : String(hour) });
+    const values: Record<string, string> = {
+        date, hour: hour === null ? "" : String(hour), time: hour === null ? "" : `${pad2(hour)}:00`,
+    };
+    let json = JSON.stringify(template);
+    for (const [k, v] of Object.entries(values)) json = json.split(`{${k}}`).join(v);
+    return JSON.parse(json) as Trigger;
+}
+
+/**
+ * Changes a rendered calendar from the outside — an event added by the
+ * page, say — by rewriting the model it was drawn from and drawing it again.
+ * Returns false when no calendar of that id has been rendered here.
+ */
+export function updateCalendar(id: string, mutate: (node: UiCalendarWire) => UiCalendarWire): boolean {
+    const node = models.get(id);
+    if (!node || !rendererRef) return false;
+    const next = mutate(node);
+    models.set(id, next);
+    if (typeof document !== "undefined") {
+        const el = document.getElementById(id);
+        if (el) el.outerHTML = rendererRef.render(next as never);
+    }
+    return true;
 }
 
 function defineElement(): void {

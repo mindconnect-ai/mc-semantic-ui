@@ -34,7 +34,7 @@ import { install as installKanban } from "./sui-ext/kanban/extension.js";
 
 // Calendar extension: month, week and day views. Its install() takes the bus
 // too, so picking a day or an hour can fire the calendar's onSelect trigger.
-import { install as installCalendar } from "./sui-ext/calendar/extension.js";
+import { install as installCalendar, updateCalendar } from "./sui-ext/calendar/extension.js";
 
 // All icon tokens in the sprite, filled at boot from ./sui/icons.svg so the
 // gallery always reflects whatever the sprite actually ships.
@@ -549,12 +549,35 @@ function calendarTab() {
         ev("c-9", "Dentist", "2026-09-23T08:00", "2026-09-23T09:00", { color: "#7c3aed" }),
         ev("c-10", "Demo day", "2026-09-23T16:00", "2026-09-23T17:00"),
     ];
+    // A pick (a day, an hour) or the New event button opens a dialog with a
+    // form — an inline PATCH; the calendar fills {date} and {time} into it.
+    // Save is an INVOKE handled in boot() (demo-add-event): it adds the event
+    // to every calendar on this tab through updateCalendar(), no backend.
+    const newEventDialog = (date, time) => ({
+        type: "dialog", id: "ev-new-dlg", title: "New event",
+        node: { type: "form", id: "ev-new-form", fields: [
+            { type: "field", id: "ev-title", label: "Title", fieldType: "TEXT", editable: true, required: true, placeholder: "What is it?" },
+            { type: "field", id: "ev-date", label: "Date", fieldType: "DATE", editable: true, value: date },
+            { type: "field", id: "ev-start", label: "Start", fieldType: "TEXT", editable: true, value: time, placeholder: "HH:MM — leave empty for all day" },
+            { type: "field", id: "ev-end", label: "End", fieldType: "TEXT", editable: true, placeholder: "HH:MM" },
+        ], actions: [
+            { type: "action", id: "ev-save", label: "Save", style: "PRIMARY", onClick: { behavior: "INVOKE", handler: "demo-add-event", payload: "ev-new-form" } },
+            { type: "action", id: "ev-cancel", label: "Cancel", style: "SECONDARY",
+              onClick: { behavior: "PATCH", patch: { patches: [{ op: "REMOVE", targetId: "ev-new-dlg" }], toasts: [] } } },
+        ] },
+    });
+    const openNewEvent = (date, time) =>
+        ({ behavior: "PATCH", patch: { patches: [{ op: "APPEND", targetId: "sui-dialogs", node: newEventDialog(date, time) }], toasts: [] } });
     const calendar = (id, view) => ({
         type: "calendar", id, view, date: "2026-09-21", today: "2026-09-21", selectedDate: "2026-09-23",
         startHour: 7, endHour: 19, events,
         onNavigate: go("/cal?date={date}&view={view}"),
-        onSelect: api("POST", "/cal/pick?date={date}&hour={hour}"),
+        onSelect: openNewEvent("{date}", "{time}"),
     });
+    const monthWithButton = stack("cal-month-wrap", [
+        { type: "action", id: "cal-new", label: "New event", icon: "plus", style: "PRIMARY", onClick: openNewEvent("2026-09-21", "") },
+        calendar("cal-month", "MONTH"),
+    ], { gap: 12 });
     const calendarJava =
 `UiCalendar.of("cal", UiCalendar.View.WEEK, LocalDate.of(2026, 9, 21))
     .labels(Locale.GERMAN)                       // weekday and month names from java.time
@@ -571,7 +594,14 @@ function calendarTab() {
                                     .onClick(UiTrigger.patch(UiPatch.Operation.remove("c-1-dlg")))))))))
     .event(UiCalendarEvent.allDay("c-2", "Offsite", LocalDate.of(2026, 9, 22), LocalDate.of(2026, 9, 24)))
     .onNavigate(UiTrigger.go("/cal?date={date}&view={view}"))
-    .onSelect(UiTrigger.api("POST", "/cal/pick?date={date}&hour={hour}"));
+    // A pick opens a dialog to add an event; {date} and {time} are filled in
+    // wherever the trigger carries them — here into the form's fields.
+    .onSelect(UiTrigger.patch(UiPatch.Operation.append("sui-dialogs",
+            UiDialog.of("New event", null, UiForm.of("ev-new-form", null)
+                    .field(UiField.text("ev-title", "Title", null).asEditable().asRequired())
+                    .field(UiField.date("ev-date", "Date", "{date}").asEditable())
+                    .field(UiField.text("ev-start", "Start", "{time}").asEditable())
+                    .action(UiAction.primary("ev-save", "Save").onClick(UiTrigger.api("POST", "/cal/events", "ev-new-form")))))));
 
 // Browser:  import { install } from "/sui-ext/calendar/extension.js"; install(renderer, { bus });
 // Server:   add the dependency — the calendar renders server-side too, from the
@@ -579,8 +609,8 @@ function calendarTab() {
 //           plain trigger links, so they work with JavaScript switched off.`;
     return stack("tab-calendar", [
         text("calendar-intro",
-            "The calendar node ships in the mc-semantic-ui-ext-calendar module: a month, a week or a day of events. Previous, next and the view switch re-render the calendar from its own model, so they work right here with no backend; with an onNavigate (set below) they fire it too, with {date} and {view} filled in. A click on a day or an hour fires onSelect with {date} and {hour} — the stub backend answers with a toast. A click on an event opens it in a dialog, by an inline PATCH, no backend either."),
-        specimen("sp-cal-month", "Month view", calendar("cal-month", "MONTH"), calendarJava),
+            "The calendar node ships in the mc-semantic-ui-ext-calendar module: a month, a week or a day of events. Previous, next and the view switch re-render the calendar from its own model, so they work right here with no backend; with an onNavigate (set below) they fire it too, with {date} and {view} filled in. A click on a day or an hour fires onSelect with {date} and {time} filled in — here an inline PATCH that opens a New event dialog, saved by a client-side INVOKE handler that adds the event to the calendars. A click on an event opens it in a dialog the same way. No backend anywhere."),
+        specimen("sp-cal-month", "Month view — click a day, or New event, to add one", monthWithButton, calendarJava),
         specimen("sp-cal-week", "Week view — timed events in their hour, all-day ones above", calendar("cal-week", "WEEK"), calendarJava),
         specimen("sp-cal-day", "Day view", calendar("cal-day", "DAY"), calendarJava),
     ], { gap: 16 });
@@ -1296,6 +1326,20 @@ async function boot() {
     const bus = new SuiEventBus(renderer, root);
     installKanban(renderer, { bus });                     // "kanban" node (extension); drops go through the bus
     installCalendar(renderer, { bus });                   // "calendar" node (extension); picks go through the bus
+    // Save in the calendar's New event dialog: the form's values arrive as the
+    // payload; the event goes into every calendar on the tab (they share one
+    // list in this demo) and the dialog closes — a patch the handler returns.
+    bus.registerClientHandler("demo-add-event", (ctx) => {
+        const p = ctx.payload || {};
+        const title = String(p["ev-title"] || "").trim();
+        if (!title) return { patches: [], toasts: [{ level: "WARN", message: "A title, please.", durationMs: 2200 }] };
+        const date = String(p["ev-date"] || "2026-09-21"), start = String(p["ev-start"] || "").trim(), end = String(p["ev-end"] || "").trim();
+        const ev = { type: "calendar-event", id: `c-${Date.now()}`, title, color: "#7c3aed",
+                     start: start ? `${date}T${start}` : date, end: start && end ? `${date}T${end}` : undefined };
+        ev.onClick = toastTrigger(`Opened ${title}`);
+        for (const id of ["cal-month", "cal-week", "cal-day"]) updateCalendar(id, n => ({ ...n, events: [...(n.events || []), ev] }));
+        return { patches: [{ op: "REMOVE", targetId: "ev-new-dlg" }], toasts: [{ level: "SUCCESS", message: `Added “${title}”`, durationMs: 2200 }] };
+    });
     // No backend: fake the server. A small delay is deliberate — it lets the
     // inline loading feedback (the spinner the bus paints on the clicked
     // control) actually be visible before the response lands.

@@ -102,7 +102,7 @@ Two triggers, two sets of placeholders filled into their URL:
 | Trigger | Fired by | Placeholders |
 |---|---|---|
 | `onNavigate` | previous, next, today, and the Day / Week / Month buttons | `{date}` — the day to show, `yyyy-MM-dd`; `{view}` — `DAY`, `WEEK` or `MONTH` |
-| `onSelect` | a click on a month cell, an all-day cell, or an hour slot | `{date}` — the day, `yyyy-MM-dd`; `{hour}` — the hour (0–23), or empty for a day |
+| `onSelect` | a click on a month cell, an all-day cell, or an hour slot | `{date}` — the day, `yyyy-MM-dd`; `{hour}` — the hour (0–23), or empty for a day; `{time}` — `HH:00`, or empty. Filled wherever the trigger carries them — its URL, or the nodes of an inline `PATCH`, so a pick can open a pre-filled "new event" dialog with no round trip |
 
 Navigation happens in the page first: the calendar keeps the model it was
 drawn from, and a button re-renders it for the new date and view from the
@@ -112,6 +112,22 @@ render time; it fires after the re-render, and the server may answer with the
 events of that period as a `REPLACE` of the calendar node (or with nothing).
 Previous and next step by a day, a week or a month depending on the view,
 clamping the day of month where a month is shorter.
+
+### Adding an event from the page
+
+`updateCalendar(id, node => …)` in the browser bundle rewrites the model a
+rendered calendar was drawn from and draws it again — for a page that lets
+the user create an event without a round trip, say from a dialog that an
+`onSelect` inline patch opened, saved by an `INVOKE` handler:
+
+```js
+bus.registerClientHandler("add-event", ctx => {
+  const p = ctx.payload;                       // the dialog form's values
+  updateCalendar("cal", n => ({ ...n, events: [...(n.events ?? []),
+    { type: "calendar-event", id: crypto.randomUUID(), title: p.title, start: `${p.date}T${p.start}` }] }));
+  return { patches: [{ op: "REMOVE", targetId: "new-event-dlg" }], toasts: [] };
+});
+```
 
 ## The nodes
 
