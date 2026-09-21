@@ -47,6 +47,14 @@ describe("calendar renderer", () => {
         assert.match(sunday, /<span class="sui-calendar-weekday" role="columnheader">Sun<\/span><span class="sui-calendar-weekday" role="columnheader">Mon/);
     });
 
+    test("the header buttons work without a server: every one says where it goes", () => {
+        const html = ext.renderCalendar({ type: "calendar", id: "c", view: "WEEK", date: "2026-09-21" });
+        assert.match(html, /data-nav-date="2026-09-14" data-nav-view="WEEK" aria-label="Previous"/);
+        assert.match(html, /data-nav-date="2026-09-21" data-nav-view="DAY">Day</);
+        assert.doesNotMatch(html, /data-trigger/);
+        assert.doesNotMatch(html, />Today</);   // no `today` in the model, nothing to go to
+    });
+
     test("navigation steps by day, week or month and keeps the view", () => {
         const html = ext.renderCalendar({ type: "calendar", id: "c", view: "MONTH", date: "2026-01-31", onNavigate: { url: "/c?d={date}&v={view}" } });
         assert.match(html, /\/c\?d=2026-02-28&v=MONTH/);   // clamped to February
@@ -60,9 +68,18 @@ describe("calendar renderer", () => {
         assert.match(html, /Montag, 21 September 2026/);   // months list incomplete → English
     });
 
-    test("the select trigger fills date and hour", () => {
+    test("the select trigger fills date, hour and time — in the URL and inside an inline patch", () => {
         assert.deepEqual(ext.selectTrigger({ url: "/p?d={date}&h={hour}", method: "POST" }, "2026-09-21", 9),
             { url: "/p?d=2026-09-21&h=9", method: "POST" });
-        assert.equal(ext.selectTrigger({ url: "/p?d={date}&h={hour}" }, "2026-09-21", null).url, "/p?d=2026-09-21&h=");
+        assert.equal(ext.selectTrigger({ url: "/p?d={date}&h={hour}&t={time}" }, "2026-09-21", null).url, "/p?d=2026-09-21&h=&t=");
+        const patch = { behavior: "PATCH", patch: { patches: [{ op: "APPEND", targetId: "sui-dialogs",
+            node: { type: "field", id: "f", value: "{date}T{time}" } }] } };
+        assert.equal(ext.selectTrigger(patch, "2026-09-21", 14).patch.patches[0].node.value, "2026-09-21T14:00");
+    });
+
+    test("updateCalendar rewrites the model a calendar was drawn from", () => {
+        renderer.render({ type: "calendar", id: "u", date: "2026-09-21", events: [] });
+        assert.equal(ext.updateCalendar("u", n => ({ ...n, events: [{ type: "calendar-event", id: "e", title: "New", start: "2026-09-22" }] })), true);
+        assert.equal(ext.updateCalendar("nope", n => n), false);
     });
 });
