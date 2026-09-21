@@ -264,13 +264,17 @@
     font-weight: 500;
 }
 
-:root.sui-theme-gipiti :is(.sui-field input, .sui-field textarea, .sui-field select) {
+/* Text-like inputs only: checkboxes and radios keep sui.css's own drawing.
+   At the same specificity and loaded later, this rule would otherwise put the
+   surface colour back over the checked fill and round the box into a circle.
+   :where() keeps the specificity where it was, so nothing else shifts. */
+:root.sui-theme-gipiti :is(.sui-field input:where(:not([type="checkbox"], [type="radio"])), .sui-field textarea, .sui-field select) {
     border-color: var(--sui-color-border-strong);
     border-radius: var(--sui-radius-sm);
     background-color: var(--sui-color-surface);
 }
 
-:root.sui-theme-gipiti :is(.sui-field input, .sui-field textarea, .sui-field select):focus {
+:root.sui-theme-gipiti :is(.sui-field input:where(:not([type="checkbox"], [type="radio"])), .sui-field textarea, .sui-field select):focus {
     border-color: var(--sui-color-text-body);
 }
 

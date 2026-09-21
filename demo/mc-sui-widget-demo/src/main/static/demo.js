@@ -79,6 +79,13 @@ const DEMO_FORM_FIELDS = [
     { type: "field", id: "f-tags",  label: "Tags",        fieldType: "MULTISELECT", editable: true,
       options: [{ value: "new", label: "New" }, { value: "sale", label: "Sale" }, { value: "eco", label: "Eco" }] },
     { type: "field", id: "f-active",label: "Active",      fieldType: "BOOLEAN",  editable: true, value: true },
+    // Ticked and unticked side by side, and radios: switch the theme to see
+    // every state of the drawn controls in each one.
+    { type: "field", id: "f-discontinued", label: "Discontinued", fieldType: "BOOLEAN", editable: true, value: false },
+    { type: "field", id: "f-ship",  label: "Shipping",    fieldType: "SELECT",   editable: true, value: "standard", expanded: true,
+      options: [{ value: "standard", label: "Standard" }, { value: "express", label: "Express" }, { value: "pickup", label: "Pickup" }] },
+    { type: "field", id: "f-channels", label: "Channels", fieldType: "MULTISELECT", editable: true, value: ["web"], expanded: true,
+      options: [{ value: "web", label: "Web shop" }, { value: "store", label: "Store" }, { value: "b2b", label: "B2B" }] },
 ];
 const withError = (f) => ({ ...f, validationError: DEMO_FORM_ERRORS[f.id] });
 // A fully client-side trigger (behavior "PATCH"): the patch is baked into the
@@ -358,6 +365,11 @@ function formsTab() {
     .field(UiField.multiselect("f-tags", "Tags", null, List.of(
         UiField.Option.of("new", "New"), UiField.Option.of("sale", "Sale"), UiField.Option.of("eco", "Eco"))).asEditable())
     .field(UiField.bool("f-active", "Active", true).asEditable())
+    .field(UiField.bool("f-discontinued", "Discontinued", false).asEditable())
+    .field(UiField.select("f-ship", "Shipping", "standard", List.of(
+        UiField.Option.of("standard", "Standard"), UiField.Option.of("express", "Express"), UiField.Option.of("pickup", "Pickup"))).asEditable().asRadio())
+    .field(UiField.multiselect("f-channels", "Channels", List.of("web"), List.of(
+        UiField.Option.of("web", "Web shop"), UiField.Option.of("store", "Store"), UiField.Option.of("b2b", "B2B"))).asEditable().asCheckboxes())
     // Fully client-side — the patch is baked into the trigger (behavior PATCH),
     // applied by the bus with no server call at all.
     .action(UiAction.primary("f-save", "Save").onClick(UiTrigger.patch(allFieldsError)))
