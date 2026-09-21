@@ -1175,4 +1175,17 @@ class SuiServerRendererTest {
         assertTrue(empty.contains("<span class=\"sui-value\">—</span>"), empty);
     }
 
+
+    @Test
+    void richtextHeightRendersLikeTheBrowser() throws Exception {
+        // The cases richtext.test.mjs renders through renderField().
+        var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+        var cases = mapper.readTree(getClass().getResourceAsStream("/richtext/height-cases.json"));
+        for (var c : cases) {
+            var field = mapper.treeToValue(c.get("field"), ai.mindconnect.ui.model.UiNode.class);
+            String html = renderer.render(field);
+            for (var s : c.get("contains")) assertTrue(html.contains(s.asText()), c.get("name").asText() + ": missing " + s.asText() + " in\n" + html);
+            for (var s : c.get("absent")) assertFalse(html.contains(s.asText()), c.get("name").asText() + ": unexpected " + s.asText() + " in\n" + html);
+        }
+    }
 }

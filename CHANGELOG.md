@@ -23,6 +23,15 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- **A rich-text editor whose toolbar stays put.** `UiField.richtext(…)
+  .editorHeight("320px")` gives the whole editor, toolbar included, a fixed
+  height, and `.fill()` makes it fill the height of its flex parent, such as
+  a dialog body between a fixed header and fixed buttons. Either way the
+  toolbar stays and only the text scrolls, so a reply to a long HTML mail no
+  longer takes the formatting buttons out of reach. Without either the
+  editor grows with its content as before. `editorHeight` must be a CSS
+  length; anything else is refused on the server and ignored by the
+  browser's renderer. Both renderers write the same markup.
 - **`UiCustom`: a plugin's node type without a Java class.** A widget that
   exists only as a browser renderer (`renderer.register("chat-widget", fn)` in
   its extension) is sent as
@@ -41,9 +50,6 @@ fresh empty one, so nothing has to be moved by hand at release time.
   its properties. The placeholder is redrawn with the real renderer once one
   is registered: by `installAll` after the installs, by the event bus after
   every change, and by `renderer.upgradePlaceholders(scope)`.
-
-### Added
-
 - **Icon sets in the asset registry.** A plugin declares its own icons as an
   asset of the new kind `icons` — an SVG sprite for every token starting with
   a prefix:
@@ -66,6 +72,13 @@ fresh empty one, so nothing has to be moved by hand at release time.
   the active resolver instead of replacing it — `setIconResolver` still
   replaces everything, icon sets included, and so took every other plugin's
   icons with it.
+
+### Changed
+
+- `.sui-richtext` is a flex column with `overflow: clip` instead of
+  `overflow: hidden`: the corners are still rounded, but the box is no longer
+  a scroll container. The selection frame of an image hides while the image
+  is scrolled out of the editor's view.
 
 ### Fixed
 

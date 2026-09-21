@@ -10,6 +10,7 @@ import { test, describe, before } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { readFileSync } from "node:fs";
 
 const DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../target/ts-dist");
 
@@ -128,5 +129,28 @@ describe("sanitizeRichText", () => {
         assert.match(editable, /<input type="hidden" name="n" value="&lt;p&gt;Hi&lt;\/p&gt;"/);
         const readOnly = renderField({ type: "field", id: "n", label: "N", fieldType: "RICHTEXT", value });
         assert.match(readOnly, /<div class="sui-richtext-view"><p>Hi<\/p><\/div>/);
+    });
+});
+
+describe("RICHTEXT height (fixed toolbar, scrolling text)", () => {
+    let renderField;
+    const CASES = JSON.parse(readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)),
+        "../resources/richtext/height-cases.json"), "utf8"));
+    before(async () => { ({ renderField } = await import(`${DIST}/renderers/field.js`)); });
+
+    // The same cases SuiServerRendererTest renders through field.hbs.
+    for (const c of CASES) {
+        test(c.name, () => {
+            const html = renderField(c.field);
+            for (const s of c.contains) assert.ok(html.includes(s), `missing ${s} in\n${html}`);
+            for (const s of c.absent) assert.ok(!html.includes(s), `unexpected ${s} in\n${html}`);
+        });
+    }
+
+    test("a height that is not a CSS length never reaches the style", () => {
+        for (const bad of ['1px;background:url(x)', '320px" onmouseover="x', "calc(1px)", "red", "320"]) {
+            const html = renderField({ type: "field", id: "n", label: "N", fieldType: "RICHTEXT", editable: true, value: "", editorHeight: bad });
+            assert.ok(!html.includes("style=") && !html.includes("--fixed"), `${bad}: ${html}`);
+        }
     });
 });

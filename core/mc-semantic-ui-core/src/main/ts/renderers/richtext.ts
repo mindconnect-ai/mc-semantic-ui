@@ -405,6 +405,11 @@ function installImageTools(box: HTMLElement, editor: HTMLElement, sync: () => vo
     const place = (): void => {
         if (!selected || !selected.isConnected || !editor.contains(selected)) { hide(); return; }
         const b = box.getBoundingClientRect(), r = selected.getBoundingClientRect();
+        // Scrolled out of the editor's view (a bounded editor scrolls under a
+        // fixed toolbar): no frame floating over the toolbar; the image stays
+        // selected and the frame returns when it scrolls back in.
+        const view = editor.getBoundingClientRect();
+        if (r.bottom <= view.top || r.top >= view.bottom) { frame.hidden = true; return; }
         frame.style.left = `${r.left - b.left + box.scrollLeft}px`;
         frame.style.top = `${r.top - b.top + box.scrollTop}px`;
         frame.style.width = `${r.width}px`;

@@ -45,6 +45,9 @@ export function timeOptions(f: { step?: string; min?: string; max?: string }): s
     return out;
 }
 
+/** A CSS length, as UiField.CSS_LENGTH checks it on the server. */
+const CSS_LENGTH = /^\d{1,5}(?:\.\d{1,3})?(?:px|rem|em|vh|dvh|svh|lvh|%)$/;
+
 export function renderField(f: UiField): string {
     // HIDDEN: no wrapper, no label — only the value, submitted with the form
     // whether or not the field is editable. The input carries the model id
@@ -80,7 +83,9 @@ export function renderField(f: UiField): string {
     // about the control's DOM id.
     // cls() carries cssClass and the display state (sui-hidden / sui-blank),
     // so .hidden() and .blank() work on a field like on any other node.
-    return `<div class="${cls("sui-field", f)} ${f.validationError ? "sui-field--error" : ""}"${evt(f, "change")} id="${escapeHtml(f.id)}" data-field="${escapeHtml(f.id)}">
+    // A RICHTEXT that fills its flex parent: the field is the flex item.
+    const fill = f.editable && f.fieldType === "RICHTEXT" && f.fill ? " sui-field--fill" : "";
+    return `<div class="${cls("sui-field", f)} ${f.validationError ? "sui-field--error" : ""}${fill}"${evt(f, "change")} id="${escapeHtml(f.id)}" data-field="${escapeHtml(f.id)}">
         <label ${isExpandedChoice(f) ? `id="${escapeHtml(f.id)}__label"` : `for="${escapeHtml(f.id)}__input"`}>${escapeHtml(f.label)}${f.required ? ' <span class="sui-required">*</span>' : ""}</label>
         ${input}
         ${f.hint ? `<small class="sui-hint">${escapeHtml(f.hint)}</small>` : ""}
@@ -137,7 +142,14 @@ function renderInput(f: UiField): string {
             // The value is sanitised on the way in, as in the read-only view.
             const placeholder = f.placeholder ? ` data-placeholder="${escapeHtml(f.placeholder)}"` : "";
             const html = sanitizeRichText(f.value != null ? String(f.value) : "");
-            return `<div class="sui-richtext" data-sui-richtext>${renderRichTextToolbar()}`
+            // A bounded height — fixed, or the flex parent's — keeps the
+            // toolbar in place and scrolls only the text. The height is a
+            // CSS length or nothing: UiField.editorHeight() refuses anything
+            // else, and this checks again before it reaches the style.
+            const height = f.editorHeight && CSS_LENGTH.test(f.editorHeight) ? f.editorHeight : "";
+            const box = "sui-richtext" + (height ? " sui-richtext--fixed" : "") + (f.fill ? " sui-richtext--fill" : "");
+            const style = height ? ` style="height:${height}"` : "";
+            return `<div class="${box}"${style} data-sui-richtext>${renderRichTextToolbar()}`
                 + `<div class="sui-richtext-editor" id="${id}" contenteditable="true" role="textbox" aria-multiline="true"${placeholder}>${html}</div>`
                 + `<input type="hidden" name="${name}" value="${escapeHtml(html)}" data-sui-type="RICHTEXT"${changeAttrs}></div>`;
         }

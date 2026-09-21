@@ -1,0 +1,22 @@
+[
+  {"name": "no height: grows with its content, as before",
+   "field": {"type": "field", "id": "n", "label": "Notes", "fieldType": "RICHTEXT", "editable": true, "value": "<p>x</p>"},
+   "contains": ["<div class=\"sui-richtext\" data-sui-richtext>"],
+   "absent": ["sui-field--fill", "sui-richtext--", "style="]},
+  {"name": "a fixed height on the whole box, toolbar included",
+   "field": {"type": "field", "id": "n", "label": "Notes", "fieldType": "RICHTEXT", "editable": true, "value": "", "editorHeight": "320px"},
+   "contains": ["<div class=\"sui-richtext sui-richtext--fixed\" style=\"height:320px\" data-sui-richtext>"],
+   "absent": ["sui-field--fill"]},
+  {"name": "fill: the field and the box are flex items",
+   "field": {"type": "field", "id": "n", "label": "Notes", "fieldType": "RICHTEXT", "editable": true, "value": "", "fill": true},
+   "contains": ["class=\"sui-field  sui-field--fill\"", "<div class=\"sui-richtext sui-richtext--fill\" data-sui-richtext>"],
+   "absent": ["style="]},
+  {"name": "both, with an error and a css class",
+   "field": {"type": "field", "id": "n", "label": "Notes", "fieldType": "RICHTEXT", "editable": true, "value": "", "fill": true, "editorHeight": "40vh", "cssClass": "wide", "validationError": "Required"},
+   "contains": ["class=\"sui-field wide sui-field--error sui-field--fill\"", "<div class=\"sui-richtext sui-richtext--fixed sui-richtext--fill\" style=\"height:40vh\" data-sui-richtext>"],
+   "absent": []},
+  {"name": "read-only: no editor, nothing to bound",
+   "field": {"type": "field", "id": "n", "label": "Notes", "fieldType": "RICHTEXT", "editable": false, "value": "<p>x</p>", "fill": true, "editorHeight": "320px"},
+   "contains": ["<div class=\"sui-richtext-view\"><p>x</p></div>"],
+   "absent": ["sui-field--fill", "sui-richtext--", "style="]}
+]
