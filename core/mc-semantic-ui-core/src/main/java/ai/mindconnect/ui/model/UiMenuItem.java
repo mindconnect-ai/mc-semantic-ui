@@ -100,6 +100,19 @@ public class UiMenuItem extends UiAction {
         return this;
     }
 
+    /**
+     * Force the busy state declaratively (same as {@link UiAction#loading}):
+     * the entry shows a spinner in place of its icon and cannot be clicked.
+     * The event bus paints the same state by itself while a click's own
+     * navigation or trigger is in flight; set this when the server knows the
+     * item is busy for longer than one request.
+     */
+    @Override
+    public UiMenuItem loading(boolean loading) {
+        super.loading(loading);
+        return this;
+    }
+
     public UiMenuItem href(String href) {
         this.href = href;
         return this;

@@ -128,6 +128,7 @@
         <sui.editor.assets>${project.basedir}/../../editor/mc-sui-editor/target/classes/META-INF/resources/sui-editor</sui.editor.assets>
         <sui.ext.diagram.assets>${project.basedir}/../../ext/mc-semantic-ui-ext-diagram/target/classes/META-INF/resources/sui-ext</sui.ext.diagram.assets>
         <sui.ext.chart.assets>${project.basedir}/../../ext/mc-semantic-ui-ext-chart/target/classes/META-INF/resources/sui-ext</sui.ext.chart.assets>
+        <sui.ext.kanban.assets>${project.basedir}/../../ext/mc-semantic-ui-ext-kanban/target/classes/META-INF/resources/sui-ext</sui.ext.kanban.assets>
         <sui.ext.calendar.assets>${project.basedir}/../../ext/mc-semantic-ui-ext-calendar/target/classes/META-INF/resources/sui-ext</sui.ext.calendar.assets>
     </properties>
 
@@ -206,6 +207,11 @@
             <dependency>
                 <groupId>ai.mindconnect</groupId>
                 <artifactId>mc-semantic-ui-ext-chart</artifactId>
+                <version>0.3.5-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.mindconnect</groupId>
+                <artifactId>mc-semantic-ui-ext-kanban</artifactId>
                 <version>0.3.5-SNAPSHOT</version>
             </dependency>
             <dependency>

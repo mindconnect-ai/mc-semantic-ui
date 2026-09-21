@@ -20,6 +20,7 @@ const repo = resolve(here, "../..");
 const CORE = resolve(repo, "core/mc-semantic-ui-core");
 const EXT = resolve(repo, "ext/mc-semantic-ui-ext-diagram");
 const EXT_CHART = resolve(repo, "ext/mc-semantic-ui-ext-chart");
+const EXT_KANBAN = resolve(repo, "ext/mc-semantic-ui-ext-kanban");
 const EXT_CALENDAR = resolve(repo, "ext/mc-semantic-ui-ext-calendar");
 const STATIC = resolve(here, "../static");
 
@@ -69,6 +70,13 @@ mergeDir(resolve(EXT_CHART, "target/ts-dist"), resolve(STATIC, "sui-ext"),
 mergeDir(resolve(EXT_CHART, "src/main/resources/META-INF/resources/sui-ext"),
         resolve(STATIC, "sui-ext"),
         "ext/mc-semantic-ui-ext-chart/src/main/resources/META-INF/resources/sui-ext");
+
+// ── kanban extension: same shape again ──────────────────────────────────────
+mergeDir(resolve(EXT_KANBAN, "target/ts-dist"), resolve(STATIC, "sui-ext"),
+        "ext/mc-semantic-ui-ext-kanban/target/ts-dist (run: mvn -pl ext/mc-semantic-ui-ext-kanban install)");
+mergeDir(resolve(EXT_KANBAN, "src/main/resources/META-INF/resources/sui-ext"),
+        resolve(STATIC, "sui-ext"),
+        "ext/mc-semantic-ui-ext-kanban/src/main/resources/META-INF/resources/sui-ext");
 
 // ── calendar extension: same shape again ────────────────────────────────────
 mergeDir(resolve(EXT_CALENDAR, "target/ts-dist"), resolve(STATIC, "sui-ext"),

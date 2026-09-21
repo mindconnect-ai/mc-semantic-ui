@@ -45,6 +45,11 @@
             <groupId>ai.mindconnect</groupId>
             <artifactId>mc-semantic-ui-ext-chart</artifactId>
         </dependency>
+        <!-- The kanban extension: a board whose cards are dragged between lanes. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-ext-kanban</artifactId>
+        </dependency>
         <!-- The calendar extension: month, week and day views of events. -->
         <dependency>
             <groupId>ai.mindconnect</groupId>
@@ -96,7 +101,7 @@
                         <configuration>
                             <!--
                                 The extensions publish into /sui-ext, each
-                                under its own subdirectory (diagram/, chart/, calendar/),
+                                under its own subdirectory (diagram/, chart/, kanban/, calendar/),
                                 so they merge here without colliding.
                             -->
                             <outputDirectory>${project.build.directory}/dist/sui-ext</outputDirectory>
@@ -106,6 +111,9 @@
                                 </resource>
                                 <resource>
                                     <directory>${sui.ext.chart.assets}</directory>
+                                </resource>
+                                <resource>
+                                    <directory>${sui.ext.kanban.assets}</directory>
                                 </resource>
                                 <resource>
                                     <directory>${sui.ext.calendar.assets}</directory>

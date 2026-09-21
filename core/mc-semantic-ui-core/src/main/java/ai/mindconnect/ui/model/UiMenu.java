@@ -77,6 +77,16 @@ public class UiMenu extends UiNode {
     /** Whether to render the hamburger toggle. Defaults to true when null. */
     private Boolean toggle;
 
+    /**
+     * The glyph on that toggle. Defaults to {@code menu} — the hamburger —
+     * when null.
+     *
+     * <p>A menu that folds to a rail beside its content is not the same
+     * gesture as a drawer over it, and {@code panel-left-close} says so where
+     * three stacked lines do not.
+     */
+    private String toggleIcon;
+
     public static UiMenu of(UiMenuItem... items) {
         var m = new UiMenu();
         m.items = new ArrayList<>(List.of(items));
@@ -107,6 +117,12 @@ public class UiMenu extends UiNode {
 
     public UiMenu toggle(boolean toggle) {
         this.toggle = toggle;
+        return this;
+    }
+
+    /** The glyph on the toggle; {@code menu} when not set. */
+    public UiMenu toggleIcon(String toggleIcon) {
+        this.toggleIcon = toggleIcon;
         return this;
     }
 

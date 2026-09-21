@@ -91,6 +91,7 @@ jobs:
             echo ext/mc-semantic-ui-ext-calendar
             echo ext/mc-semantic-ui-ext-chart
             echo ext/mc-semantic-ui-ext-diagram
+            echo ext/mc-semantic-ui-ext-kanban
             echo ext/mc-semantic-ui-ext-json
             echo ext/mc-semantic-ui-ext-markdown
             echo editor/mc-sui-editor

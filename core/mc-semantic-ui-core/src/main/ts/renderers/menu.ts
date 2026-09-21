@@ -34,7 +34,7 @@ export function renderMenu(node: UiMenu, r: SuiRenderer): string {
     const id = escapeHtml(node.id);
     const items = (node.items || []).map(i => renderChild(i, r)).join("");
     const toggle = showToggle
-        ? `<button type="button" class="sui-menu-toggle" data-menu-toggle="${id}" aria-label="Toggle menu" aria-expanded="${state !== "hidden"}">${renderIcon("menu")}</button>`
+        ? `<button type="button" class="sui-menu-toggle" data-menu-toggle="${id}" aria-label="Toggle menu" aria-expanded="${state !== "hidden"}">${renderIcon(node.toggleIcon ?? "menu")}</button>`
         : "";
     const title = node.title
         ? `<span class="sui-menu-title">${escapeHtml(node.title)}</span>`
@@ -86,10 +86,14 @@ export function renderMenuItem(node: UiMenuItem, r: SuiRenderer): string {
         : `data-href="${href}"`;
     const confirm = node.onClick && node.confirm ? ` data-confirm="${escapeHtml(node.confirm)}"` : "";
     const current = node.selected ? ` aria-current="page"` : "";
+    // Declaratively busy, as on an action: the spinner takes the icon's place
+    // and the link cannot be clicked. The event bus sets the same class by
+    // itself around a click's own request; this is the server-driven form.
+    const busy = node.loading === true ? ` is-loading" aria-busy="true` : "";
     // A tooltip label shown beside the icon when the rail is collapsed.
     const tip = `<span class="sui-menu-tip">${escapeHtml(node.label ?? "")}</span>`;
     return `<li class="sui-menu-item${activeCls}" id="${id}" data-id="${id}" role="none">
-        <a class="sui-menu-link" href="${href}" ${nav}${confirm}${current} role="menuitem">${icon}${label}${badge}</a>${tip}
+        <a class="sui-menu-link${busy}" href="${href}" ${nav}${confirm}${current} role="menuitem">${icon}${label}${badge}</a>${tip}
     </li>`;
 }
 

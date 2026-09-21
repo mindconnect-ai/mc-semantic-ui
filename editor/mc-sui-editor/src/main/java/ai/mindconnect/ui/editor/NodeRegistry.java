@@ -544,6 +544,7 @@ public final class NodeRegistry {
                         PropertyMeta.enumOf("mode", List.of("PUSH", "OVERLAY", "RESPONSIVE")),
                         PropertyMeta.enumOf("side", List.of("LEFT", "RIGHT")),
                         PropertyMeta.of("toggle", PropertyKind.BOOLEAN),
+                        PropertyMeta.of("toggleIcon", PropertyKind.STRING),
                         PropertyMeta.of("cssClass", PropertyKind.STRING)
                 ),
                 List.of(

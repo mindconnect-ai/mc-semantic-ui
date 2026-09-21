@@ -23,6 +23,32 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- `UiMenu.toggleIcon` — the glyph on a menu's own toggle, `menu` (the
+  hamburger) when unset. A menu that folds to a rail beside its content is not
+  the same gesture as a drawer over it, and `panel-left-close` says so where
+  three stacked lines do not.
+
+- A menu entry shows that it is busy. Clicking a `[data-href]` item — a
+  sidebar link in an app shell, say — now marks it `is-loading` until its page
+  has arrived, the way a button is marked while its trigger runs; a page that
+  takes a while gave no sign that the click had landed. `UiMenuItem.loading`
+  (inherited from `UiAction`, now honoured by the menu renderers) sets the
+  same state from the server. In the menu the spinner takes the icon's place
+  rather than being prepended, so nothing shifts and the rail still shows it.
+
+- **A kanban board**, in a new module `mc-semantic-ui-ext-kanban`: `kanban`
+  (`UiKanban`) holds `kanban-lane`s of `kanban-card`s. In the browser a card is
+  dragged to another lane, or to another place in its own, and the board fires
+  its `onMove` trigger with `{card}`, `{from}`, `{to}` and `{index}` filled in
+  wherever its URL carries them — the substitution a table applies to `{id}`,
+  done at drop time. A lane can carry a `limit` (shown beside its count, and no
+  drop lands once it is reached) or be `locked`; a card can be `locked`, carry
+  a `badge`, `tags`, a `description` and an accent `color`, and reacts to
+  `onClick` like any node. Lanes and cards are nodes with ids, so a patch can
+  address one of them. Rendered server-side as well, from three templates held
+  to the browser painter's bytes by a parity test; the browser bundle adds the
+  dragging, through `install(renderer, { bus })`.
+
 - **A calendar**, in a new module `mc-semantic-ui-ext-calendar`: `calendar`
   (`UiCalendar`) shows a month, a week or a day of `calendar-event`s. Previous,
   next, today and the view switch are trigger links with `{date}` and `{view}`
@@ -37,6 +63,13 @@ fresh empty one, so nothing has to be moved by hand at release time.
   three views.
 
 ### Fixed
+
+- `UiAppShell` no longer leaves a headerless shell with no way to fold its
+  menu. The shell switched the menu's own toggle off unconditionally, on the
+  grounds of "one burger, not two" — but with no header there is no second
+  burger, so a shell that renders its title in the content (as the chat does)
+  had none at all. The toggle is now silenced only when there is a header to
+  carry one instead.
 
 - A menu folded to a rail no longer shifts its icons. `.sui-menu--rail`
   centred every link's contents, so folding moved the whole icon column four

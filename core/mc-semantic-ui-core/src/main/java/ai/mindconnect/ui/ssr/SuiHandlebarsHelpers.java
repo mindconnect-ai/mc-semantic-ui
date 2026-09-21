@@ -215,8 +215,9 @@ public final class SuiHandlebarsHelpers {
         // {{{shellHeader shell}}} / {{{shellMenu shell}}} → the app shell's two
         // chrome parts, rendered with the couplings the node exists to make:
         // the header's burger points at the menu's id, and the menu's own
-        // toggle is off. Both operate on a copy so a menu reused across pages
-        // is never mutated. Mirrors renderAppShell() in app-shell.ts.
+        // toggle is off *when the header is there to carry one instead*. Both
+        // operate on a copy so a menu reused across pages is never mutated.
+        // Mirrors renderAppShell() in app-shell.ts.
         hb.registerHelper("shellHeader", (ctx, opts) -> {
             if (!(ctx instanceof ai.mindconnect.ui.model.UiAppShell shell)
                     || shell.getHeader() == null) {
@@ -248,7 +249,12 @@ public final class SuiHandlebarsHelpers {
             copy.setState(m.getState());
             copy.setMode(m.getMode());
             copy.setSide(m.getSide());
-            copy.setToggle(false);              // the header owns the burger
+            // The header owns the burger — when there is a header. Switching
+            // the menu's toggle off unconditionally left a headerless shell
+            // with no way to fold its menu at all, which is not "one burger,
+            // not two", it is none.
+            copy.setToggle(shell.getHeader() != null ? Boolean.FALSE : m.getToggle());
+            copy.setToggleIcon(m.getToggleIcon());
             return new com.github.jknack.handlebars.Handlebars.SafeString(renderer.render(copy));
         });
 
