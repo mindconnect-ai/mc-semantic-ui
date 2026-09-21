@@ -2,6 +2,7 @@ package ai.mindconnect.ui.ssr;
 
 import ai.mindconnect.ui.model.UiAction;
 import ai.mindconnect.ui.model.UiAppShell;
+import ai.mindconnect.ui.model.UiIFrame;
 import ai.mindconnect.ui.model.UiColumn;
 import ai.mindconnect.ui.model.UiDetail;
 import ai.mindconnect.ui.model.UiField;
@@ -373,6 +374,16 @@ class SuiServerRendererTest {
         assertTrue(html.contains("sui-menu-sublist"), html);
         assertTrue(html.contains("Products"), html);
         assertTrue(html.contains("Customers"), html);
+    }
+
+    @Test
+    void anEmptySandboxIsTheStrictestNotNone() {
+        String strict = renderer.render(UiIFrame.of("mail", "/mail/1").sandbox(""));
+        assertTrue(strict.contains(" sandbox=\"\" "), strict);
+        String some = renderer.render(UiIFrame.of("f", "/x").sandbox("allow-scripts"));
+        assertTrue(some.contains(" sandbox=\"allow-scripts\" "), some);
+        String none = renderer.render(UiIFrame.of("f", "/x"));
+        assertFalse(none.contains("sandbox"), none);
     }
 
     @Test

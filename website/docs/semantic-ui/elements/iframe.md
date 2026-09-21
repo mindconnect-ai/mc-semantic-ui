@@ -25,7 +25,7 @@ Two height modes, same convention as [`scrollpane`](./scrollpane.md):
 | `id` | `String` | Node id — also the DOM `id` and the patch target. |
 | `src` | `String` | The embedded page's URL. Same-origin or absolute. |
 | `height` | `String` | CSS length capping the frame's height. Absent = fill the flex parent. |
-| `sandbox` | `String` | Optional `sandbox` attribute value (`"allow-scripts allow-same-origin"`). Absent = no sandbox — fine for same-origin embeds; set it for third-party content. |
+| `sandbox` | `String` | Optional `sandbox` attribute value (`"allow-scripts allow-same-origin"`). Absent = no sandbox — fine for same-origin embeds; set it for third-party content. `""` is the strictest sandbox (no scripts, no forms, a unique origin) and is rendered as `sandbox=""`. |
 | `title` | `String` | Becomes the iframe's `title` attribute — set it, it is how screen readers name the region. |
 | `cssClass` | `String` | Extra CSS class added next to `sui-iframe`. |
 

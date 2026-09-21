@@ -10,6 +10,9 @@ import { cls, evt } from "./util.js";
 export function renderIFrame(node: UiIFrame): string {
     const title = node.title ? ` title="${escapeHtml(node.title)}"` : "";
     const style = node.height ? ` style="height:${escapeHtml(node.height)}; flex:none"` : "";
-    const sandbox = node.sandbox ? ` sandbox="${escapeHtml(node.sandbox)}"` : "";
+    // Present whenever it is set — the empty string included: `sandbox=""` is
+    // the strictest sandbox there is (no scripts, no forms, a unique origin),
+    // not the absence of one. Parity with iframe.hbs (`sandboxed`).
+    const sandbox = node.sandbox != null ? ` sandbox="${escapeHtml(node.sandbox)}"` : "";
     return `<iframe class="${cls("sui-iframe", node)}"${evt(node)} id="${escapeHtml(node.id)}" src="${escapeHtml(node.src ?? "")}"${title}${style}${sandbox} loading="lazy"></iframe>`;
 }

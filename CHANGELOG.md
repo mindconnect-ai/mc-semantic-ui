@@ -23,6 +23,12 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Security
 
+- **`UiIFrame.sandbox("")` renders `sandbox=""`.** Both web renderers took
+  the empty string for "not set" and left the attribute off, so the frame
+  that asked for the strictest sandbox — no scripts, no forms, a unique
+  origin — got none at all. Now any value that is set is rendered, the empty
+  one included; only null leaves the frame unsandboxed. The JavaFX renderer
+  already read it this way.
 - **A RICHTEXT value is sanitised wherever it is rendered.** The field used
   to write its value into the page as it came — read-only and in the editor,
   in both renderers — and only cleaned what the user pasted, so HTML stored
