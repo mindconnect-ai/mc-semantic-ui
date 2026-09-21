@@ -87,19 +87,12 @@
             </plugin>
 
             <!--
-                Bind repackage so `mvn package` yields a runnable fat jar. The
-                parent only manages the plugin version (not the execution), so
-                unlike under spring-boot-starter-parent we wire it explicitly.
+                `mvn package` yields a runnable fat jar: the parent binds the
+                plugin's repackage goal, as spring-boot-starter-parent does.
             -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>repackage</id>
-                        <goals><goal>repackage</goal></goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
