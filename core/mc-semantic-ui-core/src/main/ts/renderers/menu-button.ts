@@ -1,4 +1,4 @@
-import type { UiMenuButton, UiMenuItem } from "../model.js";
+import type { UiActionMenu, UiMenuButton, UiMenuItem } from "../model.js";
 import { escapeHtml, encodeTrigger, type SuiRenderer } from "../renderer.js";
 import { renderIcon } from "./icon.js";
 import { cls, evt } from "./util.js";
@@ -39,10 +39,35 @@ export function renderMenuButton(node: UiMenuButton, r: SuiRenderer): string {
     </details>`;
 }
 
-/** One popover entry: a separator, a nesting group (submenu), or a leaf. */
+/**
+ * Renders a {@link UiActionMenu}: a button that opens a menu, where a button
+ * goes — a form's button bar. The same `<details>` a {@link UiMenuButton} is,
+ * so the same wiring opens, positions and drives it; the trigger wears the
+ * button classes, so it looks like its neighbours. Mirrors `action-menu.hbs`.
+ */
+export function renderActionMenu(node: UiActionMenu): string {
+    const id = escapeHtml(node.id ?? "");
+    const style = (node.style ?? "SECONDARY").toLowerCase();
+    const extra = node.cssClass ? " " + escapeHtml(node.cssClass) : "";
+    const busy = node.loading ? " is-loading" : "";
+    const disabled = node.loading || node.enabled === false ? ` aria-disabled="true"` : "";
+    const title = escapeHtml(node.disabledReason || node.label || "");
+    const icon = node.icon ? `<span class="sui-menu-button-glyph">${renderIcon(node.icon)}</span>` : "";
+    const items = (node.items || []).map(i => renderMenuButtonItem(i)).join("");
+    return `<details class="sui-menu-button sui-menu-button--action sui-menu-button--align-start${extra}" id="${id}" data-sui="menu-button">`
+        + `<summary class="sui-menu-button-trigger sui-btn sui-btn--${style}${busy}" role="button" aria-haspopup="menu" aria-expanded="false"${disabled} title="${title}">`
+        + `${icon}<span class="sui-menu-button-text">${escapeHtml(node.label ?? "")}</span><span class="sui-menu-button-caret">${renderIcon("chevron-down")}</span></summary>`
+        + `<div class="sui-menu-button-popover" role="menu">${items}</div></details>`;
+}
+
+/** One popover entry: a separator, a heading, a nesting group (submenu), or a leaf. */
 function renderMenuButtonItem(node: UiMenuItem): string {
     if (node.divider) {
         return `<div class="sui-menu-button-sep" role="separator"></div>`;
+    }
+    // A label over the entries that follow — not an item, not focusable.
+    if (node.heading) {
+        return `<div class="sui-menu-button-heading" role="presentation">${escapeHtml(node.label ?? "")}</div>`;
     }
     const id = escapeHtml(node.id ?? "");
     const icon = `<span class="sui-menu-button-item-icon">${node.icon ? renderIcon(node.icon) : ""}</span>`;
@@ -72,7 +97,16 @@ function renderMenuButtonItem(node: UiMenuItem): string {
     // <button>; a navigating one is an <a> so it works without JS.
     if (node.onClick) {
         const confirm = node.confirm ? ` data-confirm="${escapeHtml(node.confirm)}"` : "";
-        return `<button type="button" class="sui-menu-button-item${dangerCls}" id="${id}" data-id="${id}" role="menuitem" data-trigger='${encodeTrigger(node.onClick)}'${confirm}>${icon}${label}${badge}</button>`;
+        const off = node.enabled === false
+            ? " disabled" + (node.disabledReason ? ` title="${escapeHtml(node.disabledReason)}"` : "")
+            : "";
+        return `<button type="button" class="sui-menu-button-item${dangerCls}" id="${id}" data-id="${id}" role="menuitem" data-trigger='${encodeTrigger(node.onClick)}'${confirm}${off}>${icon}${label}${badge}</button>`;
+    }
+    // Disabled: a link to nowhere — no href, so neither the browser nor the
+    // bus goes anywhere, and the keyboard passes it by.
+    if (node.enabled === false) {
+        const title = node.disabledReason ? ` title="${escapeHtml(node.disabledReason)}"` : "";
+        return `<a class="sui-menu-button-item${dangerCls}" id="${id}" data-id="${id}" role="menuitem" aria-disabled="true"${title}>${icon}${label}${badge}</a>`;
     }
     const href = escapeHtml(node.href ?? "#");
     return `<a class="sui-menu-button-item${dangerCls}" id="${id}" data-id="${id}" role="menuitem" href="${href}" data-href="${href}">${icon}${label}${badge}</a>`;
@@ -106,7 +140,11 @@ export function wireMenuButtons(_root: ParentNode = document): void {
     // or resizes; closing is the simplest correct response. Capture-phase catches
     // scrolls in nested containers too.
     window.addEventListener("resize", closeAllMenuButtons);
-    document.addEventListener("scroll", closeAllMenuButtons, true);
+    // A long menu scrolls itself; that scroll must not close it.
+    document.addEventListener("scroll", e => {
+        if ((e.target as Element | null)?.closest?.(".sui-menu-button-popover")) return;
+        closeAllMenuButtons();
+    }, true);
 }
 
 function onDocumentClick(e: MouseEvent): void {
@@ -118,8 +156,19 @@ function onDocumentClick(e: MouseEvent): void {
         const details = trigger.closest<HTMLDetailsElement>("details.sui-menu-button");
         if (details) {
             e.preventDefault();   // suppress the native <details> toggle; we drive it
+            if (trigger.getAttribute("aria-disabled") === "true") return;
+            // Enter / Space were already handled on keydown; the click some
+            // browsers still synthesise from them must not toggle it back.
+            if (e.detail === 0 && keyToggled === details) { keyToggled = null; return; }
             if (details.open) closeMenuButton(details);
-            else { closeAllMenuButtons(); openMenuButton(details); }
+            else {
+                closeAllMenuButtons();
+                openMenuButton(details);
+                // Enter / Space on the trigger arrive as a click with no
+                // pointer (detail 0): carry the focus into the menu, so the
+                // arrow keys go on from there.
+                if (e.detail === 0) focusEntry(menuEntries(popoverOf(details)), 0);
+            }
         }
         return;
     }
@@ -148,7 +197,99 @@ function onDocumentClick(e: MouseEvent): void {
     if (!target.closest(".sui-menu-button")) closeAllMenuButtons();
 }
 
+/** The popover of a menu-button. */
+function popoverOf(details: HTMLElement): HTMLElement | null {
+    return details.querySelector<HTMLElement>(":scope > .sui-menu-button-popover");
+}
+
+/**
+ * The entries of one menu level the keyboard moves between: its items and
+ * submenu headers, not its dividers, headings or disabled items.
+ */
+function menuEntries(list: HTMLElement | null): HTMLElement[] {
+    if (!list) return [];
+    return Array.from(list.querySelectorAll<HTMLElement>(
+        ":scope > .sui-menu-button-item, :scope > .sui-menu-button-group > .sui-menu-button-item--group"))
+        .filter(el => !(el as HTMLButtonElement).disabled && el.getAttribute("aria-disabled") !== "true");
+}
+
+/** Focuses entry {@code index} of {@code entries}; negative counts from the end. */
+function focusEntry(entries: HTMLElement[], index: number): void {
+    if (entries.length === 0) return;
+    const i = ((index % entries.length) + entries.length) % entries.length;
+    entries[i].focus();
+}
+
+/**
+ * The keyboard, as a menu has it: ↓/↑ on the trigger open the menu at the
+ * first/last entry; inside, ↓/↑ move (wrapping), Home/End jump, → opens a
+ * submenu and ← goes back out of one, Tab leaves and closes, Escape closes and
+ * returns to the trigger. Enter / Space choose, as they press any button.
+ */
+/** The menu Enter / Space just toggled on keydown — see onDocumentClick. */
+let keyToggled: HTMLDetailsElement | null = null;
+
 function onDocumentKeydown(e: KeyboardEvent): void {
+    const target = e.target as HTMLElement | null;
+    const onTrigger = target?.closest?.<HTMLElement>(".sui-menu-button-trigger");
+    // Enter / Space on the trigger: handled here rather than left to the
+    // browser, whose activation of a <summary> differs from one to the next.
+    if (onTrigger && (e.key === "Enter" || e.key === " ") && !e.repeat) {
+        const details = onTrigger.closest<HTMLDetailsElement>("details.sui-menu-button");
+        if (!details) return;
+        e.preventDefault();
+        if (onTrigger.getAttribute("aria-disabled") === "true") return;
+        keyToggled = details;
+        setTimeout(() => { if (keyToggled === details) keyToggled = null; }, 0);
+        if (details.open) { closeMenuButton(details); return; }
+        closeAllMenuButtons();
+        openMenuButton(details);
+        focusEntry(menuEntries(popoverOf(details)), 0);
+        return;
+    }
+    if (onTrigger && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+        const details = onTrigger.closest<HTMLDetailsElement>("details.sui-menu-button");
+        if (!details || onTrigger.getAttribute("aria-disabled") === "true") return;
+        e.preventDefault();
+        if (!details.open) { closeAllMenuButtons(); openMenuButton(details); }
+        focusEntry(menuEntries(popoverOf(details)), e.key === "ArrowDown" ? 0 : -1);
+        return;
+    }
+    const level = target?.closest?.<HTMLElement>(".sui-menu-button-submenu, .sui-menu-button-popover");
+    const inOpenMenu = level?.closest("details.sui-menu-button[open]");
+    if (target && level && inOpenMenu && e.key !== "Escape") {
+        const entries = menuEntries(level);
+        const at = entries.indexOf(target);
+        switch (e.key) {
+            case "ArrowDown": e.preventDefault(); focusEntry(entries, at + 1); return;
+            case "ArrowUp":   e.preventDefault(); focusEntry(entries, at < 0 ? -1 : at - 1); return;
+            case "Home":      e.preventDefault(); focusEntry(entries, 0); return;
+            case "End":       e.preventDefault(); focusEntry(entries, -1); return;
+            case "ArrowRight": {
+                const group = target.closest<HTMLElement>(".sui-menu-button-group");
+                if (!group || !target.classList.contains("sui-menu-button-item--group")) return;
+                e.preventDefault();
+                group.classList.add("is-open");
+                target.setAttribute("aria-expanded", "true");
+                focusEntry(menuEntries(group.querySelector<HTMLElement>(":scope > .sui-menu-button-submenu")), 0);
+                return;
+            }
+            case "ArrowLeft": {
+                if (!level.classList.contains("sui-menu-button-submenu")) return;
+                e.preventDefault();
+                const group = level.closest<HTMLElement>(".sui-menu-button-group");
+                const header = group?.querySelector<HTMLElement>(":scope > .sui-menu-button-item--group");
+                group?.classList.remove("is-open");
+                header?.setAttribute("aria-expanded", "false");
+                header?.focus();
+                return;
+            }
+            case "Tab":
+                closeMenuButton(inOpenMenu as HTMLDetailsElement);   // the focus moves on as usual
+                return;
+        }
+        return;
+    }
     if (e.key !== "Escape") return;
     const open = document.querySelector<HTMLDetailsElement>("details.sui-menu-button[open]");
     if (!open) return;
@@ -211,11 +352,27 @@ function positionPopover(trigger: HTMLElement, pop: HTMLElement, alignStart: boo
     let left = alignStart ? r.left : r.right - pw;
     left = Math.max(margin, Math.min(left, window.innerWidth - pw - margin));
 
-    let top = r.bottom + gap;
-    if (top + ph > window.innerHeight - margin && r.top - gap - ph > margin) {
-        top = r.top - gap - ph;   // flip above the trigger
+    // Below when it fits; above when it does not and does there (a button bar
+    // fixed to the bottom of a dialog); otherwise on the roomier side, cut to
+    // the room and scrolling — never cut off by the window.
+    const below = window.innerHeight - margin - (r.bottom + gap);
+    const above = r.top - gap - margin;
+    let top: number;
+    pop.style.maxHeight = "";
+    pop.style.overflowY = "";
+    if (ph <= below) {
+        top = r.bottom + gap;
+    } else if (ph <= above) {
+        top = r.top - gap - ph;
+    } else if (above > below) {
+        pop.style.maxHeight = `${Math.floor(above)}px`;
+        pop.style.overflowY = "auto";
+        top = margin;
+    } else {
+        pop.style.maxHeight = `${Math.floor(below)}px`;
+        pop.style.overflowY = "auto";
+        top = r.bottom + gap;
     }
-    top = Math.max(margin, Math.min(top, window.innerHeight - ph - margin));
 
     pop.style.left = `${Math.round(left)}px`;
     pop.style.top = `${Math.round(top)}px`;

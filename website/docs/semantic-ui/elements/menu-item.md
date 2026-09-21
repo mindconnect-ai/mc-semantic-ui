@@ -63,6 +63,7 @@ same semantics, as on [`action`](./action.md).
 | `open` | `boolean` | For a group: render it initially expanded. |
 | `danger` | `boolean` | Destructive entry (Delete, Remove) — rendered in the danger colour. |
 | `divider` | `boolean` | This entry is a non-interactive separator line; its other fields are ignored. |
+| `heading` | `boolean` | This entry is a non-interactive heading showing `label` over the entries that follow (`UiMenuItem.heading("Quick actions")`), in a menu popover. Its other fields are ignored. |
 | `children` | `List<UiMenuItem>` | Nested entries. Non-empty makes this item a collapsible group / fly-out. |
 
 ## Building one

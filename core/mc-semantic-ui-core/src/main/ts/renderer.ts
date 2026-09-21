@@ -1,5 +1,5 @@
 import type {
-    UiNode, UiField, UiAction, UiLink, UiListItem, UiTrigger, Pagination,
+    UiNode, UiField, UiAction, UiActionMenu, UiLink, UiListItem, UiTrigger, Pagination,
     UiForm, UiDetail, UiTable, UiTableColumn, UiTableRow,
     UiList, UiTree, UiTreeNode, UiMenu, UiMenuItem, UiMenuButton, UiSection, UiSectionEntry, UiStack, UiScrollPane, UiIFrame, UiAppShell, UiHeader,
     UiText, UiIcon, UiSpinner, UiProgress, UiUpload, UiFieldGroup, UiDialog, UiPatch, UiPatchOperation,
@@ -13,7 +13,7 @@ import { renderDetail }       from "./renderers/detail.js";
 import { renderList }         from "./renderers/list.js";
 import { renderTree, renderTreeNode } from "./renderers/tree.js";
 import { renderMenu, renderMenuItem } from "./renderers/menu.js";
-import { renderMenuButton } from "./renderers/menu-button.js";
+import { renderMenuButton, renderActionMenu } from "./renderers/menu-button.js";
 import { renderSection }      from "./renderers/section.js";
 import { renderSectionEntry } from "./renderers/section-entry.js";
 import { renderStack }        from "./renderers/stack.js";
@@ -1165,6 +1165,7 @@ export function installDefaultHandlers(renderer: SuiRenderer): SuiRenderer {
         // {@code renderers/shared.ts} which preserves the original markup.
         .register<UiLink>("link",                renderLink)
         .register<UiAction>("action",            renderAction)
+        .register<UiActionMenu>("action-menu",   renderActionMenu)
         .register<UiField>("field",              renderField)
         .register<UiFieldGroup>("fieldgroup",    renderFieldGroup)
         .register<UiDialog>("dialog",            renderDialog)

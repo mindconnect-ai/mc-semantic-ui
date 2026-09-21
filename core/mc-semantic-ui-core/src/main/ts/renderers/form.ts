@@ -50,6 +50,8 @@ export function renderForm(node: UiForm, r: SuiRenderer): string {
 
 /** Returns the form's primary submit action: first PRIMARY-styled, else first. */
 function primaryAction(node: UiForm): UiAction | undefined {
-    const actions = node.actions ?? [];
+    // A menu is never the form's submit: it opens, its entries act. Parity
+    // with primaryFormAction() in SuiHandlebarsHelpers.
+    const actions = (node.actions ?? []).filter((a): a is UiAction => a.type !== "action-menu");
     return actions.find(a => a.style === "PRIMARY") ?? actions[0];
 }

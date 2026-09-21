@@ -170,8 +170,8 @@ export interface UiField {
     onInput?: UiTrigger;
 }
 
-export interface UiAction {
-    type: "action";
+/** What every button has — {@link UiAction} and {@link UiActionMenu} alike. Mirrors UiAction.java. */
+export interface UiActionBase {
     cssClass?: string;
     /** Inherited from UiNode: a label the container may show. */
     title?: string;
@@ -212,6 +212,26 @@ export interface UiAction {
     onChange?: UiTrigger;
     onInput?: UiTrigger;
 }
+
+export interface UiAction extends UiActionBase {
+    type: "action";
+}
+
+/**
+ * A button that opens a menu, placed wherever an action goes — chiefly in a
+ * form's button bar (mirrors UiActionMenu.java). Looks like the other buttons
+ * (style, icon, label) with a caret; opens like a {@link UiMenuButton}. Its
+ * own `onClick` is unused: the entries act. An entry whose trigger names the
+ * form as payload — or, in a form's button bar, names nothing — sends the
+ * form's fields.
+ */
+export interface UiActionMenu extends UiActionBase {
+    type: "action-menu";
+    items: UiMenuItem[];
+}
+
+/** Anything that can stand in a button bar. */
+export type UiAnyAction = UiAction | UiActionMenu;
 
 export interface UiLink {
     type: "link";
@@ -259,7 +279,7 @@ export interface UiListItem {
     collapseSummaryId?: string;
     /** When true the open/closed state is client-owned; renders collapsed + data-sui-client-collapse. */
     collapseClientControlled?: boolean;
-    actions?: UiAction[];
+    actions?: UiAnyAction[];
 }
 
 /**
@@ -485,7 +505,7 @@ export interface UiForm extends UiNodeBase {
     /** Icon token shown before the title, as on a table or a list. */
     icon?: string;
     fields: UiField[];
-    actions?: UiAction[];
+    actions?: UiAnyAction[];
     links?: UiLink[];
     /**
      * Optional rich body rendered inside the `<form>` after {@link fields}.
@@ -516,7 +536,7 @@ export interface UiDetail extends UiNodeBase {
     /** Icon token shown before the title, as on a table or a list. */
     icon?: string;
     fields: UiField[];
-    actions?: UiAction[];
+    actions?: UiAnyAction[];
     links?: UiLink[];
 }
 
@@ -525,7 +545,7 @@ export interface UiTable extends UiNodeBase {
     columns: UiTableColumn[];
     rows: UiTableRow[];
     pagination?: Pagination;
-    actions?: UiAction[];
+    actions?: UiAnyAction[];
     rowActions?: UiAction[];
     /** Optional node rendered in the header row between title and actions. */
     headerExtra?: UiNode;
@@ -594,7 +614,7 @@ export interface UiList extends UiNodeBase {
     type: "list";
     items: UiListItem[];
     pagination?: Pagination;
-    actions?: UiAction[];
+    actions?: UiAnyAction[];
     /** Optional node rendered in the header row between title and actions. */
     headerExtra?: UiNode;
     /** Leading icon token rendered in the header before the title. */
@@ -670,6 +690,8 @@ export interface UiMenuItem extends UiNodeBase {
     danger?: boolean;
     /** Non-interactive separator line; other fields ignored (mainly in a menu-button). */
     divider?: boolean;
+    /** Non-interactive heading showing `label` over the entries that follow (in a menu popover). */
+    heading?: boolean;
     /** Nested entries; when present this item is a collapsible / fly-out group. */
     children?: UiMenuItem[];
 }
@@ -892,6 +914,7 @@ export type UiNode =
     | UiProgress
     | UiLink
     | UiAction
+    | UiActionMenu
     | UiField
     | UiDialog
     | UiUpload;

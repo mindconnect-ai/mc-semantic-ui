@@ -118,13 +118,29 @@ markup and stays inside the event bus's scope) but positioned with
 `position: fixed` at open time. That is what makes the row pattern above work: a
 scrolling table body or an `overflow: hidden` app shell cannot cut the menu off.
 The bus flips it above the trigger when there is no room below, clamps it into
-the viewport, and flips submenus to the other side near the right edge.
+the viewport (and, with room on neither side, cuts it to the larger one and
+lets it scroll), and flips submenus to the other side near the right edge.
 
 **Opening degrades gracefully.** The trigger is a native `<details>`/`<summary>`,
 so with no JS at all clicking it still opens and closes the popover and each
 entry's `href` still navigates. The bus takes over on top: outside-click and
 <kbd>Esc</kbd> to close, closing after a choice, and dispatching each entry's
 `onClick` instead of navigating.
+
+**Headings name a run of entries.** `UiMenuItem.heading("Quick actions")` is a
+label over the entries that follow it. It is not an item, so it can't be
+clicked or reached with the arrow keys.
+
+**The keyboard works as in a menu.** <kbd>Enter</kbd>/<kbd>Space</kbd> or
+<kbd>↓</kbd> open the menu on its first entry, and <kbd>↑</kbd> opens it on
+the last. The arrows move and wrap, skipping headings, dividers and disabled
+entries, and <kbd>Home</kbd>/<kbd>End</kbd> jump to the ends. <kbd>→</kbd>/
+<kbd>←</kbd> enter and leave a submenu. <kbd>Esc</kbd> closes the menu and
+returns to the trigger, and <kbd>Tab</kbd> closes it and moves on.
+
+**In a form's button bar**, use [`UiAction.menu(…)`](./form.md#a-menu-in-the-button-bar)
+instead. It is the same popover on a trigger that looks like the bar's other
+buttons, and its entries send the form.
 
 **Danger and dividers carry the meaning.** A popover is the one place where
 [`menu-item`](./menu-item.md)'s `divider` and `danger` earn their keep — separate

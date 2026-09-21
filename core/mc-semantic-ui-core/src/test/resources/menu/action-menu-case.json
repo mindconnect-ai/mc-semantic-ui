@@ -1,0 +1,51 @@
+{
+  "menu": {
+    "type": "action-menu",
+    "id": "ai",
+    "label": "AI",
+    "style": "SECONDARY",
+    "appearance": "BUTTON",
+    "enabled": true,
+    "icon": "sparkles",
+    "items": [
+      {
+        "type": "menu-item",
+        "id": "draft",
+        "label": "Draft with AI",
+        "enabled": true,
+        "onClick": {
+          "url": "/ai/draft",
+          "method": "POST",
+          "payload": "compose",
+          "behavior": "APPLY_RESPONSE"
+        }
+      },
+      {
+        "type": "menu-item",
+        "divider": true,
+        "enabled": true
+      },
+      {
+        "type": "menu-item",
+        "heading": true,
+        "label": "Quick actions",
+        "enabled": true
+      },
+      {
+        "type": "menu-item",
+        "id": "shorten",
+        "label": "Shorten",
+        "icon": "scissors",
+        "enabled": false,
+        "disabledReason": "Nothing to shorten",
+        "onClick": {
+          "url": "/ai/shorten",
+          "method": "POST",
+          "payload": "compose",
+          "behavior": "APPLY_RESPONSE"
+        }
+      }
+    ]
+  },
+  "html": "<details class=\"sui-menu-button sui-menu-button--action sui-menu-button--align-start\" id=\"ai\" data-sui=\"menu-button\"><summary class=\"sui-menu-button-trigger sui-btn sui-btn--secondary\" role=\"button\" aria-haspopup=\"menu\" aria-expanded=\"false\" title=\"AI\"><span class=\"sui-menu-button-glyph\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#sparkles\"></use></svg></span><span class=\"sui-menu-button-text\">AI</span><span class=\"sui-menu-button-caret\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#chevron-down\"></use></svg></span></summary><div class=\"sui-menu-button-popover\" role=\"menu\"><button type=\"button\" class=\"sui-menu-button-item\" id=\"draft\" data-id=\"draft\" role=\"menuitem\" data-trigger='{\"url\":\"/ai/draft\",\"method\":\"POST\",\"payload\":\"compose\",\"behavior\":\"APPLY_RESPONSE\"}'><span class=\"sui-menu-button-item-icon\"></span><span class=\"sui-menu-button-item-label\">Draft with AI</span></button><div class=\"sui-menu-button-sep\" role=\"separator\"></div><div class=\"sui-menu-button-heading\" role=\"presentation\">Quick actions</div><button type=\"button\" class=\"sui-menu-button-item\" id=\"shorten\" data-id=\"shorten\" role=\"menuitem\" data-trigger='{\"url\":\"/ai/shorten\",\"method\":\"POST\",\"payload\":\"compose\",\"behavior\":\"APPLY_RESPONSE\"}' disabled title=\"Nothing to shorten\"><span class=\"sui-menu-button-item-icon\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#scissors\"></use></svg></span><span class=\"sui-menu-button-item-label\">Shorten</span></button></div></details>"
+}

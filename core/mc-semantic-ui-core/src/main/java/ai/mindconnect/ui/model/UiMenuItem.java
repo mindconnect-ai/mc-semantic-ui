@@ -55,6 +55,14 @@ public class UiMenuItem extends UiAction {
      * a {@link UiMenuButton} popover.
      */
     private boolean divider;
+    /**
+     * When true this entry is a non-interactive heading over the entries that
+     * follow — "Quick actions" — showing its {@code label}. Its other fields are
+     * ignored. In a {@link UiMenuButton} or {@link UiActionMenu} popover.
+     * Omitted from JSON when false.
+     */
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    private boolean heading;
     /** Nested entries; when non-empty this item is a collapsible/fly-out group. */
     private List<UiMenuItem> children;
 
@@ -90,6 +98,13 @@ public class UiMenuItem extends UiAction {
     @Override
     public UiMenuItem onClick(UiTrigger trigger) {
         setOnClick(trigger);
+        return this;
+    }
+
+    /** Shown, but not clickable, with {@code reason} as its tooltip (same as {@link UiAction#disabled}). */
+    @Override
+    public UiMenuItem disabled(String reason) {
+        super.disabled(reason);
         return this;
     }
 
@@ -142,6 +157,14 @@ public class UiMenuItem extends UiAction {
     public static UiMenuItem divider() {
         var i = new UiMenuItem();
         i.divider = true;
+        return i;
+    }
+
+    /** A non-interactive heading over the entries that follow, in a menu popover. */
+    public static UiMenuItem heading(String label) {
+        var i = new UiMenuItem();
+        i.setLabel(label);
+        i.heading = true;
         return i;
     }
 

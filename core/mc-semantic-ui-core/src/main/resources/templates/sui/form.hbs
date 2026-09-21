@@ -28,14 +28,16 @@
   </div>
 </form>
 {{else}}
-{{!-- Form without actions: render as an inert <form> wrapper. Rare, but
-     avoids dropping the whole node when the model has no primary action. --}}
+{{!-- Form without a submit button: an inert <form> wrapper. Rare, but
+     avoids dropping the whole node when the model has no primary action. Its
+     button bar may still hold menus (UiActionMenu), which never submit. --}}
 <form class="sui-form{{#if cssClass}} {{cssClass}}{{/if}}" id="{{id}}" data-sui="form"{{#if reloadOnSubmit}} data-sui-reload="true"{{/if}}>
   {{#if title}}<h2>{{#if icon}}{{{icon icon}}}{{/if}}{{title}}</h2>{{/if}}
   {{#if formError}}<div class="sui-form-error" role="alert">{{formError}}</div>{{/if}}
   {{#each fields}}{{> field this}}{{/each}}
   {{#each content}}{{{render this}}}{{/each}}
   <div class="sui-form-footer">
+    {{#each actions}}{{{formAction this}}}{{/each}}
     {{#each links}}{{> link this}}{{/each}}
   </div>
 </form>
