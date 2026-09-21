@@ -47,6 +47,11 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- `SuiAssetsExport` writes `/sui/assets.js` as a file at build time, from
+  the `assets.json` of every jar on the classpath — for a page no server
+  stands behind. The module resolves its urls against its own location, so
+  an exported copy works under any path. The widget demo installs its
+  extensions this way.
 - **An asset registry for extensions and plugins.** A jar declares the
   stylesheets and browser modules it brings in `META-INF/sui/assets.json`, a
   `SuiAssetContribution` bean does the same in code, and a marketplace adds
