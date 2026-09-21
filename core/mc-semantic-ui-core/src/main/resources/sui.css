@@ -686,7 +686,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
    glyph spans swap visibility accordingly. */
 /* RICHTEXT: a toolbar over an editable area, in the same box an input has. */
 .sui-richtext {
-    border: 1px solid var(--sui-color-border); border-radius: var(--sui-radius-md);
+    position: relative; border: 1px solid var(--sui-color-border); border-radius: var(--sui-radius-md);
     background: var(--sui-color-surface); overflow: hidden;
 }
 .sui-richtext:focus-within { border-color: var(--sui-color-primary); box-shadow: var(--sui-focus-ring); }
@@ -715,6 +715,18 @@ a.sui-tree-label:hover { text-decoration: underline; }
 }
 .sui-richtext-editor a, .sui-richtext-view a { color: var(--sui-color-primary); }
 .sui-richtext-editor img, .sui-richtext-view img { max-width: 100%; height: auto; border-radius: var(--sui-radius-sm); }
+.sui-richtext-editor img { cursor: move; }
+/* The frame around a selected image and its resize handle: an overlay beside
+   the editor, positioned over the image, so nothing of it is in the value. */
+.sui-richtext-imgframe {
+    position: absolute; box-sizing: border-box; pointer-events: none;
+    border: 2px solid var(--sui-color-primary); border-radius: var(--sui-radius-sm);
+}
+.sui-richtext-imghandle {
+    position: absolute; right: -7px; bottom: -7px; width: 12px; height: 12px; pointer-events: auto;
+    background: var(--sui-color-surface); border: 2px solid var(--sui-color-primary); border-radius: 2px;
+    cursor: nwse-resize;
+}
 .sui-field--error .sui-richtext { border-color: var(--sui-color-danger); }
 .sui-richtext-view { font-size: var(--sui-text-md); line-height: 1.5; color: var(--sui-color-text-body); }
 

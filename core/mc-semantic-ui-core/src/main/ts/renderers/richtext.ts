@@ -108,7 +108,8 @@ function clean(parent: Element): void {
         for (const attr of Array.from(el.attributes)) {
             const keep = (tag === "a" && attr.name === "href" && safeHref(attr.value))
                 || (tag === "img" && attr.name === "src" && safeImageSrc(attr.value))
-                || (tag === "img" && attr.name === "alt");
+                || (tag === "img" && attr.name === "alt")
+                || (tag === "img" && (attr.name === "width" || attr.name === "height") && /^\d{1,5}$/.test(attr.value));
             if (!keep) el.removeAttribute(attr.name);
         }
         // A link left with nowhere to go is only its text; an image with no
@@ -241,6 +242,7 @@ function install(box: HTMLElement, editor: HTMLElement, input: HTMLInputElement)
     });
     editor.addEventListener("keyup", () => reflect(box, editor));
     editor.addEventListener("mouseup", () => reflect(box, editor));
+    installImageTools(box, editor, sync);
 
     const toolbar = box.querySelector<HTMLElement>(".sui-richtext-toolbar");
     if (!toolbar) return;
@@ -254,6 +256,95 @@ function install(box: HTMLElement, editor: HTMLElement, input: HTMLInputElement)
         run(btn.dataset.suiRichtextCmd ?? "", editor);
         sync();
         reflect(box, editor);
+    });
+}
+
+// ── Images: resize by a handle, move by dragging ─────────────────────────────
+
+/** The smallest width an image can be dragged to, in pixels. */
+const MIN_IMAGE_WIDTH = 40;
+
+/**
+ * A click on an image selects it and shows a frame with a handle at its
+ * bottom-right corner; dragging the handle scales the image, proportionally,
+ * and writes the result as a `width` attribute — plain HTML, no style, so it
+ * survives the sanitiser and shows the same anywhere. The frame is an overlay
+ * beside the editor, not inside it, so nothing of it lands in the value.
+ * Moving an image is the browser's own: drag it to where it should go.
+ */
+function installImageTools(box: HTMLElement, editor: HTMLElement, sync: () => void): void {
+    const frame = document.createElement("div");
+    frame.className = "sui-richtext-imgframe";
+    frame.hidden = true;
+    const handle = document.createElement("div");
+    handle.className = "sui-richtext-imghandle";
+    handle.title = "Drag to resize";
+    frame.appendChild(handle);
+    box.appendChild(frame);
+
+    let selected: HTMLImageElement | null = null;
+
+    const place = (): void => {
+        if (!selected || !selected.isConnected || !editor.contains(selected)) { hide(); return; }
+        const b = box.getBoundingClientRect(), r = selected.getBoundingClientRect();
+        frame.style.left = `${r.left - b.left + box.scrollLeft}px`;
+        frame.style.top = `${r.top - b.top + box.scrollTop}px`;
+        frame.style.width = `${r.width}px`;
+        frame.style.height = `${r.height}px`;
+        frame.hidden = false;
+    };
+    const hide = (): void => { selected = null; frame.hidden = true; };
+    const select = (img: HTMLImageElement): void => {
+        selected = img;
+        // The browser's selection on the image too, so Delete removes it and
+        // a drag moves it.
+        const range = document.createRange();
+        range.selectNode(img);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+        place();
+    };
+
+    editor.addEventListener("click", e => {
+        const t = e.target;
+        if (t instanceof HTMLImageElement) select(t); else hide();
+    });
+    editor.addEventListener("input", () => { if (selected) place(); });
+    editor.addEventListener("keydown", e => { if (e.key === "Escape") hide(); });
+    editor.addEventListener("scroll", () => { if (selected) place(); });
+    editor.addEventListener("blur", () => {
+        // Not when the handle took the focus: that is a resize starting.
+        setTimeout(() => { if (!dragging) hide(); }, 0);
+    });
+    window.addEventListener("resize", () => { if (selected) place(); });
+
+    let dragging = false;
+    handle.addEventListener("mousedown", e => {
+        if (!selected) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const img = selected;
+        const startX = e.clientX, startWidth = img.getBoundingClientRect().width;
+        const ratio = img.naturalWidth > 0 ? img.naturalHeight / img.naturalWidth : 0;
+        const maxWidth = editor.clientWidth - 2;
+        dragging = true;
+        const move = (ev: MouseEvent): void => {
+            const width = Math.round(Math.min(maxWidth, Math.max(MIN_IMAGE_WIDTH, startWidth + (ev.clientX - startX))));
+            img.setAttribute("width", String(width));
+            if (ratio > 0) img.setAttribute("height", String(Math.round(width * ratio)));
+            place();
+        };
+        const up = (): void => {
+            dragging = false;
+            document.removeEventListener("mousemove", move);
+            document.removeEventListener("mouseup", up);
+            sync();
+            editor.focus();
+            select(img);
+        };
+        document.addEventListener("mousemove", move);
+        document.addEventListener("mouseup", up);
     });
 }
 

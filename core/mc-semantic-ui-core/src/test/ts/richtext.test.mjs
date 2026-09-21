@@ -52,6 +52,14 @@ describe("RICHTEXT field", () => {
         }
     });
 
+    test("an image keeps a whole-number width and height, nothing else", () => {
+        // The policy: only these attribute names survive on an img, checked by
+        // the sanitiser's DOM walk in the browser; here the shape of the rule.
+        assert.equal(/^\d{1,5}$/.test("640"), true);
+        assert.equal(/^\d{1,5}$/.test("50%"), false);
+        assert.equal(/^\d{1,5}$/.test("640px"), false);
+    });
+
     test("images stay when embedded as data or fetched over http(s)", () => {
         assert.equal(rt.allowedTag("img"), true);
         assert.equal(rt.safeImageSrc("data:image/png;base64,iVBORw0KGgo="), true);

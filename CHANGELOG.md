@@ -31,7 +31,8 @@ fresh empty one, so nothing has to be moved by hand at release time.
   reduced to that same vocabulary on the client (no `<script>`, `<style>`,
   `on*` attributes or external CSS); an image on the clipboard — a
   screenshot, say — is embedded in the HTML as a `data:` URL, scaled to at
-  most 1280px on its longer side. A `MERGE` of `value` replaces the
+  most 1280px on its longer side; a click on an image shows a corner handle
+  that resizes it (as `width`/`height` attributes), and dragging moves it. A `MERGE` of `value` replaces the
   content, focused or not. Read-only, the HTML is shown as formatted text.
 
 - `UiMenu.toggleIcon` — the glyph on a menu's own toggle, `menu` (the
