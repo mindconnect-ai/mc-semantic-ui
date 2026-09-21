@@ -508,6 +508,8 @@ function kanbanTab() {
         text("kanban-intro",
             "The kanban node ships in the mc-semantic-ui-ext-kanban module: lanes of cards, dragged between them. Drop a card and the board fires its onMove trigger — here answered by the demo's stub backend, so watch the toast. The Doing lane has a limit of 2, Done is locked, and the pinned card cannot be dragged."),
         specimen("sp-kanban", "Kanban board — drag a card to another lane", board, boardJava),
+    ], { gap: 16 });
+}
 
 // ── Tab: Calendar (extension) ────────────────────────────────────────────────
 function calendarTab() {
