@@ -46,9 +46,18 @@ describe("RICHTEXT field", () => {
         for (const t of ["script", "style", "link", "iframe", "object", "embed", "form", "input", "svg", "meta"]) {
             assert.equal(rt.droppedTag(t), true, t);
         }
-        for (const t of ["table", "font", "center", "section", "img"]) {
+        for (const t of ["table", "font", "center", "section", "video"]) {
             assert.equal(rt.allowedTag(t), false, t);   // unwrapped, text kept
             assert.equal(rt.droppedTag(t), false, t);
+        }
+    });
+
+    test("images stay when embedded as data or fetched over http(s)", () => {
+        assert.equal(rt.allowedTag("img"), true);
+        assert.equal(rt.safeImageSrc("data:image/png;base64,iVBORw0KGgo="), true);
+        assert.equal(rt.safeImageSrc("https://example.com/a.jpg"), true);
+        for (const bad of ["data:text/html;base64,PHNjcmlwdD4=", "javascript:alert(1)", "file:///etc/passwd", ""]) {
+            assert.equal(rt.safeImageSrc(bad), false, bad);
         }
     });
 

@@ -714,6 +714,7 @@ a.sui-tree-label:hover { text-decoration: underline; }
     color: var(--sui-color-text-muted);
 }
 .sui-richtext-editor a, .sui-richtext-view a { color: var(--sui-color-primary); }
+.sui-richtext-editor img, .sui-richtext-view img { max-width: 100%; height: auto; border-radius: var(--sui-radius-sm); }
 .sui-field--error .sui-richtext { border-color: var(--sui-color-danger); }
 .sui-richtext-view { font-size: var(--sui-text-md); line-height: 1.5; color: var(--sui-color-text-body); }
 

@@ -41,7 +41,7 @@ export function renderRichTextToolbar(): string {
 const ALLOWED_TAGS = new Set([
     "p", "br", "div", "span",
     "b", "strong", "i", "em", "u", "s", "strike", "sub", "sup", "code", "pre",
-    "ul", "ol", "li", "blockquote", "a", "hr",
+    "ul", "ol", "li", "blockquote", "a", "hr", "img",
     "h1", "h2", "h3", "h4", "h5", "h6",
 ]);
 
@@ -71,6 +71,15 @@ export function safeHref(href: string): boolean {
 }
 
 /**
+ * Whether an image source may be kept: an image embedded as data, or one
+ * fetched over http(s) — never a script scheme, never anything else inline.
+ */
+export function safeImageSrc(src: string): boolean {
+    const v = src.trim().toLowerCase();
+    return /^data:image\/(png|jpeg|jpg|gif|webp|bmp);base64,/.test(v) || /^https?:\/\//.test(v);
+}
+
+/**
  * Reduces HTML to what the toolbar itself can produce. Elements that run or
  * style are dropped with their content, unknown ones are unwrapped, and no
  * attribute survives but a safe `href` on a link. Parsed by the browser's own
@@ -97,12 +106,17 @@ function clean(parent: Element): void {
             continue;
         }
         for (const attr of Array.from(el.attributes)) {
-            const keep = tag === "a" && attr.name === "href" && safeHref(attr.value);
+            const keep = (tag === "a" && attr.name === "href" && safeHref(attr.value))
+                || (tag === "img" && attr.name === "src" && safeImageSrc(attr.value))
+                || (tag === "img" && attr.name === "alt");
             if (!keep) el.removeAttribute(attr.name);
         }
-        // A link left with nowhere to go is only its text.
+        // A link left with nowhere to go is only its text; an image with no
+        // source is nothing.
         if (tag === "a" && !el.hasAttribute("href")) {
             while (el.firstChild) parent.insertBefore(el.firstChild, el);
+            el.remove();
+        } else if (tag === "img" && !el.hasAttribute("src")) {
             el.remove();
         }
     }
@@ -113,6 +127,38 @@ function textToHtml(text: string): string {
     const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     return text.replace(/\r\n?/g, "\n").split(/\n{2,}/)
         .map(p => `<p>${esc(p).replace(/\n/g, "<br>")}</p>`).join("");
+}
+
+/** The longest side an embedded image is scaled down to, in pixels. */
+export const MAX_IMAGE_SIDE = 1280;
+
+/**
+ * An image file as a `data:` URL, scaled to at most {@link MAX_IMAGE_SIDE}
+ * on its longer side. PNG stays PNG (it may be transparent); anything else
+ * becomes JPEG. Null when the browser cannot decode it.
+ */
+export async function imageToDataUrl(file: File): Promise<string | null> {
+    const url = URL.createObjectURL(file);
+    try {
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const i = new Image();
+            i.onload = () => resolve(i);
+            i.onerror = () => reject(new Error("not an image"));
+            i.src = url;
+        });
+        const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(img.naturalWidth, img.naturalHeight, 1));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        return file.type === "image/png" ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.85);
+    } catch {
+        return null;
+    } finally {
+        URL.revokeObjectURL(url);
+    }
 }
 
 // ── Behaviour ───────────────────────────────────────────────────────────────
@@ -173,6 +219,20 @@ function install(box: HTMLElement, editor: HTMLElement, input: HTMLInputElement)
         const data = e.clipboardData;
         if (!data) return;
         e.preventDefault();
+        // An image on the clipboard — a screenshot, a copied picture — goes in
+        // as itself, embedded in the HTML as data. Sized down first: a
+        // screenshot of a retina screen is megabytes nobody wants in a form.
+        const images = Array.from(data.files ?? []).filter(f => f.type.startsWith("image/"));
+        if (images.length > 0) {
+            void (async () => {
+                for (const file of images) {
+                    const src = await imageToDataUrl(file);
+                    if (src) document.execCommand("insertHTML", false, `<img src="${src}" alt="">`);
+                }
+                sync();
+            })();
+            return;
+        }
         const html = data.getData("text/html");
         const text = data.getData("text/plain");
         const clean = html ? sanitizeHtml(html) : textToHtml(text);

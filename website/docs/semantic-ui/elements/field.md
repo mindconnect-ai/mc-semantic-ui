@@ -62,7 +62,7 @@ which reports the new value without submitting anything.*
 |---|---|---|
 | `TEXT` | `<input type="text">` | `placeholder`, `icon` |
 | `TEXTAREA` | `<textarea rows="4">` | `submitOnEnter` |
-| `RICHTEXT` | an editable area with a formatting toolbar, and a hidden input carrying the HTML | `placeholder` — the value is an HTML string, submitted as a string under the field id like a `TEXTAREA`'s. Toolbar: bold, italic, underline, bulleted and numbered list, link, quote, remove formatting. Pasted content is reduced to that vocabulary on the client (no script, style, event handlers or external CSS). A `MERGE` of `value` replaces the content. Read-only, the HTML is shown as formatted text. |
+| `RICHTEXT` | an editable area with a formatting toolbar, and a hidden input carrying the HTML | `placeholder` — the value is an HTML string, submitted as a string under the field id like a `TEXTAREA`'s. Toolbar: bold, italic, underline, bulleted and numbered list, link, quote, remove formatting. Pasted content is reduced to that vocabulary on the client (no script, style, event handlers or external CSS); an image on the clipboard is embedded as a `data:` URL, scaled to at most 1280px. A `MERGE` of `value` replaces the content. Read-only, the HTML is shown as formatted text. |
 | `PASSWORD` | `<input type="password">` + eye toggle | `placeholder` — the built-in toggle flips the input to plain text and back; the value never leaves the field |
 | `NUMBER` | `<input type="number">` | `min`, `max`, `step` |
 | `CURRENCY` | `<input type="number">` | `min`, `max`, `step` (use `"0.01"`) |

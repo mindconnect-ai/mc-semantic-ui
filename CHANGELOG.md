@@ -29,7 +29,9 @@ fresh empty one, so nothing has to be moved by hand at release time.
   work as usual. A toolbar offers bold, italic, underline, bulleted and
   numbered lists, link, quote and remove formatting; what is pasted is
   reduced to that same vocabulary on the client (no `<script>`, `<style>`,
-  `on*` attributes or external CSS). A `MERGE` of `value` replaces the
+  `on*` attributes or external CSS); an image on the clipboard — a
+  screenshot, say — is embedded in the HTML as a `data:` URL, scaled to at
+  most 1280px on its longer side. A `MERGE` of `value` replaces the
   content, focused or not. Read-only, the HTML is shown as formatted text.
 
 - `UiMenu.toggleIcon` — the glyph on a menu's own toggle, `menu` (the
