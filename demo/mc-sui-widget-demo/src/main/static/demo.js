@@ -358,7 +358,7 @@ function formsTab() {
     .field(UiField.number("f-price", "Price", 19.0).asEditable().step("0.01"))
     .field(UiField.number("f-count", "In stock", 128).asEditable().min("0"))
     .field(UiField.date("f-launch", "Launch date", "2026-07-06").asEditable())
-    .field(UiField.time("f-from", "Deliveries from", LocalTime.of(8, 30)).asEditable().step("900").hint("Quarter hours"))
+    .field(UiField.time("f-from", "Deliveries from", LocalTime.of(8, 30)).asEditable().minutes(15).hint("Quarter hours"))
     .field(UiField.select("f-cat", "Category", "tools", List.of(
         UiField.Option.of("tools", "Tools"), UiField.Option.of("toys", "Toys"), UiField.Option.of("home", "Home"))).asEditable())
     .field(UiField.multiselect("f-tags", "Tags", null, List.of(
@@ -626,8 +626,8 @@ function calendarTab() {
             UiDialog.of("New event", null, UiForm.of("ev-new-form", null)
                     .field(UiField.text("ev-title", "Title", null).asEditable().asRequired())
                     .field(UiField.date("ev-date", "Date", "{date}").asEditable())
-                    .field(UiField.time("ev-start", "Start", "{time}").asEditable().step("900"))
-                    .field(UiField.time("ev-end", "End", null).asEditable().step("900"))
+                    .field(UiField.time("ev-start", "Start", "{time}").asEditable().minutes(15))
+                    .field(UiField.time("ev-end", "End", null).asEditable().minutes(15))
                     .action(UiAction.primary("ev-save", "Save").onClick(UiTrigger.api("POST", "/cal/events", "ev-new-form")))))));
 
 // Browser:  import { install } from "/sui-ext/calendar/extension.js"; install(renderer, { bus });

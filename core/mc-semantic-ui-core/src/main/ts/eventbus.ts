@@ -6,6 +6,7 @@ import { wireOverflow } from "./renderers/overflow.js";
 import { wireMenuButtons } from "./renderers/menu-button.js";
 import { wireAutoScroll } from "./renderers/autoscroll.js";
 import { wireRichText } from "./renderers/richtext.js";
+import { snapTimeValue } from "./renderers/field.js";
 import { t } from "./i18n.js";
 import { seatAfterToggle } from "./renderers/choices.js";
 import { withCsrf, type CsrfOptions } from "./csrf.js";
@@ -1286,6 +1287,13 @@ export class SuiEventBus {
         // A node-level change (UiNode.events) fires first — it sits on a
         // wrapper, so a field's own data-change-trigger below still wins for
         // the input itself.
+        // A TIME field with a step: a value typed between the offered times
+        // is rounded to the nearest one, so the form sends what the picker
+        // would have chosen.
+        if (target instanceof HTMLInputElement && target.type === "time" && target.step) {
+            const snapped = snapTimeValue(target.value, Number(target.step));
+            if (snapped !== target.value) target.value = snapped;
+        }
         if (this.handleNodeEvent(e, "change")) return;
         // Field-level onChange trigger takes precedence over submitOnChange:
         // the control carries a data-change-trigger (a separate attribute from

@@ -6,6 +6,23 @@ import { cls, evt } from "./util.js";
 import { choicesInDisplayOrder } from "./choices.js";
 import { renderRichTextToolbar } from "./richtext.js";
 
+/**
+ * A time as `HH:mm`, rounded to the nearest multiple of `stepSeconds`
+ * (`"09:07"` at 900 → `"09:00"`, `"09:08"` → `"09:15"`). Anything that is not
+ * a time, or a step under a minute, comes back unchanged. The browser's own
+ * picker offers only the stepped times; this is for what is typed in between.
+ */
+export function snapTimeValue(value: string, stepSeconds: number): string {
+    const m = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value);
+    if (!m || !(stepSeconds >= 60)) return value;
+    const step = Math.round(stepSeconds / 60);
+    const minutes = Number(m[1]) * 60 + Number(m[2]);
+    let snapped = Math.round(minutes / step) * step;
+    if (snapped >= 1440) snapped -= step;   // never past the day: the last offered time instead
+    const pad = (n: number): string => (n < 10 ? "0" : "") + n;
+    return `${pad(Math.floor(snapped / 60))}:${pad(snapped % 60)}`;
+}
+
 export function renderField(f: UiField): string {
     // HIDDEN: no wrapper, no label — only the value, submitted with the form
     // whether or not the field is editable. The input carries the model id

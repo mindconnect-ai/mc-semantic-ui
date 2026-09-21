@@ -377,7 +377,7 @@ class SuiServerRendererTest {
 
     @Test
     void timeFieldRendersTheBrowsersTimePicker() {
-        var f = UiField.time("from", "From", java.time.LocalTime.of(8, 30)).asEditable().step("900");
+        var f = UiField.time("from", "From", java.time.LocalTime.of(8, 30)).asEditable().minutes(15);
         String html = renderer.render(f);
         assertTrue(html.contains("<input type=\"time\" id=\"from__input\" name=\"from\" value=\"08:30\" data-sui-type=\"TIME\" step=\"900\">"), html);
         String ro = renderer.render(UiField.time("from", "From", "08:30"));

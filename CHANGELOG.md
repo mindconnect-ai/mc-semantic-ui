@@ -34,6 +34,10 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- `UiField.minutes(n)` on a `TIME` field — the times offered every `n`
+  minutes (`minutes(15)` for quarter hours), and a value typed in between is
+  rounded to the nearest one when the field changes.
+
 - `UiField.richtext(id, label, html)` — `FieldType.RICHTEXT`, formatted text.
   The value is an HTML string and comes back as a string under the field id,
   like a `TEXTAREA`'s; `asEditable()`, `asRequired()` and `placeholder()`

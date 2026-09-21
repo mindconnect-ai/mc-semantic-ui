@@ -69,7 +69,7 @@ which reports the new value without submitting anything.*
 | `PERCENT` | `<input type="number">` | `min`, `max`, `step` |
 | `DATE` | `<input type="date">` | `min`, `max`, `step` — `yyyy-MM-dd` |
 | `DATETIME` | `<input type="datetime-local">` | `min`, `max`, `step` — `yyyy-MM-ddTHH:mm` |
-| `TIME` | `<input type="time">` | `min`, `max` — `HH:mm`; `step` in seconds (`"900"` for quarter hours). `UiField.time(id, label, "08:30")`, or a `LocalTime` |
+| `TIME` | `<input type="time">` | `min`, `max` — `HH:mm`; `step` in seconds, or `.minutes(15)`: the picker offers only those times and a value typed in between is rounded to the nearest one. `UiField.time(id, label, "08:30")`, or a `LocalTime` |
 | `BOOLEAN` | `<input type="checkbox">` | `value` (truthy = checked) |
 | `SELECT` | `<select>`, or radio buttons when `expanded` | `options` |
 | `MULTISELECT` | `<select multiple>`, or checkboxes when `expanded` | `options`, `orderable`; `value` may be a list or a comma-separated string |
@@ -166,7 +166,11 @@ the server what you store, as with any HTML.
 
 **`TIME`** is the browser's own time picker: `UiField.time("from", "From",
 LocalTime.of(8, 30))` renders `<input type="time">` with the value as `HH:mm`;
-`min`, `max` and `step` (in seconds) apply as on a date field.
+`min`, `max` and `step` apply as on a date field; `.minutes(5)`, `.minutes(15)`
+sets the step in a readable way. The browser's picker then offers only those
+times, and a value typed in between — `09:07` at quarter hours — is rounded to
+the nearest one, `09:00`, when the field changes, so the form sends what the
+picker would have chosen.
 
 ## Building one
 
