@@ -391,6 +391,49 @@ Server-rendered `UiPage`s get the links in their head automatically. See
 [the asset registry](https://mindconnect-ai.github.io/mc-semantic-ui/semantic-ui/extension-assets)
 for declaring assets, overriding a shipped one and registering at run time.
 
+### A plugin's own node type without Java
+
+A widget written entirely in TypeScript needs no Java class. The server sends a
+`UiCustom` with the type the browser renderer is registered for, and its
+properties go out flat:
+
+```java
+UiCustom.of("chat-widget")            // the type the client renderer is registered for
+        .id("draft-chat")
+        .prop("session", sid)
+        .prop("api", "/chat-api/sessions");
+// → {"type":"chat-widget","id":"draft-chat","session":"…","api":"/chat-api/sessions"}
+```
+
+The plugin's jar declares its module in `META-INF/sui/assets.json`
+(its files under `META-INF/resources/sui-ext/chat/`):
+
+```json
+[
+  { "id": "chat", "kind": "extension", "href": "/sui-ext/chat/extension.js" }
+]
+```
+
+and registers the renderer in `install`. It gets the node exactly as sent:
+
+```js
+// extension.js
+export function install(renderer, { bus }) {
+    renderer.register("chat-widget", node =>
+        `<div id="${node.id}" class="chat" data-api="${node.api}" data-session="${node.session}"></div>`);
+}
+```
+
+The standard fields (`id`, `title`, `cssClass`, the triggers) work as on any
+node. A property cannot overwrite them, and a type must be lowercase-kebab and
+not a core type, otherwise you get an `IllegalArgumentException`. Until a
+renderer is registered, and in a server-rendered page without a
+`templates/sui/chat-widget.hbs`, the node shows as a small
+`<div class="sui-custom-missing" data-type="chat-widget">`. The console names
+the missing type, the rest of the page renders normally, and the placeholder
+is redrawn once `installAll` has installed the plugin. Reading JSON back, any
+type Jackson does not know becomes a `UiCustom`.
+
 ### Eigene Icons in einem Plugin
 
 A plugin that brings icons — provider logos, say — ships an SVG sprite of

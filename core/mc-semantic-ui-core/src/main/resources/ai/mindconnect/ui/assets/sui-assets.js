@@ -107,5 +107,13 @@ export async function installAll(renderer, bus, options = {}) {
         }
     }
     await styles;
+    // A node whose renderer an extension just brought — on a server-rendered
+    // page, or drawn before the install — is still its placeholder: redraw it.
+    const doc = options.document ?? globalThis.document;
+    try {
+        if (doc && typeof renderer?.upgradePlaceholders === "function") renderer.upgradePlaceholders(doc);
+    } catch (err) {
+        console.error("sui-assets: could not redraw the placeholders", err);
+    }
     return report;
 }

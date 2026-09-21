@@ -1,5 +1,6 @@
 package ai.mindconnect.ui.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -9,7 +10,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Data
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+// An unknown type is read as a UiCustom — a plugin's node with no Java class.
+// visible = true hands the type name to it; every other node ignores the
+// property (@JsonIgnoreProperties below), so known types read as before.
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", visible = true, defaultImpl = UiCustom.class)
+@JsonIgnoreProperties(value = "type", allowSetters = false)
 // Core subtypes are listed here for self-documentation. Extension subtypes
 // (e.g. UiMarkdown, UiJsonViewer) register themselves via Jackson
 // SimpleModule + ServiceLoader/Spring auto-config from the

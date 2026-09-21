@@ -120,6 +120,8 @@ export interface LoadingIndicator {
 
 export class SuiRenderer {
     private readonly handlers = new Map<string, NodeHandler<any>>();
+    /** Node types already reported as having no handler — warned once each. */
+    private readonly warnedMissing = new Set<string>();
     private itemHandler: ItemHandler = defaultRenderItem;
     private rootElement: HTMLElement | null = null;
     /**
@@ -231,7 +233,37 @@ export class SuiRenderer {
      */
     register<N extends { type: string }>(type: N["type"], handler: NodeHandler<N>): this {
         this.handlers.set(type, handler as unknown as NodeHandler);
+        // A node of this type may already be in the root as a placeholder,
+        // drawn before its plugin was installed. (The root only: a renderer
+        // used for strings must not reach for a document.)
+        if (this.rootElement) this.upgradePlaceholders(this.rootElement, type);
         return this;
+    }
+
+    /**
+     * Re-renders the placeholders ({@code .sui-custom-missing}) whose type now
+     * has a handler, from the model this renderer holds for their id. A node
+     * whose type had no renderer — a plugin's node on a server-rendered page,
+     * or one drawn before the plugin was installed — becomes the real thing
+     * once the plugin registers. The event bus calls it after every change to
+     * its root, the asset registry's {@code installAll} once its extensions
+     * are installed, and {@link #register} for the type it adds, in the
+     * attached root. Returns how many it replaced.
+     */
+    upgradePlaceholders(scope: ParentNode, onlyType?: string): number {
+        let replaced = 0;
+        // No DOM to look in (server-side use, a test's stand-in document).
+        if (typeof scope?.querySelectorAll !== "function") return 0;
+        const placeholders = scope.querySelectorAll<HTMLElement>(".sui-custom-missing[data-type][id]");
+        for (const element of Array.from(placeholders)) {
+            const type = element.getAttribute("data-type")!;
+            if ((onlyType && type !== onlyType) || !this.handlers.has(type)) continue;
+            const model = this.models.get(element.id) as { type?: string } | undefined;
+            if (!model || model.type !== type) continue;
+            this.replaceElement(element, model as { type: string });
+            replaced++;
+        }
+        return replaced;
     }
 
     /** Replaces the list-item handler. The default supports the full UiListItem shape. */
@@ -246,9 +278,11 @@ export class SuiRenderer {
     }
 
     /**
-     * Renders a node tree to an HTML string. Unknown types fall back to a
-     * {@code <pre>} dump with a {@code console.warn} — visible enough to
-     * catch missing handlers in development without crashing the page.
+     * Renders a node tree to an HTML string. A type with no handler — a
+     * plugin's node whose extension is not installed — renders as a small
+     * placeholder ({@link renderMissing}) and is named once in the console;
+     * the rest of the page renders as usual, and the placeholder is replaced
+     * when a handler for the type is registered.
      */
     render(node: { type: string } | null | undefined): string {
         if (node == null) return "";
@@ -260,8 +294,11 @@ export class SuiRenderer {
         if (id) this.models.set(id, node as UiNode);
         const handler = this.handlers.get(node.type);
         if (!handler) {
-            console.warn("SuiRenderer: no handler for node type", node.type);
-            return `<pre>${escapeHtml(JSON.stringify(node, null, 2))}</pre>`;
+            if (!this.warnedMissing.has(node.type)) {
+                this.warnedMissing.add(node.type);
+                console.warn(`SuiRenderer: no renderer registered for node type "${node.type}" — is the extension that renders it installed? Showing a placeholder.`);
+            }
+            return renderMissing(node);
         }
         return handler(node, this);
     }
@@ -1059,6 +1096,20 @@ const HTML_ESCAPE_MAP: Record<string, string> = {
  * single quotes, which lets the same helper guard {@code data-*} attributes
  * we emit with single-quoted JSON payloads.
  */
+/**
+ * The placeholder for a node whose type has no renderer:
+ * {@code <div id class="sui-custom-missing" data-type>}. Server rendering
+ * writes the same element for a {@code UiCustom} without a template, so the
+ * SPA can find it by id and type and re-render it once the type's renderer is
+ * registered ({@link SuiRenderer#upgradePlaceholders}).
+ */
+export function renderMissing(node: { type: string }): string {
+    const n = node as { type: string; id?: string; cssClass?: string };
+    const id = n.id ? ` id="${escapeHtml(n.id)}"` : "";
+    const cls = "sui-custom-missing" + (n.cssClass ? " " + escapeHtml(n.cssClass) : "");
+    return `<div${id} class="${cls}" data-type="${escapeHtml(n.type)}"></div>`;
+}
+
 export function escapeHtml(value: unknown): string {
     if (value == null) return "";
     return String(value).replace(/[&<>"']/g, ch => HTML_ESCAPE_MAP[ch]!);

@@ -72,7 +72,7 @@ describe("SuiRenderer offline contract", () => {
         assert.equal(loadWasAttempted(), false,
             "render-only use must not attempt the Idiomorph CDN load");
         assert.ok(html.includes("<table"), "expected real markup");
-        assert.ok(!html.includes("<pre>"), "expected no unknown-type fallback dump");
+        assert.ok(!html.includes("<pre>") && !html.includes("sui-custom-missing"), "expected no unknown-type placeholder");
         assert.ok(html.includes("Ada &lt;&amp;&gt; Co"), "expected HTML escaping");
     });
 

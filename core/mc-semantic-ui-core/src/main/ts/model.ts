@@ -885,6 +885,28 @@ export type UiNode =
     | UiDialog
     | UiUpload;
 
+/**
+ * A plugin's node, with a type set by hand (mirrors {@code UiCustom.java}):
+ * the standard fields every node has, plus whatever properties the plugin
+ * sends, flat. The renderer a plugin registers for the type receives it as
+ * sent:
+ *
+ * ```ts
+ * type ChatWidget = UiCustom<"chat-widget", { session: string; api: string }>;
+ * renderer.register<ChatWidget>("chat-widget", node => `<div id="${node.id}">${node.session}</div>`);
+ * ```
+ *
+ * Not a member of the {@link UiNode} union — its `type` is any string, which
+ * would take the union's narrowing by `type` away from every core renderer.
+ * Without a registered renderer it shows as a placeholder,
+ * `<div class="sui-custom-missing" data-type="…">`.
+ */
+export type UiCustom<T extends string = string, P extends object = Record<string, unknown>> =
+    Omit<UiNodeBase, "id"> & { type: T; id?: string } & P;
+
+/** A core node or a plugin's. */
+export type UiAnyNode = UiNode | UiCustom;
+
 // ── Page wrapper (mirrors UiPage.java) ──────────────────────────────────────
 
 export interface UiPage {

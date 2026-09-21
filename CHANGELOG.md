@@ -23,6 +23,27 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- **`UiCustom`: a plugin's node type without a Java class.** A widget that
+  exists only as a browser renderer (`renderer.register("chat-widget", fn)` in
+  its extension) is sent as
+  `UiCustom.of("chat-widget").id("draft-chat").prop("session", sid)`, which
+  goes out flat: `{"type":"chat-widget","id":"draft-chat","session":"…"}`. The
+  standard fields work as on every node; a property cannot overwrite one, and
+  the type must be lowercase-kebab and not a core type
+  (`IllegalArgumentException`). Reading JSON, an unknown type becomes a
+  `UiCustom` with the other fields as properties; known types read as before.
+  In TypeScript, `UiCustom<T, P>` and `UiAnyNode` in `model.ts`.
+- **A placeholder for a node type without a renderer.** The SPA used to dump
+  such a node as JSON in a `<pre>`; it now renders
+  `<div id class="sui-custom-missing" data-type>` and names the type once in
+  the console. Server rendering writes the same element for a `UiCustom` with
+  no `templates/sui/<type>.hbs`, and a template of that name renders it with
+  its properties. The placeholder is redrawn with the real renderer once one
+  is registered: by `installAll` after the installs, by the event bus after
+  every change, and by `renderer.upgradePlaceholders(scope)`.
+
+### Added
+
 - **Icon sets in the asset registry.** A plugin declares its own icons as an
   asset of the new kind `icons` — an SVG sprite for every token starting with
   a prefix:
