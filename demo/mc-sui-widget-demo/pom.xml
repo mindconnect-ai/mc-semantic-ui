@@ -45,6 +45,11 @@
             <groupId>ai.mindconnect</groupId>
             <artifactId>mc-semantic-ui-ext-chart</artifactId>
         </dependency>
+        <!-- The kanban extension: a board whose cards are dragged between lanes. -->
+        <dependency>
+            <groupId>ai.mindconnect</groupId>
+            <artifactId>mc-semantic-ui-ext-kanban</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -90,8 +95,8 @@
                         <goals><goal>copy-resources</goal></goals>
                         <configuration>
                             <!--
-                                Both extensions publish into /sui-ext, each
-                                under its own subdirectory (diagram/, chart/),
+                                The extensions publish into /sui-ext, each
+                                under its own subdirectory (diagram/, chart/, kanban/),
                                 so they merge here without colliding.
                             -->
                             <outputDirectory>${project.build.directory}/dist/sui-ext</outputDirectory>
@@ -101,6 +106,9 @@
                                 </resource>
                                 <resource>
                                     <directory>${sui.ext.chart.assets}</directory>
+                                </resource>
+                                <resource>
+                                    <directory>${sui.ext.kanban.assets}</directory>
                                 </resource>
                             </resources>
                         </configuration>

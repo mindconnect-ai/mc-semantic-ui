@@ -103,6 +103,7 @@ const sidebars = {
           items: [
             'semantic-ui/chart-extension',
             'semantic-ui/diagram-extension',
+            'semantic-ui/kanban-extension',
           ],
         },
         {

@@ -1,0 +1,49 @@
+{
+  "type": "kanban",
+  "id": "board",
+  "cssClass": "sprint",
+  "lanes": [
+    {
+      "type": "kanban-lane",
+      "id": "todo",
+      "title": "To do",
+      "cards": [
+        {
+          "type": "kanban-card",
+          "id": "t1",
+          "title": "Write the spec",
+          "onClick": {"url": "/cards/t1"},
+          "description": "Two pages, no more.",
+          "badge": "P1",
+          "tags": ["docs", "q4"],
+          "color": "#e0a300"
+        },
+        {
+          "type": "kanban-card",
+          "id": "t2",
+          "title": "Pinned note",
+          "locked": true
+        }
+      ]
+    },
+    {
+      "type": "kanban-lane",
+      "id": "doing",
+      "title": "Doing",
+      "cards": [
+        {"type": "kanban-card", "id": "d1", "title": "Build it"}
+      ],
+      "limit": 3,
+      "color": "#4f6bed"
+    },
+    {
+      "type": "kanban-lane",
+      "id": "done",
+      "title": "Done",
+      "cards": [],
+      "locked": true
+    }
+  ],
+  "onMove": {"url": "/board/move?card={card}&from={from}&to={to}&index={index}", "method": "POST"},
+  "readOnly": false
+}

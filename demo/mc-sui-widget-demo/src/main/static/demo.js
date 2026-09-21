@@ -28,6 +28,9 @@ import { install as installDiagram } from "./sui-ext/diagram/extension.js";
 // used to carry its own inline-SVG handler here; showing the real extension is
 // both less code and an honest picture of what a consumer gets.
 import { install as installChart } from "./sui-ext/chart/extension.js";
+// Kanban extension: a board whose cards are dragged between lanes. Its
+// install() takes the bus too, so a drop can fire the board's onMove trigger.
+import { install as installKanban } from "./sui-ext/kanban/extension.js";
 
 // All icon tokens in the sprite, filled at boot from ./sui/icons.svg so the
 // gallery always reflects whatever the sprite actually ships.
@@ -456,6 +459,51 @@ UiStack.of(
         specimen("sp-links",    "Links", links, linksJava),
         specimen("sp-collapse", "Collapsible section", collapsible, collapsibleJava),
         specimen("sp-charts",   "Charts (drawn by the chart extension)", charts, chartsJava),
+    ], { gap: 16 });
+}
+
+// ── Tab: Kanban (extension) ──────────────────────────────────────────────────
+function kanbanTab() {
+    const card = (id, title, o = {}) => ({ type: "kanban-card", id, title, onClick: toastTrigger(`Opened ${title}`), ...o });
+    const board = {
+        type: "kanban", id: "demo-board",
+        onMove: api("POST", "/board/move?card={card}&from={from}&to={to}&index={index}"),
+        lanes: [
+            { type: "kanban-lane", id: "k-todo", title: "To do", cards: [
+                card("k-1", "Write the spec", { description: "Two pages, no more.", badge: "P1", tags: ["docs"], color: "#e0a300" }),
+                card("k-2", "Pick a name", { tags: ["naming", "fun"] }),
+                card("k-3", "Pinned: sprint goal", { description: "Locked cards stay where they are.", locked: true }),
+            ] },
+            { type: "kanban-lane", id: "k-doing", title: "Doing", limit: 2, color: "#4f6bed", cards: [
+                card("k-4", "Build the board", { badge: "P2", description: "A lane with a limit takes no card once it is full." }),
+            ] },
+            { type: "kanban-lane", id: "k-review", title: "Review", cards: [] },
+            { type: "kanban-lane", id: "k-done", title: "Done", locked: true, color: "#29a3a3", cards: [
+                card("k-5", "Set up the repo", { badge: "done" }),
+            ] },
+        ],
+    };
+    const boardJava =
+`UiKanban.of("demo-board",
+        UiKanbanLane.of("k-todo", "To do",
+                UiKanbanCard.of("k-1", "Write the spec").description("Two pages, no more.")
+                        .badge("P1").tag("docs").color("#e0a300").onClick(UiTrigger.go("/cards/k-1")),
+                UiKanbanCard.of("k-2", "Pick a name").tag("naming").tag("fun"),
+                UiKanbanCard.of("k-3", "Pinned: sprint goal").locked(true)),
+        UiKanbanLane.of("k-doing", "Doing", UiKanbanCard.of("k-4", "Build the board").badge("P2"))
+                .limit(2).color("#4f6bed"),
+        UiKanbanLane.of("k-review", "Review"),
+        UiKanbanLane.of("k-done", "Done", UiKanbanCard.of("k-5", "Set up the repo")).locked(true))
+    .onMove(UiTrigger.api("POST", "/board/move?card={card}&from={from}&to={to}&index={index}"));
+
+// Browser:  import { install } from "/sui-ext/kanban/extension.js"; install(renderer, { bus });
+// Server:   add the dependency — the board renders server-side too; dragging
+//           needs the browser bundle, which fills {card}, {from}, {to} and
+//           {index} in the onMove URL on every drop.`;
+    return stack("tab-kanban", [
+        text("kanban-intro",
+            "The kanban node ships in the mc-semantic-ui-ext-kanban module: lanes of cards, dragged between them. Drop a card and the board fires its onMove trigger — here answered by the demo's stub backend, so watch the toast. The Doing lane has a limit of 2, Done is locked, and the pinned card cannot be dragged."),
+        specimen("sp-kanban", "Kanban board — drag a card to another lane", board, boardJava),
     ], { gap: 16 });
 }
 
@@ -911,6 +959,7 @@ function buildPage() {
                 { type: "section-entry", id: "sec-forms",  title: "Forms",           content: formsTab() },
                 { type: "section-entry", id: "sec-layout", title: "Layout & Charts", content: layoutTab() },
                 { type: "section-entry", id: "sec-diagram", title: "Diagram", icon: "grid", content: diagramTab() },
+                { type: "section-entry", id: "sec-kanban", title: "Kanban", icon: "kanban", content: kanbanTab() },
                 { type: "section-entry", id: "sec-feedback", title: "Feedback", icon: "loading", content: feedbackTab() },
                 { type: "section-entry", id: "sec-icons",  title: "Icons",           icon: "star", content: iconsTab() },
             ],
@@ -1165,6 +1214,7 @@ async function boot() {
     installDiagram(renderer);                             // "diagram" node (extension)
 
     const bus = new SuiEventBus(renderer, root);
+    installKanban(renderer, { bus });                     // "kanban" node (extension); drops go through the bus
     // No backend: fake the server. A small delay is deliberate — it lets the
     // inline loading feedback (the spinner the bus paints on the clicked
     // control) actually be visible before the response lands.
