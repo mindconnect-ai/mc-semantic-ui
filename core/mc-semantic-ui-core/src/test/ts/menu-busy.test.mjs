@@ -24,6 +24,13 @@ describe("renderMenuItem with `loading`", () => {
         ({ renderMenuItem } = await import(`${DIST}/renderers/menu.js`));
     });
 
+    test("a group's fly-out is headed by the group's own name", () => {
+        const html = renderMenuItem({ type: "menu-item", id: "g", label: "beisdog · Outlook", icon: "mail",
+            children: [{ type: "menu-item", id: "c", label: "Inbox", href: "/inbox" }] },
+            { render: () => "<li>Inbox</li>" });
+        assert.match(html, /<ul class="sui-menu-sublist" role="menu"><li class="sui-menu-flyout-title" role="presentation" aria-hidden="true">beisdog · Outlook<\/li><li>Inbox<\/li>/);
+    });
+
     test("a loading leaf carries is-loading and aria-busy", () => {
         const html = renderMenuItem({ type: "menu-item", id: "m", label: "Reports", icon: "chart", href: "/reports", loading: true }, r);
         assert.match(html, /<a class="sui-menu-link is-loading" aria-busy="true"/);

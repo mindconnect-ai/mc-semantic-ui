@@ -69,7 +69,12 @@ export function renderMenuItem(node: UiMenuItem, r: SuiRenderer): string {
     const children = node.children || [];
 
     if (children.length > 0) {
-        const sub = children.map(c => renderChild(c, r)).join("");
+        // The fly-out's own heading: in the rail the group is an icon and
+        // nothing else, so a fly-out of folders did not say whose they are.
+        // Hidden outside the rail; the summary still names the group for
+        // assistive tech, so this line is presentation only.
+        const title = `<li class="sui-menu-flyout-title" role="presentation" aria-hidden="true">${escapeHtml(node.label ?? "")}</li>`;
+        const sub = title + children.map(c => renderChild(c, r)).join("");
         return `<li class="sui-menu-item sui-menu-item--group${activeCls}" id="${id}" data-id="${id}" role="none">
             <details class="sui-menu-group" data-sui-client-collapse${node.open ? " open" : ""}>
                 <summary class="sui-menu-link" role="menuitem">${icon}${label}${badge}<span class="sui-menu-caret">${renderIcon("chevron-down")}</span></summary>

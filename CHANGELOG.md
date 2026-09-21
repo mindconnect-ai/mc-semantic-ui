@@ -54,6 +54,12 @@ fresh empty one, so nothing has to be moved by hand at release time.
   dot the same way. amethyst, gipiti and sorbet had the same rule and the
   same fault. The rules now leave checkboxes and radios to sui.css, at the
   specificity they had, so text fields, textareas and selects look as before.
+- **A rail fly-out says whose it is.** In a folded (`RAIL`) menu a group is
+  only its icon, and its fly-out showed the children alone — three accounts
+  with the same icon opened three identical lists of folders. The fly-out is
+  now headed by the group's own label. The heading is shown only in a fly-out
+  from the rail; the expanded menu, where the group's summary sits right above
+  its children, is unchanged.
 
 ## [0.4.0] - 2026-09-21
 
