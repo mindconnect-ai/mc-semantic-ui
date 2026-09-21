@@ -100,4 +100,27 @@ describe("/sui/assets.js", () => {
     test("with no document there is nothing to link", async () => {
         assert.equal(await mod.linkStyles(undefined), undefined);
     });
+
+    test("adds the icon sets to the renderer before any extension installs", async () => {
+        const source = readFileSync(TEMPLATE, "utf8").replace("/*SUI_ASSETS*/[]", JSON.stringify([
+            { id: "ext", kind: "extension", url: js(`export function install(r) { r.calls.push(["ext", r.sets.length]); }`) },
+            { id: "brand-icons", kind: "icons", prefix: "brand-", url: "/sui-ext/brand/brand-icons.svg" },
+            { id: "acme-icons", kind: "icons", prefix: "acme-", url: "/sui-ext/acme/acme-icons.svg" },
+        ]));
+        const file = path.join(dir, "icons.mjs");
+        writeFileSync(file, source);
+        const icons = await import(pathToFileURL(file).href);
+        const renderer = { calls: [], sets: [], addIconSprite(prefix, url) { this.sets.push([prefix, new URL(url).pathname]); } };
+        const report = await icons.installAll(renderer, {}, { document: null });
+        assert.deepEqual(renderer.sets, [["brand-", "/sui-ext/brand/brand-icons.svg"], ["acme-", "/sui-ext/acme/acme-icons.svg"]]);
+        assert.deepEqual(renderer.calls, [["ext", 2]], "the sets are there when the extension installs");
+        assert.deepEqual(report.map(r => [r.id, r.ok]), [["brand-icons", true], ["acme-icons", true], ["ext", true]]);
+
+        // A renderer that cannot take icon sets: reported, and the rest go on.
+        errors.length = 0;
+        const old = { calls: [], sets: [] };
+        const partial = await icons.installAll(old, {}, { document: null });
+        assert.deepEqual(partial.map(r => [r.id, r.ok]), [["brand-icons", false], ["acme-icons", false], ["ext", true]]);
+        assert.equal(errors.length, 2);
+    });
 });

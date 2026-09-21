@@ -9,9 +9,10 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import java.util.Locale;
 
 /**
- * One file a page needs from a jar: a stylesheet, an ES module, or an
+ * One file a page needs from a jar: a stylesheet, an ES module, an
  * extension — an ES module whose {@code install(renderer, { bus })} registers
- * node types on the page's renderer.
+ * node types on the page's renderer — or an icon set: an SVG sprite the
+ * icon tokens starting with its {@link #prefix} resolve from.
  *
  * <p>Declared statically in a jar's {@code META-INF/sui/assets.json}, by a
  * {@link SuiAssetContribution} bean, or at run time through
@@ -27,6 +28,8 @@ import java.util.Locale;
  * @param order    load order, and the rank among declarations of the same id
  *                 (higher wins); 0 by default
  * @param disabled when true, this declaration takes the asset off the page
+ * @param prefix   for an icon set only: the token prefix it serves,
+ *                 lowercase-kebab ending in {@code -} (e.g. {@code brand-})
  */
 @JsonInclude(JsonInclude.Include.NON_DEFAULT)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -35,7 +38,8 @@ public record SuiAsset(
         @JsonProperty("kind") Kind kind,
         @JsonProperty("href") String href,
         @JsonProperty("order") int order,
-        @JsonProperty("disabled") boolean disabled) {
+        @JsonProperty("disabled") boolean disabled,
+        @JsonProperty("prefix") String prefix) {
 
     /** What a file is, and so what the page does with it. */
     public enum Kind {
@@ -44,7 +48,13 @@ public record SuiAsset(
         /** An ES module: imported, nothing more. */
         MODULE,
         /** An ES module exporting {@code install(renderer, { bus })}: imported, then installed. */
-        EXTENSION;
+        EXTENSION,
+        /**
+         * An SVG sprite of {@code <symbol id="…">}: every icon token that
+         * starts with the asset's {@link SuiAsset#prefix} resolves from it,
+         * on the server and in the browser.
+         */
+        ICONS;
 
         @JsonValue
         public String json() {
@@ -62,6 +72,11 @@ public record SuiAsset(
     public SuiAsset {
     }
 
+    /** An asset without a prefix — anything but an icon set. */
+    public SuiAsset(String id, Kind kind, String href, int order, boolean disabled) {
+        this(id, kind, href, order, disabled, null);
+    }
+
     /** A stylesheet at {@code href}. */
     public static SuiAsset css(String id, String href) {
         return new SuiAsset(id, Kind.CSS, href, 0, false);
@@ -77,6 +92,15 @@ public record SuiAsset(
         return new SuiAsset(id, Kind.EXTENSION, href, 0, false);
     }
 
+    /**
+     * An icon set at {@code href}: an SVG sprite whose symbols serve every
+     * icon token starting with {@code prefix} (e.g. {@code "brand-"} for
+     * {@code brand-microsoft}).
+     */
+    public static SuiAsset icons(String id, String prefix, String href) {
+        return new SuiAsset(id, Kind.ICONS, href, 0, false, prefix);
+    }
+
     /** Takes the asset {@code id} off the page — when this declaration's order is the highest for it. */
     public static SuiAsset disabled(String id, int order) {
         return new SuiAsset(id, null, null, order, true);
@@ -84,6 +108,6 @@ public record SuiAsset(
 
     /** The same asset with another order. */
     public SuiAsset withOrder(int newOrder) {
-        return new SuiAsset(id, kind, href, newOrder, disabled);
+        return new SuiAsset(id, kind, href, newOrder, disabled, prefix);
     }
 }

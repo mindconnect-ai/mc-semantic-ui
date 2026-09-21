@@ -46,6 +46,15 @@ import java.util.regex.Pattern;
  * logged as a warning, because a tie is almost always an accident. The
  * resolved assets load in {@code order}, then by id.
  *
+ * <h2>Icon sets</h2>
+ * An asset of kind {@code icons} is an SVG sprite for the icon tokens that
+ * start with its {@code prefix}. Two icon sets with the same prefix (under
+ * different ids) compete like two declarations of one id: the higher
+ * {@code order} wins, on a tie the id that sorts last, with a warning; the
+ * loser is off the page. Different prefixes all stay, and a token resolves
+ * from the longest one it starts with — {@link #iconSprites}. A token no
+ * prefix matches keeps coming from the standard sprite.
+ *
  * <h2>What is accepted</h2>
  * An {@code href} must be a path on this server: it starts with a single
  * {@code /} and carries no scheme, host, backslash, quote, angle bracket,
@@ -70,6 +79,7 @@ public class SuiAssetRegistry {
 
     private static final System.Logger LOG = System.getLogger(SuiAssetRegistry.class.getName());
     private static final Pattern ID = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._-]{0,99}");
+    private static final Pattern PREFIX = Pattern.compile("[a-z][a-z0-9]*(?:-[a-z0-9]+)*-");
     private static final Pattern HREF = Pattern.compile("/(?![/\\\\])[^\\s\\\\\"'<>`\\x00-\\x1f\\x7f-\\x9f]{0,499}");
     private static final String TEMPLATE = "/ai/mindconnect/ui/assets/sui-assets.js";
     private static final String ASSETS_PLACEHOLDER = "/*SUI_ASSETS*/[]";
@@ -82,7 +92,13 @@ public class SuiAssetRegistry {
     public record Declaration(SuiAsset asset, Source source, String origin) { }
 
     /** The outcome of resolving: the assets in load order, and what was worth a warning. */
-    public record Resolution(List<SuiAsset> assets, List<String> warnings) { }
+    public record Resolution(List<SuiAsset> assets, List<String> warnings) {
+
+        /** The icon sets among the assets, longest prefix first — one per prefix. */
+        public List<SuiAsset> iconSets() {
+            return byLongestPrefix(assets);
+        }
+    }
 
     private final ObjectMapper mapper = new ObjectMapper();
     private final List<Declaration> fixed;
@@ -126,6 +142,17 @@ public class SuiAssetRegistry {
         List<Declaration> all = new ArrayList<>(fixed);
         all.addAll(runtime.values());
         return Collections.unmodifiableList(all);
+    }
+
+    /**
+     * The icon sets, longest prefix first: prefix → sprite URL under
+     * {@code contextPath}. A token takes the first entry whose prefix it
+     * starts with, or the standard sprite when none matches.
+     */
+    public Map<String, String> iconSprites(String contextPath) {
+        Map<String, String> out = new LinkedHashMap<>();
+        for (SuiAsset set : byLongestPrefix(resolved)) out.put(set.prefix(), url(contextPath, set.href()));
+        return out;
     }
 
     /** Counts the changes made at run time; part of the {@link #etag}. */
@@ -209,6 +236,7 @@ public class SuiAssetRegistry {
             row.put("href", asset.href());
             row.put("url", url(contextPath, asset.href()));
             row.put("order", asset.order());
+            if (asset.kind() == SuiAsset.Kind.ICONS) row.put("prefix", asset.prefix());
             out.add(row);
         }
         return out;
@@ -226,6 +254,7 @@ public class SuiAssetRegistry {
             slim.put("id", row.get("id"));
             slim.put("kind", row.get("kind"));
             slim.put("url", row.get("url"));
+            if (row.containsKey("prefix")) slim.put("prefix", row.get("prefix"));
             rows.add(slim);
         }
         String json;
@@ -264,7 +293,11 @@ public class SuiAssetRegistry {
             return "asset id must be letters, digits, '.', '_' or '-' (at most 100): " + asset.id();
         }
         if (asset.disabled()) return null;
-        if (asset.kind() == null) return "asset " + asset.id() + " has no kind (css, module or extension)";
+        if (asset.kind() == null) return "asset " + asset.id() + " has no kind (css, module, extension or icons)";
+        if (asset.kind() == SuiAsset.Kind.ICONS && (asset.prefix() == null || !PREFIX.matcher(asset.prefix()).matches()
+                || asset.prefix().length() > 64)) {
+            return "icon set " + asset.id() + " needs a prefix in lowercase-kebab ending in '-', e.g. \"brand-\": " + asset.prefix();
+        }
         if (!sameOrigin(asset.href())) {
             return "asset " + asset.id() + " must load from this server — an href starting with a single '/': " + asset.href();
         }
@@ -302,8 +335,47 @@ public class SuiAssetRegistry {
             }
             if (!winner.asset().disabled()) winners.add(winner.asset());
         }
+        dropShadowedIconSets(winners, warnings);
         winners.sort(Comparator.comparingInt(SuiAsset::order).thenComparing(SuiAsset::id));
         return new Resolution(List.copyOf(winners), List.copyOf(warnings));
+    }
+
+    /**
+     * Of two icon sets with one prefix only one can serve it: the higher
+     * order, on a tie the id that sorts last (with a warning). The other
+     * leaves the page, as a losing declaration of an id does.
+     */
+    private static void dropShadowedIconSets(List<SuiAsset> winners, List<String> warnings) {
+        Map<String, List<SuiAsset>> byPrefix = new LinkedHashMap<>();
+        for (SuiAsset a : winners) {
+            if (a.kind() == SuiAsset.Kind.ICONS) byPrefix.computeIfAbsent(a.prefix(), k -> new ArrayList<>()).add(a);
+        }
+        Comparator<SuiAsset> rank = Comparator.comparingInt(SuiAsset::order).thenComparing(SuiAsset::id);
+        for (var group : byPrefix.entrySet()) {
+            List<SuiAsset> sets = group.getValue();
+            if (sets.size() < 2) continue;
+            sets.sort(rank);
+            SuiAsset winner = sets.get(sets.size() - 1);
+            List<SuiAsset> losers = sets.subList(0, sets.size() - 1);
+            List<SuiAsset> tied = losers.stream().filter(a -> a.order() == winner.order()).toList();
+            if (!tied.isEmpty()) {
+                StringBuilder w = new StringBuilder("sui icon sets ");
+                for (SuiAsset a : tied) w.append('\'').append(a.id()).append("', ");
+                w.append("and '").append(winner.id()).append("' all serve prefix '").append(group.getKey())
+                        .append("' with order ").append(winner.order())
+                        .append(" — '").append(winner.id()).append("' wins. Give one a higher order to decide.");
+                warnings.add(w.toString());
+            }
+            winners.removeAll(losers);
+        }
+    }
+
+    /** The icon sets among {@code assets}, longest prefix first, then by prefix. */
+    private static List<SuiAsset> byLongestPrefix(List<SuiAsset> assets) {
+        return assets.stream()
+                .filter(a -> a.kind() == SuiAsset.Kind.ICONS)
+                .sorted(Comparator.comparingInt((SuiAsset a) -> -a.prefix().length()).thenComparing(SuiAsset::prefix))
+                .toList();
     }
 
     private static String describe(Declaration d) {
