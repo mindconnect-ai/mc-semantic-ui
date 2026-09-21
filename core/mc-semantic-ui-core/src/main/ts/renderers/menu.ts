@@ -34,7 +34,7 @@ export function renderMenu(node: UiMenu, r: SuiRenderer): string {
     const id = escapeHtml(node.id);
     const items = (node.items || []).map(i => renderChild(i, r)).join("");
     const toggle = showToggle
-        ? `<button type="button" class="sui-menu-toggle" data-menu-toggle="${id}" aria-label="Toggle menu" aria-expanded="${state !== "hidden"}">${renderIcon("menu")}</button>`
+        ? `<button type="button" class="sui-menu-toggle" data-menu-toggle="${id}" aria-label="Toggle menu" aria-expanded="${state !== "hidden"}">${renderIcon(node.toggleIcon ?? "menu")}</button>`
         : "";
     const title = node.title
         ? `<span class="sui-menu-title">${escapeHtml(node.title)}</span>`

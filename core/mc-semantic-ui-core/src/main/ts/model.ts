@@ -711,6 +711,12 @@ export interface UiMenu extends UiNodeBase {
     side?: "LEFT" | "RIGHT";
     /** Whether to render the hamburger toggle. Defaults to true. */
     toggle?: boolean;
+    /**
+     * The glyph on that toggle. Defaults to `"menu"`. A menu that folds to a
+     * rail beside its content is not the same gesture as a drawer over it,
+     * and `"panel-left-close"` says so where three stacked lines do not.
+     */
+    toggleIcon?: string;
 }
 
 /**
