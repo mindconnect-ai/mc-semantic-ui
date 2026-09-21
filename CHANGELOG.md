@@ -23,6 +23,15 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- `UiField.richtext(id, label, html)` — `FieldType.RICHTEXT`, formatted text.
+  The value is an HTML string and comes back as a string under the field id,
+  like a `TEXTAREA`'s; `asEditable()`, `asRequired()` and `placeholder()`
+  work as usual. A toolbar offers bold, italic, underline, bulleted and
+  numbered lists, link, quote and remove formatting; what is pasted is
+  reduced to that same vocabulary on the client (no `<script>`, `<style>`,
+  `on*` attributes or external CSS). A `MERGE` of `value` replaces the
+  content, focused or not. Read-only, the HTML is shown as formatted text.
+
 - `UiMenu.toggleIcon` — the glyph on a menu's own toggle, `menu` (the
   hamburger) when unset. A menu that folds to a rail beside its content is not
   the same gesture as a drawer over it, and `panel-left-close` says so where

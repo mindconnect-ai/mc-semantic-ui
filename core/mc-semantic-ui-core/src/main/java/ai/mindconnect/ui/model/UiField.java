@@ -23,6 +23,15 @@ public class UiField extends UiNode {
         /** Masked input with a built-in eye toggle that reveals the value. */
         PASSWORD,
         /**
+         * Formatted text. The value is an HTML string, submitted as a string
+         * under the field id exactly like a {@link #TEXTAREA}'s. Edited in
+         * place with a small toolbar (bold, italic, underline, lists, link,
+         * quote, clear formatting); what is pasted is reduced to that same
+         * vocabulary on the client — no script, no style, no event handlers.
+         * A {@code MERGE} of {@code value} replaces the content.
+         */
+        RICHTEXT,
+        /**
          * Not shown at all — no label, no control, just the value riding along
          * in the form submission ({@code <input type="hidden">}). Submitted
          * whether or not the field is {@link #editable}. For a visible field
@@ -158,6 +167,14 @@ public class UiField extends UiNode {
 
     public static UiField textarea(String id, String label, Object value) {
         return of(id, label, FieldType.TEXTAREA, value);
+    }
+
+    /**
+     * Formatted text: {@code html} is what the editor shows and what comes
+     * back, as a string under the field id. See {@link FieldType#RICHTEXT}.
+     */
+    public static UiField richtext(String id, String label, String html) {
+        return of(id, label, FieldType.RICHTEXT, html);
     }
 
     public static UiField number(String id, String label, Object value) {
