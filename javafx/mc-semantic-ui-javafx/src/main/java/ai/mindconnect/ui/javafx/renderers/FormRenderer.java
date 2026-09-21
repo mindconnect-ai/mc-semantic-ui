@@ -65,12 +65,15 @@ public class FormRenderer implements FxNodeRenderer<UiForm> {
             box.getChildren().add(actions);
 
             // "Submitting the form" — what submitOnChange / submitOnEnter fire.
-            // The primary action is the submit if there is one, else the first.
-            var submit = node.getActions().stream()
+            // The primary action is the submit if there is one, else the first;
+            // a menu never is (it opens, its entries act), as on the web.
+            var buttons = node.getActions().stream()
+                    .filter(a -> !(a instanceof ai.mindconnect.ui.model.UiActionMenu)).toList();
+            buttons.stream()
                     .filter(a -> a.getStyle() == UiAction.Style.PRIMARY)
                     .findFirst()
-                    .orElse(node.getActions().get(0));
-            scope.onSubmit(() -> ctx.bus().dispatch(submit.getOnClick(), submit, formCtx));
+                    .or(() -> buttons.stream().findFirst())
+                    .ifPresent(submit -> scope.onSubmit(() -> ctx.bus().dispatch(submit.getOnClick(), submit, formCtx)));
         }
 
         if (node.getLinks() != null && !node.getLinks().isEmpty()) {

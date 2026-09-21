@@ -65,6 +65,19 @@ fresh empty one, so nothing has to be moved by hand at release time.
   edge line up. It follows the theme's tokens and `prefers-reduced-motion`,
   and a side drawer comes up from the bottom on a narrow screen.
 
+- **The desktop paints the new elements.** In JavaFX, `UiAction.menu` is a
+  `MenuButton` with the bar's button look, headings and dividers; its entries
+  send the form they are in. `UiDrawer` works in both modes: `PUSH` in the
+  layout, `OVERLAY` in a layer over the window or its container. Minimizing
+  never repaints the content, and the state the user chose survives a
+  replace. A plugin paints its own node type through
+  `renderer.registerCustom(type, renderer)`, and without one the node is a
+  placeholder naming the type. A `RICHTEXT` field honours `editorHeight` and
+  `fill` and shows its text read-only. The new module
+  `mc-semantic-ui-javafx-richtext` (`SuiFxRichText.install`) gives it a real
+  editor (`HTMLEditor`) whose value is sanitised like everywhere else. The
+  JavaFX demo has a "Mail composer" tab with all of it.
+
 ### Changed
 
 - `.sui-richtext` is a flex column with `overflow: clip` instead of
