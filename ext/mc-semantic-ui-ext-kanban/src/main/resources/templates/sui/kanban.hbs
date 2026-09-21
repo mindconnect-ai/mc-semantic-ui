@@ -1,0 +1,7 @@
+{{!--
+  UiKanban → the board: a row of lanes. Mirror of renderKanban() in
+  kanban/extension.ts, byte for byte. The <sui-kanban> element is the hook the
+  browser extension upgrades to add drag and drop; without it the markup is a
+  plain, styled board.
+--}}
+<sui-kanban class="sui-kanban{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui="kanban"{{#if readOnly}} data-readonly=""{{/if}}{{#if onMove}} data-move-trigger='{{{trigger onMove}}}'{{/if}}><div class="sui-kanban-lanes">{{#each lanes}}{{{render this}}}{{/each}}</div></sui-kanban>

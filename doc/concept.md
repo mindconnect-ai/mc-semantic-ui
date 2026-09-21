@@ -246,7 +246,8 @@ type-safe backend teams.
   either because its renderer depends on a third-party library or
   because it needs its own painter: `mc-semantic-ui-ext-json`
   (`UiJsonViewer`), `mc-semantic-ui-ext-markdown` (`UiMarkdown`),
-  `mc-semantic-ui-ext-diagram`, `mc-semantic-ui-ext-chart`. One module
+  `mc-semantic-ui-ext-diagram`, `mc-semantic-ui-ext-chart`,
+  `mc-semantic-ui-ext-kanban`. One module
   per type rather than a grab-bag, so a host that wants Markdown does
   not also pull in a JSON viewer. Each extension ships:
   - Java node class with `@JsonTypeName(...)`

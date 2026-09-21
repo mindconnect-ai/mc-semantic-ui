@@ -63,7 +63,7 @@ jobs:
       - name: Build the browser assets the site serves
         run: >
           mvn -B -ntp -DskipTests install
-          -pl core/mc-semantic-ui-core,ext/mc-semantic-ui-ext-diagram,ext/mc-semantic-ui-ext-chart,demo/mc-sui-widget-demo,demo/mc-sui-shop-client-demo,editor/mc-sui-editor-standalone-app
+          -pl core/mc-semantic-ui-core,ext/mc-semantic-ui-ext-diagram,ext/mc-semantic-ui-ext-chart,ext/mc-semantic-ui-ext-kanban,demo/mc-sui-widget-demo,demo/mc-sui-shop-client-demo,editor/mc-sui-editor-standalone-app
           -am
 
       # ci, not install: reproducible, and it fails loudly if package-lock.json

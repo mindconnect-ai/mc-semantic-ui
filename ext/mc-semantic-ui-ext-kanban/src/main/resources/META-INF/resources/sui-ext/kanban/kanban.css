@@ -1,0 +1,92 @@
+/*
+ * Styling for boards drawn by mc-semantic-ui-ext-kanban.
+ *
+ * Everything is built on the core's tokens, so every theme applies without a
+ * line here. The one knob of its own is --sui-kanban-accent: a lane or card
+ * carrying a `color` sets it inline, and the edge that shows it is drawn here.
+ */
+
+.sui-kanban { display: block; }
+.sui-kanban-lanes {
+    display: flex; align-items: flex-start; gap: var(--sui-space-md, 12px);
+    overflow-x: auto; padding-bottom: var(--sui-space-xs, 4px);
+}
+
+/* ── Lane ─────────────────────────────────────────────────────────────────── */
+.sui-kanban-lane {
+    flex: 0 0 260px; display: flex; flex-direction: column; min-height: 120px;
+    background: var(--sui-color-surface-alt, #f8fafc);
+    border: 1px solid var(--sui-color-border-soft, #e2e8f0);
+    border-top: 3px solid var(--sui-kanban-accent, var(--sui-color-border, #cbd5e1));
+    border-radius: var(--sui-radius-lg, 12px);
+}
+.sui-kanban-lane-head {
+    display: flex; align-items: baseline; gap: var(--sui-space-sm, 8px);
+    padding: var(--sui-space-sm, 8px) var(--sui-space-md, 12px);
+    user-select: none; /* a drag that a lane refuses must not select its heading */
+}
+.sui-kanban-lane-title {
+    flex: 1; margin: 0; font-size: var(--sui-text-md, 14px); font-weight: 600;
+    color: var(--sui-color-text-strong, #0f172a);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sui-kanban-lane-count {
+    font-size: var(--sui-text-xs, 12px); color: var(--sui-color-text-muted, #64748b);
+    background: var(--sui-color-border-soft, #e2e8f0); border-radius: var(--sui-radius-pill, 50%);
+    padding: 1px 8px;
+}
+.sui-kanban-cards {
+    list-style: none; margin: 0; flex: 1; min-height: 40px;
+    padding: 0 var(--sui-space-sm, 8px) var(--sui-space-sm, 8px);
+    display: flex; flex-direction: column; gap: var(--sui-space-sm, 8px);
+}
+
+/* Drop feedback: the lane the pointer would drop into; a lane that refuses
+   (locked, full) shows no change and the browser's cursor says so. */
+.sui-kanban-lane.is-drop-target { background: var(--sui-color-primary-soft, #dbeafe); }
+.sui-kanban-lane[data-locked] .sui-kanban-lane-title::after {
+    content: "\1F512"; margin-left: 6px; font-size: var(--sui-text-xs, 12px);
+}
+/* The bus marks the lane busy while the server answers a move. */
+.sui-kanban-lane.is-loading { opacity: .6; cursor: progress; }
+
+/* ── Card ─────────────────────────────────────────────────────────────────── */
+.sui-kanban-card {
+    background: var(--sui-color-surface, #fff);
+    border: 1px solid var(--sui-color-border-soft, #e2e8f0);
+    border-left: 3px solid var(--sui-kanban-accent, var(--sui-color-border-soft, #e2e8f0));
+    border-radius: var(--sui-radius-md, 8px);
+    box-shadow: var(--sui-shadow-sm, 0 1px 2px rgba(15, 23, 42, .06));
+    padding: var(--sui-space-sm, 8px) var(--sui-space-md, 12px);
+    font-size: var(--sui-text-sm, 13px); color: var(--sui-color-text-body, #334155);
+    transition: box-shadow var(--sui-duration-fast, 120ms) var(--sui-ease-standard, ease);
+}
+.sui-kanban-card[draggable="true"] { cursor: grab; }
+.sui-kanban-card[data-sui-on-click] { cursor: pointer; }
+.sui-kanban-card[draggable="true"]:hover { box-shadow: var(--sui-shadow-card, 0 2px 6px rgba(15, 23, 42, .12)); }
+.sui-kanban-card.is-dragging { opacity: .4; cursor: grabbing; }
+.sui-kanban-card.is-loading { opacity: .6; cursor: progress; }
+
+.sui-kanban-card-head { display: flex; align-items: baseline; gap: var(--sui-space-sm, 8px); }
+.sui-kanban-card-title { flex: 1; font-weight: 500; color: var(--sui-color-text-strong, #0f172a); }
+.sui-kanban-card-badge {
+    font-size: var(--sui-text-xs, 12px); color: var(--sui-color-text-muted, #64748b);
+    border: 1px solid var(--sui-color-border, #cbd5e1); border-radius: var(--sui-radius-sm, 6px);
+    padding: 0 6px; white-space: nowrap;
+}
+.sui-kanban-card-desc {
+    margin: var(--sui-space-xs, 4px) 0 0; color: var(--sui-color-text-muted, #64748b);
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.sui-kanban-card-tags {
+    list-style: none; margin: var(--sui-space-sm, 8px) 0 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: var(--sui-space-xs, 4px);
+}
+.sui-kanban-card-tag {
+    font-size: var(--sui-text-xs, 12px); padding: 0 6px; border-radius: var(--sui-radius-sm, 6px);
+    background: var(--sui-color-primary-soft, #dbeafe); color: var(--sui-color-primary, #2563eb);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sui-kanban-card { transition: none; }
+}

@@ -1,0 +1,4 @@
+{{!--
+  UiKanbanCard → one card. Mirror of renderKanbanCard() in kanban/extension.ts.
+--}}
+<li class="sui-kanban-card{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui="kanban-card" data-id="{{id}}"{{#unless locked}} draggable="true"{{/unless}}{{#if color}} style="--sui-kanban-accent:{{color}}"{{/if}}><div class="sui-kanban-card-head"><span class="sui-kanban-card-title">{{title}}</span>{{#if badge}}<span class="sui-kanban-card-badge">{{badge}}</span>{{/if}}</div>{{#if description}}<p class="sui-kanban-card-desc">{{description}}</p>{{/if}}{{#if tags}}<ul class="sui-kanban-card-tags">{{#each tags}}<li class="sui-kanban-card-tag">{{this}}</li>{{/each}}</ul>{{/if}}</li>

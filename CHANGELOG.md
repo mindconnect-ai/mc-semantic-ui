@@ -21,6 +21,21 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **A kanban board**, in a new module `mc-semantic-ui-ext-kanban`: `kanban`
+  (`UiKanban`) holds `kanban-lane`s of `kanban-card`s. In the browser a card is
+  dragged to another lane, or to another place in its own, and the board fires
+  its `onMove` trigger with `{card}`, `{from}`, `{to}` and `{index}` filled in
+  wherever its URL carries them — the substitution a table applies to `{id}`,
+  done at drop time. A lane can carry a `limit` (shown beside its count, and no
+  drop lands once it is reached) or be `locked`; a card can be `locked`, carry
+  a `badge`, `tags`, a `description` and an accent `color`, and reacts to
+  `onClick` like any node. Lanes and cards are nodes with ids, so a patch can
+  address one of them. Rendered server-side as well, from three templates held
+  to the browser painter's bytes by a parity test; the browser bundle adds the
+  dragging, through `install(renderer, { bus })`.
+
 ### Fixed
 
 - A menu folded to a rail no longer shifts its icons. `.sui-menu--rail`
