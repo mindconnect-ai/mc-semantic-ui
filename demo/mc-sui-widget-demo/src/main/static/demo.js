@@ -80,7 +80,8 @@ const DEMO_FORM_FIELDS = [
     { type: "field", id: "f-price", label: "Price",       fieldType: "NUMBER",   editable: true, value: 19.0, step: "0.01" },
     { type: "field", id: "f-count", label: "In stock",    fieldType: "NUMBER",   editable: true, value: 128, min: "0" },
     { type: "field", id: "f-launch",label: "Launch date", fieldType: "DATE",     editable: true, value: "2026-07-06" },
-    { type: "field", id: "f-from",  label: "Deliveries from", fieldType: "TIME", editable: true, value: "08:30", step: "900", hint: "Quarter hours" },
+    { type: "field", id: "f-from",  label: "Deliveries from", fieldType: "TIME", editable: true, value: "08:30", step: "900", hint: "Quarter hours — type 09:07 and tab out: it becomes 09:00" },
+    { type: "field", id: "f-pickup", label: "Pickup slot", fieldType: "TIME", editable: true, value: "17:05", step: "300", hint: "Every 5 minutes" },
     { type: "field", id: "f-cat",   label: "Category",    fieldType: "SELECT",   editable: true, value: "tools",
       options: [{ value: "tools", label: "Tools" }, { value: "toys", label: "Toys" }, { value: "home", label: "Home" }] },
     { type: "field", id: "f-tags",  label: "Tags",        fieldType: "MULTISELECT", editable: true,
@@ -359,6 +360,7 @@ function formsTab() {
     .field(UiField.number("f-count", "In stock", 128).asEditable().min("0"))
     .field(UiField.date("f-launch", "Launch date", "2026-07-06").asEditable())
     .field(UiField.time("f-from", "Deliveries from", LocalTime.of(8, 30)).asEditable().minutes(15).hint("Quarter hours"))
+    .field(UiField.time("f-pickup", "Pickup slot", LocalTime.of(17, 5)).asEditable().minutes(5).hint("Every 5 minutes"))
     .field(UiField.select("f-cat", "Category", "tools", List.of(
         UiField.Option.of("tools", "Tools"), UiField.Option.of("toys", "Toys"), UiField.Option.of("home", "Home"))).asEditable())
     .field(UiField.multiselect("f-tags", "Tags", null, List.of(
