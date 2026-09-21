@@ -23,14 +23,12 @@ import java.io.IOException;
 public class SpaBootstrapFilter extends OncePerRequestFilter {
 
     private static final String BOOTSTRAP_SCRIPT = "/spa/spa-bootstrap.js";
-    private static final String EXTRA_HEAD = "<link rel=\"stylesheet\" href=\"/explorer.css\">";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                      HttpServletResponse response,
                                      FilterChain chain) throws ServletException, IOException {
         request.setAttribute(UiPageHtmlMessageConverter.SPA_BOOTSTRAP_ATTRIBUTE, BOOTSTRAP_SCRIPT);
-        request.setAttribute(UiPageHtmlMessageConverter.EXTRA_HEAD_ATTRIBUTE, EXTRA_HEAD);
         chain.doFilter(request, response);
     }
 }

@@ -1,0 +1,7 @@
+[
+  {
+    "id": "markdown",
+    "kind": "extension",
+    "href": "/sui-ext/markdown/extension.js"
+  }
+]

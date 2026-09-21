@@ -1,0 +1,12 @@
+[
+  {
+    "id": "kanban.css",
+    "kind": "css",
+    "href": "/sui-ext/kanban/kanban.css"
+  },
+  {
+    "id": "kanban",
+    "kind": "extension",
+    "href": "/sui-ext/kanban/extension.js"
+  }
+]

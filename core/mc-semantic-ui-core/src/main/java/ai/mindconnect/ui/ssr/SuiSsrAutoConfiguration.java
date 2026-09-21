@@ -34,7 +34,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * <p>Discovered via
  * {@code META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports}.
  */
-@AutoConfiguration
+@AutoConfiguration(after = ai.mindconnect.ui.assets.SuiAssetsAutoConfiguration.class)
 @ConditionalOnClass({ Handlebars.class, WebMvcConfigurer.class })
 @ConditionalOnProperty(name = "mindconnect.sui.ssr.enabled", havingValue = "true")
 public class SuiSsrAutoConfiguration {
@@ -62,12 +62,17 @@ public class SuiSsrAutoConfiguration {
      * but still uses JSON for everything else.
      */
     @Bean
-    public WebMvcConfigurer suiSsrWebMvcConfigurer(SuiServerRenderer renderer) {
+    public WebMvcConfigurer suiSsrWebMvcConfigurer(
+            SuiServerRenderer renderer,
+            org.springframework.beans.factory.ObjectProvider<ai.mindconnect.ui.assets.SuiAssetRegistry> assets) {
+        // With an asset registry in the context, every server-rendered page
+        // links the registry's stylesheets in its head.
+        ai.mindconnect.ui.assets.SuiAssetRegistry registry = assets.getIfAvailable();
         return new WebMvcConfigurer() {
             @Override
             public void extendMessageConverters(
                     java.util.List<HttpMessageConverter<?>> converters) {
-                converters.add(0, new UiPageHtmlMessageConverter(renderer));
+                converters.add(0, new UiPageHtmlMessageConverter(renderer, registry));
             }
         };
     }

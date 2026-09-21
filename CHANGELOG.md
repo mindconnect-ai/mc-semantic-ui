@@ -47,6 +47,21 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- **An asset registry for extensions and plugins.** A jar declares the
+  stylesheets and browser modules it brings in `META-INF/sui/assets.json`, a
+  `SuiAssetContribution` bean does the same in code, and a marketplace adds
+  and removes them at run time through `SuiAssetRegistry.register` /
+  `unregister`. The registry resolves them — per id the highest `order`
+  wins, a `disabled` winner takes the id off the page, a tie is resolved the
+  same way every time and logged — and serves `GET /sui/assets` (JSON) and
+  `GET /sui/assets.js`, whose `installAll(renderer, bus)` links the
+  stylesheets and installs every extension in order, a failing one logged
+  and skipped. Both carry an ETag that changes with every change, with
+  `Cache-Control: no-cache`. Only paths on the same server are accepted.
+  Server-rendered pages link the stylesheets in their head; `headTags()`
+  does it for a host's own. Every extension of this project declares itself,
+  so a host replaces its list of imports with
+  `await installAll(renderer, bus)`.
 - `UiCalendar.extras` — nodes of the page's own in the calendar's header,
   after the view switch: a "New event" button, a filter, a legend. Any node
   type, rendered by the renderer; `.extra(node)` adds one.

@@ -1,0 +1,12 @@
+[
+  {
+    "id": "calendar.css",
+    "kind": "css",
+    "href": "/sui-ext/calendar/calendar.css"
+  },
+  {
+    "id": "calendar",
+    "kind": "extension",
+    "href": "/sui-ext/calendar/extension.js"
+  }
+]

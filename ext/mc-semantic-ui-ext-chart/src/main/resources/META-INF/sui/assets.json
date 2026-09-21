@@ -1,0 +1,12 @@
+[
+  {
+    "id": "chart.css",
+    "kind": "css",
+    "href": "/sui-ext/chart/chart.css"
+  },
+  {
+    "id": "chart",
+    "kind": "extension",
+    "href": "/sui-ext/chart/extension.js"
+  }
+]

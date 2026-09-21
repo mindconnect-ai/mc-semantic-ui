@@ -364,6 +364,33 @@ Now any `@GetMapping` that returns `UiPage` renders as a full HTML page
 in the browser. Mount the `SuiEventBus` in a small `<script>` tag to
 upgrade to SPA.
 
+### Extensions and plugins: the asset registry
+
+Every extension jar declares its stylesheet and browser module in
+`META-INF/sui/assets.json`, and `SuiAssetsAutoConfiguration` collects them —
+with the `SuiAssetContribution` beans and whatever a marketplace registers at
+run time — into a `SuiAssetRegistry`. The host keeps no list: add a jar to the
+classpath and its node types render on the next page load.
+
+In the host's `app.js`, instead of importing and installing each extension:
+
+```js
+import { installAll } from "/sui/assets.js";
+await installAll(renderer, bus);   // before the first render
+```
+
+In a hand-written `index.html`, nothing is needed — `installAll` links the
+stylesheets and waits for them before it resolves. A host that renders its
+own head links them there instead, so they apply before the first paint:
+
+```java
+String head = assetRegistry.headTags(request.getContextPath());
+```
+
+Server-rendered `UiPage`s get the links in their head automatically. See
+[the asset registry](https://mindconnect-ai.github.io/mc-semantic-ui/semantic-ui/extension-assets)
+for declaring assets, overriding a shipped one and registering at run time.
+
 ## The visual wysiwyg editor
 
 A built-in visual editor lives in `editor/mc-sui-editor-standalone-app`. It's three

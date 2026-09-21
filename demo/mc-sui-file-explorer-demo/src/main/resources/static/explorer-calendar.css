@@ -1,0 +1,9 @@
+/*
+ * The demo's calendar stylesheet — declared by DemoAssets under the id
+ * "calendar.css" with order 10, so it replaces the calendar jar's own
+ * declaration (order 0). It keeps the original and changes what it wants.
+ */
+@import url("/sui-ext/calendar/calendar.css");
+
+.sui-calendar { --sui-calendar-hour-h: 40px; }
+.sui-calendar-day.is-today .sui-calendar-daynum { background: #0891b2; }

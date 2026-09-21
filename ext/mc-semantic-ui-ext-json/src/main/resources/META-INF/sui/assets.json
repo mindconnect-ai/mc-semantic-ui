@@ -1,0 +1,7 @@
+[
+  {
+    "id": "jsonviewer",
+    "kind": "extension",
+    "href": "/sui-ext/jsonviewer/extension.js"
+  }
+]
