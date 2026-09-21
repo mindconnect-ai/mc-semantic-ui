@@ -777,6 +777,82 @@ function iconsTab() {
 }
 
 // ── Tab: Feedback (spinners, progress, inline loading) ──────────────────────
+// ── Tab: Drawer ─────────────────────────────────────────────────────────────
+function drawerTab() {
+    const toast = (message) => ({ behavior: "PATCH", patch: { patches: [], toasts: [{ level: "INFO", message, durationMs: 2500 }] } });
+    // The mail composer's AI chat: comes up from the bottom of its box, over
+    // the buttons; minimize it to its handle and open it again — what you
+    // typed in "Ask" is still there, nothing was redrawn.
+    const chat = {
+        type: "drawer", id: "dr-chat", title: "Draft with AI", icon: "sparkles", badge: "1",
+        edge: "BOTTOM", scope: "CONTAINER", size: "58%", minSize: "160px", maxSize: "90%", resizable: true, closable: true,
+        onClose: toast("Chat closed — onClose would let the server clean up"),
+        content: stack("dr-chat-body", [
+            text("dr-chat-1", "Assistant: Here is a first draft. Shall I make it shorter or more formal?"),
+            { type: "form", id: "dr-chat-form", fields: [
+                { type: "field", id: "dr-ask", label: "Ask", fieldType: "TEXTAREA", editable: true, placeholder: "e.g. make it friendlier" } ],
+              actions: [ { type: "action", id: "dr-ask-send", label: "Send", style: "PRIMARY", icon: "send", onClick: toast("Sent to the assistant") } ] },
+        ], { gap: 12, cssClass: "demo-pad" }),
+    };
+    const composer = {
+        type: "stack", id: "dr-composer", cssClass: "demo-drawer-box", gap: 12, children: [
+            { type: "form", id: "dr-mail", title: "New mail", fields: [
+                { type: "field", id: "dr-to", label: "To", fieldType: "TEXT", editable: true, value: "ada@example.com" },
+                { type: "field", id: "dr-subject", label: "Subject", fieldType: "TEXT", editable: true, value: "Our meeting" } ],
+              actions: [
+                { type: "action", id: "dr-send", label: "Send", style: "PRIMARY", onClick: toast("Sent") },
+                { type: "action", id: "dr-attach", label: "Attach", icon: "paperclip", onClick: toast("Attach…") } ] },
+            chat,
+        ],
+    };
+    const composerJava =
+`UiDrawer.of("dr-chat", "Draft with AI", chatWidget)
+    .edge(UiDrawer.Edge.BOTTOM).scope(UiDrawer.Scope.CONTAINER)
+    .size("58%").minSize("160px").maxSize("90%").resizable()
+    .icon("sparkles").badge("1")
+    .onClose(UiTrigger.api("DELETE", "/chat/" + sessionId));`;
+
+    // Several at once: minimized handles at one edge line up side by side.
+    const many = {
+        type: "stack", id: "dr-many", cssClass: "demo-drawer-box demo-drawer-box--short", children: [
+            text("dr-many-txt", "Four drawers, all minimized: two share the bottom edge, one at each side. Open any — Escape minimizes it again, and the focus goes back to its handle."),
+            { type: "drawer", id: "dr-log", title: "Log", icon: "list", edge: "BOTTOM", scope: "CONTAINER", state: "MINIMIZED", size: "45%",
+              content: text("dr-log-t", "12:01 saved · 12:02 synced · 12:04 3 new mails") },
+            { type: "drawer", id: "dr-console", title: "Console", icon: "code", badge: "2", edge: "BOTTOM", scope: "CONTAINER", state: "MINIMIZED", size: "45%",
+              content: text("dr-console-t", "Two warnings.") },
+            { type: "drawer", id: "dr-insp", title: "Inspector", icon: "info", edge: "RIGHT", scope: "CONTAINER", state: "MINIMIZED", size: "260px", resizable: true,
+              content: text("dr-insp-t", "Selected: nothing.") },
+            { type: "drawer", id: "dr-filters", title: "Filters", icon: "filter", edge: "LEFT", scope: "CONTAINER", state: "MINIMIZED", size: "240px",
+              content: text("dr-filters-t", "Status: open · Owner: me") },
+        ],
+    };
+    const manyJava =
+`UiDrawer.of("dr-log", "Log", log).edge(UiDrawer.Edge.BOTTOM).scope(UiDrawer.Scope.CONTAINER).minimized();
+UiDrawer.of("dr-console", "Console", console).edge(UiDrawer.Edge.BOTTOM).scope(UiDrawer.Scope.CONTAINER).badge("2").minimized();
+UiDrawer.of("dr-insp", "Inspector", inspector).edge(UiDrawer.Edge.RIGHT).scope(UiDrawer.Scope.CONTAINER).minimized();
+UiDrawer.of("dr-filters", "Filters", filters).edge(UiDrawer.Edge.LEFT).scope(UiDrawer.Scope.CONTAINER).minimized();`;
+
+    // PUSH: beside the content in a flex row; the content moves over.
+    const push = {
+        type: "stack", id: "dr-push", direction: "HORIZONTAL", cssClass: "demo-push-row", children: [
+            text("dr-push-txt", "The content. The drawer on the right takes room beside it (mode PUSH) — minimize it and this text gets the width back."),
+            { type: "drawer", id: "dr-side", title: "Details", icon: "panel-right", edge: "RIGHT", mode: "PUSH", size: "280px",
+              content: text("dr-side-t", "Order 1042 · 3 items · paid") },
+        ],
+    };
+    const pushJava =
+`UiStack.of(content,
+    UiDrawer.of("dr-side", "Details", details).edge(UiDrawer.Edge.RIGHT).mode(UiDrawer.Mode.PUSH).size("280px"))
+  .direction(UiStack.Direction.HORIZONTAL);`;
+
+    return stack("tab-drawer", [
+        text("dr-intro", "A drawer slides in from an edge and minimizes to a handle. Open, minimized and closed switch in the browser alone — the content is never redrawn, so what you type survives. Scope CONTAINER keeps it inside its box; VIEWPORT pins it to the window. Try the grip at the chat's top edge to resize it."),
+        specimen("sp-drawer-chat", "In a container — the AI chat of a mail composer", composer, composerJava),
+        specimen("sp-drawer-many", "Several at once — handles line up", many, manyJava),
+        specimen("sp-drawer-push", "PUSH — beside the content", push, pushJava),
+    ], { gap: 16 });
+}
+
 function feedbackTab() {
     // Spinners: three sizes + one labelled. Each is a plain UiSpinner node.
     const spinners = {
@@ -1122,6 +1198,7 @@ function buildPage() {
                 { type: "section-entry", id: "sec-diagram", title: "Diagram", icon: "grid", content: diagramTab() },
                 { type: "section-entry", id: "sec-kanban", title: "Kanban", icon: "kanban", content: kanbanTab() },
                 { type: "section-entry", id: "sec-calendar", title: "Calendar", icon: "calendar", content: calendarTab() },
+                { type: "section-entry", id: "sec-drawer", title: "Drawer", icon: "panel-bottom", content: drawerTab() },
                 { type: "section-entry", id: "sec-feedback", title: "Feedback", icon: "loading", content: feedbackTab() },
                 { type: "section-entry", id: "sec-icons",  title: "Icons",           icon: "star", content: iconsTab() },
             ],

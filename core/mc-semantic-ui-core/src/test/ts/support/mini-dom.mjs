@@ -13,7 +13,7 @@ export class El {
         this.children = [];
         this.parentElement = null;
         this.listeners = {};
-        this.style = {};
+        this.style = { setProperty(k, v) { this[k] = v; }, getPropertyValue(k) { return this[k] ?? ""; }, removeProperty(k) { delete this[k]; } };
         for (const c of children) this.appendChild(c);
     }
     get id() { return this.attrs.id ?? ""; }

@@ -917,6 +917,7 @@ export type UiNode =
     | UiActionMenu
     | UiField
     | UiDialog
+    | UiDrawer
     | UiUpload;
 
 /**
@@ -940,6 +941,37 @@ export type UiCustom<T extends string = string, P extends object = Record<string
 
 /** A core node or a plugin's. */
 export type UiAnyNode = UiNode | UiCustom;
+
+/**
+ * A panel that slides in from an edge and can be minimized to a handle
+ * (mirrors UiDrawer.java). Minimizing and opening again happen in the browser
+ * and never redraw `content`. `state` absent means "as it is": a new drawer
+ * opens, a replaced one keeps what the user made of it.
+ */
+export interface UiDrawer extends UiNodeBase {
+    type: "drawer";
+    content?: UiNode | { type: string };
+    icon?: string;
+    /** Short count or status on the handle. */
+    badge?: string;
+    /** Where it slides in from. Default `"RIGHT"`. */
+    edge?: "TOP" | "BOTTOM" | "LEFT" | "RIGHT";
+    state?: "OPEN" | "MINIMIZED" | "CLOSED";
+    /** Height for TOP/BOTTOM, width for LEFT/RIGHT — a CSS length. */
+    size?: string;
+    minSize?: string;
+    maxSize?: string;
+    /** The inner edge can be dragged. */
+    resizable?: boolean;
+    /** Default `"VIEWPORT"`; `"CONTAINER"` stays inside the nearest positioned container. */
+    scope?: "VIEWPORT" | "CONTAINER";
+    /** Default `"OVERLAY"`; `"PUSH"` takes room beside the content. */
+    mode?: "OVERLAY" | "PUSH";
+    closable?: boolean;
+    onClose?: UiTrigger;
+    /** `{state}` in its URL becomes OPEN, MINIMIZED or CLOSED. */
+    onStateChange?: UiTrigger;
+}
 
 // ── Page wrapper (mirrors UiPage.java) ──────────────────────────────────────
 

@@ -48,6 +48,22 @@ fresh empty one, so nothing has to be moved by hand at release time.
   editor grows with its content as before. `editorHeight` must be a CSS
   length; anything else is refused on the server and ignored by the
   browser's renderer. Both renderers write the same markup.
+- **`UiDrawer`: a panel that slides in from an edge and minimizes to a
+  handle.** It comes from `TOP`, `BOTTOM`, `LEFT` or `RIGHT` and is `OPEN`,
+  `MINIMIZED` (only a handle with title, icon and badge) or `CLOSED`. Its
+  `size`, `minSize` and `maxSize` are CSS lengths, and it can be `resizable`
+  at its inner edge. It belongs to the window (`VIEWPORT`) or to the nearest
+  positioned container (`CONTAINER`: a dialog, or `sui-drawer-host`), and lies
+  over the content (`OVERLAY`) or beside it (`PUSH`). It can have an X
+  (`closable`, `onClose`), and `onStateChange` fires with `{state}` in its
+  URL. Minimizing and opening again happen in the browser alone and never
+  redraw the content, so a chat inside keeps its conversation and what was
+  typed. A patch that replaces the drawer keeps the state the user chose
+  unless it sets one. The keyboard works: the handle is a button, Esc inside
+  minimizes, and the focus goes in on open and back to the handle on
+  minimize. Several drawers can be open at once, and minimized handles at one
+  edge line up. It follows the theme's tokens and `prefers-reduced-motion`,
+  and a side drawer comes up from the bottom on a narrow screen.
 
 ### Changed
 

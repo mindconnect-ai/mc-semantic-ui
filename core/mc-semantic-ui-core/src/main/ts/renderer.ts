@@ -2,7 +2,7 @@ import type {
     UiNode, UiField, UiAction, UiActionMenu, UiLink, UiListItem, UiTrigger, Pagination,
     UiForm, UiDetail, UiTable, UiTableColumn, UiTableRow,
     UiList, UiTree, UiTreeNode, UiMenu, UiMenuItem, UiMenuButton, UiSection, UiSectionEntry, UiStack, UiScrollPane, UiIFrame, UiAppShell, UiHeader,
-    UiText, UiIcon, UiSpinner, UiProgress, UiUpload, UiFieldGroup, UiDialog, UiPatch, UiPatchOperation,
+    UiText, UiIcon, UiSpinner, UiProgress, UiUpload, UiFieldGroup, UiDialog, UiDrawer, UiPatch, UiPatchOperation,
 } from "./model.js";
 
 // Per-type render functions live under {@code ./renderers/}. They're
@@ -29,6 +29,7 @@ import { renderAction }       from "./renderers/action.js";
 import { renderField }        from "./renderers/field.js";
 import { renderFieldGroup }   from "./renderers/fieldgroup.js";
 import { renderDialog }       from "./renderers/dialog.js";
+import { renderDrawer, keepDrawerStates } from "./renderers/drawer.js";
 import { renderUpload }       from "./renderers/upload.js";
 import { renderIconNode, addIconSprite } from "./renderers/icon.js";
 import { renderSpinner }      from "./renderers/spinner.js";
@@ -488,8 +489,11 @@ export class SuiRenderer {
                 // A slot is the app shell's content area, so filling one is a
                 // navigation: it gets the cross-fade. Everything else is a
                 // component redrawing itself, very possibly once per token.
+                // A drawer the user minimized stays minimized when the server
+                // redraws it, unless the patch says otherwise.
+                const node = keepDrawerStates(op.node, id => document.getElementById(id));
                 const swap = () => this.withTailChase(target, () => {
-                    this.morph(target, this.render(op.node!), isSlot ? "innerHTML" : "outerHTML");
+                    this.morph(target, this.render(node), isSlot ? "innerHTML" : "outerHTML");
                 });
                 if (isSlot) this.withViewTransition(swap); else swap();
                 break;
@@ -1169,6 +1173,7 @@ export function installDefaultHandlers(renderer: SuiRenderer): SuiRenderer {
         .register<UiField>("field",              renderField)
         .register<UiFieldGroup>("fieldgroup",    renderFieldGroup)
         .register<UiDialog>("dialog",            renderDialog)
+        .register<UiDrawer>("drawer",          renderDrawer)
         .register<UiUpload>("upload",            renderUpload)
         .register<UiIcon>("icon",                renderIconNode)
         .register<UiSpinner>("spinner",          renderSpinner)

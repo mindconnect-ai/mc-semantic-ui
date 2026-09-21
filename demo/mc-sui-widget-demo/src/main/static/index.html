@@ -28,6 +28,13 @@
     <style>
         /* Demo chrome only — the widgets themselves are styled entirely by sui.css. */
         body { margin: 0; }
+        /* Drawer tab: bounded boxes the CONTAINER drawers live in. */
+        .demo-drawer-box { position: relative; overflow: hidden; height: 440px; border: 1px solid var(--sui-color-border); border-radius: var(--sui-radius-lg); background: var(--sui-color-surface-alt); padding: 16px; box-sizing: border-box; }
+        .demo-drawer-box--short { height: 300px; }
+        .demo-pad { padding: 12px 16px; }
+        .demo-drawer-box--short > .sui-text { display: block; padding: 0 120px; }
+        .demo-push-row { height: 300px; border: 1px solid var(--sui-color-border); border-radius: var(--sui-radius-lg); overflow: hidden; }
+        .demo-push-row > .sui-text { flex: 1; padding: 16px; }
         .demo-topbar {
             display: flex; align-items: center; gap: 16px;
             padding: 12px 20px; border-bottom: 1px solid var(--sui-color-border);
