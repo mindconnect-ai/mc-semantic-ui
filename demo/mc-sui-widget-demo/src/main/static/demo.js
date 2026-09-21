@@ -511,32 +511,48 @@ function kanbanTab() {
     ], { gap: 16 });
 }
 
+// ── Calendar helpers (shared by the tab and the boot() handlers) ─────────────
+// A click on an event opens it in a dialog — an inline PATCH that APPENDs a
+// UiDialog into the body-level #sui-dialogs host, closed by REMOVE. No
+// backend: everything the dialog shows is in the event itself.
+const eventWhen = (start, end) => {
+    const day = (s) => s.slice(0, 10), time = (s) => s.slice(11, 16);
+    if (start.length === 10) return end && end !== start ? `${day(start)} – ${day(end)}, all day` : `${day(start)}, all day`;
+    return `${day(start)}, ${time(start)}${end ? ` – ${time(end)}` : ""}`;
+};
+const eventDialog = ({ id, title, start, end, color }) => ({
+    type: "dialog", id: `${id}-dlg`, title,
+    node: { type: "stack", id: `${id}-dlg-body`, gap: 12, children: [
+        { type: "detail", id: `${id}-dlg-detail`, fields: [
+            { type: "field", id: `${id}-dlg-when`, label: "When", fieldType: "TEXT", value: eventWhen(start, end) },
+            { type: "field", id: `${id}-dlg-colour`, label: "Colour", fieldType: "TEXT", value: color ?? "default" },
+        ] },
+        { type: "action", id: `${id}-dlg-close`, label: "Close", style: "SECONDARY",
+          onClick: { behavior: "PATCH", patch: { patches: [{ op: "REMOVE", targetId: `${id}-dlg` }], toasts: [] } } },
+    ] },
+});
+/** An event node that opens its dialog when clicked. */
+const withDialog = (e) => ({ ...e,
+    onClick: { behavior: "PATCH", patch: { patches: [{ op: "APPEND", targetId: "sui-dialogs", node: eventDialog(e) }], toasts: [] } } });
+
+// Events the user adds live in localStorage, so they survive a reload — the
+// only "backend" this page has. Their ids start with "added-", which is how
+// the Forget button tells them from the built-in ones.
+const EVENT_STORE = "sui-demo:calendar-events";
+function storedEvents() {
+    try { return JSON.parse(localStorage.getItem(EVENT_STORE) || "[]"); } catch { return []; }
+}
+function storeEvent(e) {
+    try { localStorage.setItem(EVENT_STORE, JSON.stringify([...storedEvents(), e])); } catch { /* private mode: not stored */ }
+}
+function forgetStoredEvents() {
+    try { localStorage.removeItem(EVENT_STORE); } catch { /* ignore */ }
+}
+const CALENDAR_IDS = ["cal-month", "cal-week", "cal-day"];
+
 // ── Tab: Calendar (extension) ────────────────────────────────────────────────
 function calendarTab() {
-    // A click on an event opens it in a dialog — an inline PATCH that APPENDs a
-    // UiDialog into the body-level #sui-dialogs host, closed by REMOVE. No
-    // backend: everything the dialog shows is in the event itself.
-    const when = (start, end) => {
-        const day = (s) => s.slice(0, 10), time = (s) => s.slice(11, 16);
-        if (start.length === 10) return end && end !== start ? `${day(start)} – ${day(end)}, all day` : `${day(start)}, all day`;
-        return `${day(start)}, ${time(start)}${end ? ` – ${time(end)}` : ""}`;
-    };
-    const eventDialog = (id, title, start, end, color) => ({
-        type: "dialog", id: `${id}-dlg`, title,
-        node: { type: "stack", id: `${id}-dlg-body`, gap: 12, children: [
-            { type: "detail", id: `${id}-dlg-detail`, fields: [
-                { type: "field", id: `${id}-dlg-when`, label: "When", fieldType: "TEXT", value: when(start, end) },
-                { type: "field", id: `${id}-dlg-colour`, label: "Colour", fieldType: "TEXT", value: color ?? "default" },
-            ] },
-            { type: "action", id: `${id}-dlg-close`, label: "Close", style: "SECONDARY",
-              onClick: { behavior: "PATCH", patch: { patches: [{ op: "REMOVE", targetId: `${id}-dlg` }], toasts: [] } } },
-        ] },
-    });
-    const ev = (id, title, start, end, o = {}) => ({
-        type: "calendar-event", id, title, start, end,
-        onClick: { behavior: "PATCH", patch: { patches: [{ op: "APPEND", targetId: "sui-dialogs", node: eventDialog(id, title, start, end, o.color) }], toasts: [] } },
-        ...o,
-    });
+    const ev = (id, title, start, end, o = {}) => withDialog({ type: "calendar-event", id, title, start, end, ...o });
     const events = [
         ev("c-1", "Standup", "2026-09-21T09:00", "2026-09-21T09:30", { color: "#4f6bed" }),
         ev("c-2", "Offsite", "2026-09-22", "2026-09-24", { color: "#29a3a3" }),
@@ -548,6 +564,7 @@ function calendarTab() {
         ev("c-8", "1:1", "2026-09-23T11:00", "2026-09-23T11:30"),
         ev("c-9", "Dentist", "2026-09-23T08:00", "2026-09-23T09:00", { color: "#7c3aed" }),
         ev("c-10", "Demo day", "2026-09-23T16:00", "2026-09-23T17:00"),
+        ...storedEvents().map(withDialog),   // what the user added on earlier visits
     ];
     // A pick (a day, an hour) or the New event button opens a dialog with a
     // form — an inline PATCH; the calendar fills {date} and {time} into it.
@@ -575,7 +592,11 @@ function calendarTab() {
         onSelect: openNewEvent("{date}", "{time}"),
     });
     const monthWithButton = stack("cal-month-wrap", [
-        { type: "action", id: "cal-new", label: "New event", icon: "plus", style: "PRIMARY", onClick: openNewEvent("2026-09-21", "") },
+        stack("cal-month-actions", [
+            { type: "action", id: "cal-new", label: "New event", icon: "plus", style: "PRIMARY", onClick: openNewEvent("2026-09-21", "") },
+            { type: "action", id: "cal-forget", label: "Forget added", icon: "eraser", style: "SECONDARY",
+              onClick: { behavior: "INVOKE", handler: "demo-forget-events" } },
+        ], { direction: "HORIZONTAL", gap: 8 }),
         calendar("cal-month", "MONTH"),
     ], { gap: 12 });
     const calendarJava =
@@ -609,7 +630,7 @@ function calendarTab() {
 //           plain trigger links, so they work with JavaScript switched off.`;
     return stack("tab-calendar", [
         text("calendar-intro",
-            "The calendar node ships in the mc-semantic-ui-ext-calendar module: a month, a week or a day of events. Previous, next and the view switch re-render the calendar from its own model, so they work right here with no backend; with an onNavigate (set below) they fire it too, with {date} and {view} filled in. A click on a day or an hour fires onSelect with {date} and {time} filled in — here an inline PATCH that opens a New event dialog, saved by a client-side INVOKE handler that adds the event to the calendars. A click on an event opens it in a dialog the same way. No backend anywhere."),
+            "The calendar node ships in the mc-semantic-ui-ext-calendar module: a month, a week or a day of events. Previous, next and the view switch re-render the calendar from its own model, so they work right here with no backend; with an onNavigate (set below) they fire it too, with {date} and {view} filled in. A click on a day or an hour fires onSelect with {date} and {time} filled in — here an inline PATCH that opens a New event dialog, saved by a client-side INVOKE handler that adds the event to the calendars and keeps it in localStorage, so it is still there after a reload (Forget added clears them). A click on an event opens it in a dialog the same way. No backend anywhere."),
         specimen("sp-cal-month", "Month view — click a day, or New event, to add one", monthWithButton, calendarJava),
         specimen("sp-cal-week", "Week view — timed events in their hour, all-day ones above", calendar("cal-week", "WEEK"), calendarJava),
         specimen("sp-cal-day", "Day view", calendar("cal-day", "DAY"), calendarJava),
@@ -1334,11 +1355,17 @@ async function boot() {
         const title = String(p["ev-title"] || "").trim();
         if (!title) return { patches: [], toasts: [{ level: "WARN", message: "A title, please.", durationMs: 2200 }] };
         const date = String(p["ev-date"] || "2026-09-21"), start = String(p["ev-start"] || "").trim(), end = String(p["ev-end"] || "").trim();
-        const ev = { type: "calendar-event", id: `c-${Date.now()}`, title, color: "#7c3aed",
+        const ev = { type: "calendar-event", id: `added-${Date.now()}`, title, color: "#7c3aed",
                      start: start ? `${date}T${start}` : date, end: start && end ? `${date}T${end}` : undefined };
-        ev.onClick = toastTrigger(`Opened ${title}`);
-        for (const id of ["cal-month", "cal-week", "cal-day"]) updateCalendar(id, n => ({ ...n, events: [...(n.events || []), ev] }));
+        storeEvent(ev);
+        for (const id of CALENDAR_IDS) updateCalendar(id, n => ({ ...n, events: [...(n.events || []), withDialog(ev)] }));
         return { patches: [{ op: "REMOVE", targetId: "ev-new-dlg" }], toasts: [{ level: "SUCCESS", message: `Added “${title}”`, durationMs: 2200 }] };
+    });
+    // Forget added: drops the stored events and takes them out of the calendars.
+    bus.registerClientHandler("demo-forget-events", () => {
+        forgetStoredEvents();
+        for (const id of CALENDAR_IDS) updateCalendar(id, n => ({ ...n, events: (n.events || []).filter(e => !String(e.id).startsWith("added-")) }));
+        return { patches: [], toasts: [{ level: "INFO", message: "Added events forgotten", durationMs: 2200 }] };
     });
     // No backend: fake the server. A small delay is deliberate — it lets the
     // inline loading feedback (the spinner the bus paints on the clicked
