@@ -61,10 +61,12 @@ class UiJsonViewerModuleTest {
         // get the Markdown node. If these two ever end up in one JAR again,
         // this fails and says why.
         var mapper = new ObjectMapper().findAndRegisterModules();
+        // A type Jackson does not know is read as a plugin's node (UiCustom),
+        // so "known" means: read as anything else.
         boolean markdownKnown;
         try {
-            mapper.readValue("{\"type\":\"markdown\",\"id\":\"m\"}", UiNode.class);
-            markdownKnown = true;
+            UiNode read = mapper.readValue("{\"type\":\"markdown\",\"id\":\"m\"}", UiNode.class);
+            markdownKnown = !(read instanceof ai.mindconnect.ui.model.UiCustom);
         } catch (Exception e) {
             markdownKnown = false;
         }

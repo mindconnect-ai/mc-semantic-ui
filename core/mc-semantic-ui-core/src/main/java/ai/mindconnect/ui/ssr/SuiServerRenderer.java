@@ -1,5 +1,6 @@
 package ai.mindconnect.ui.ssr;
 
+import ai.mindconnect.ui.model.UiCustom;
 import ai.mindconnect.ui.model.UiNode;
 import ai.mindconnect.ui.model.UiPage;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -188,6 +189,7 @@ public class SuiServerRenderer {
      */
     public String render(UiNode node) {
         if (node == null) return "";
+        if (node instanceof UiCustom custom) return renderCustom(custom);
         String type = typeOf(node);
         if (type == null) return fallback(node);
         Template t = resolve(type);
@@ -233,6 +235,37 @@ public class SuiServerRenderer {
             missing.add(name);
             return null;
         }
+    }
+
+    /**
+     * A plugin's node: its own {@code templates/sui/<type>.hbs} when a jar
+     * ships one, else the placeholder the SPA writes for a type it has no
+     * renderer for — {@code <div id class="sui-custom-missing" data-type>} —
+     * which the plugin's browser renderer replaces once the page is live.
+     */
+    private String renderCustom(UiCustom node) {
+        String type = node.getType();
+        Template t = type == null ? null : resolve(type);
+        if (t == null) return placeholder(node);
+        // The properties sit next to the node's own fields, as on the wire:
+        // a template reads {{session}} as readily as {{id}}.
+        com.github.jknack.handlebars.Context context = com.github.jknack.handlebars.Context.newBuilder(node)
+                .combine(node.getProps()).build();
+        try {
+            return t.apply(context);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Failed to render SUI template '" + type + "'", e);
+        }
+    }
+
+    /** Mirrors {@code renderMissing()} in {@code renderer.ts}. */
+    static String placeholder(UiCustom node) {
+        String id = node.getId() != null && !node.getId().isEmpty()
+                ? " id=\"" + SuiHandlebarsHelpers.escapeHtml(node.getId()) + "\"" : "";
+        String css = node.getCssClass();
+        String cls = "sui-custom-missing" + (css != null && !css.isEmpty() ? " " + SuiHandlebarsHelpers.escapeHtml(css) : "");
+        String type = node.getType() == null ? "" : node.getType();
+        return "<div" + id + " class=\"" + cls + "\" data-type=\"" + SuiHandlebarsHelpers.escapeHtml(type) + "\"></div>";
     }
 
     private String fallback(UiNode node) {

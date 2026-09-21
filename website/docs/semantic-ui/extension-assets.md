@@ -139,6 +139,41 @@ ever worked for one plugin, since the next one replaced it again. A plugin
 that must do more than a sprite can wrap the resolver instead of replacing it;
 see [the icon library](./icons.md#adding-to-the-resolver).
 
+## A node type without Java
+
+An extension that registers its own node type,
+`renderer.register("chat-widget", fn)` in `install`, needs no Java class for
+it. The server sends a `UiCustom`, which is written flat with the type you
+give it:
+
+```java
+UiCustom.of("chat-widget").id("draft-chat")
+        .prop("session", sid)
+        .prop("api", "/chat-api/sessions");
+// {"type":"chat-widget","id":"draft-chat","session":"…","api":"/chat-api/sessions"}
+```
+
+```js
+export function install(renderer) {
+    renderer.register("chat-widget", node => `<div id="${node.id}" data-api="${node.api}"></div>`);
+}
+```
+
+- The standard fields (`id`, `title`, `cssClass`, `onClick` and the other
+  triggers, `display`) work as on any node, and a property cannot overwrite
+  one. The type is lowercase-kebab and not a core type such as `list`.
+- Without a registered renderer the node renders as
+  `<div class="sui-custom-missing" data-type="chat-widget">`, a small dashed
+  box naming the type. The console names it once, and the rest of the page is
+  unaffected. The server writes the same element unless a jar ships
+  `templates/sui/chat-widget.hbs`, which renders the node with its properties
+  (`{{session}}`).
+- `installAll` redraws those placeholders once the extensions are installed,
+  and the event bus does so after every change, so a server-rendered page
+  picks the real widget up as soon as the plugin is in.
+- Reading JSON back, for the editor, JavaFX or a test, a type Jackson does not
+  know becomes a `UiCustom` with the other fields as its properties.
+
 ## Overriding and switching off
 
 Several declarations may share an `id`. **The highest `order` wins.** A

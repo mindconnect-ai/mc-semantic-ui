@@ -663,6 +663,17 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-icon-btn--danger    { background: transparent; color: var(--sui-color-danger); }
 .sui-icon-btn--danger:hover:not(:disabled)    { background: var(--sui-color-danger-bg); }
 
+/* A plugin's node whose renderer is not registered (renderMissing() in the
+   SPA, a UiCustom without a template on the server): a small dashed box
+   naming the type, in place of the node, so the rest of the page stands. The
+   plugin's renderer replaces it once registered. */
+.sui-custom-missing {
+    display: inline-flex; align-items: center; min-height: 28px; padding: 4px 10px;
+    border: 1px dashed var(--sui-color-border-strong); border-radius: var(--sui-radius-md);
+    color: var(--sui-color-text-muted); font-size: 12px; font-family: var(--sui-font-mono, monospace);
+}
+.sui-custom-missing::before { content: attr(data-type); }
+
 /* ── Icons ──────────────────────────────────────────────────────────────
    Rendered by the swappable icon resolver (renderers/icon.ts) as an
    <svg class="sui-icon"><use href="/sui/icons.svg#token"></svg>. Size is

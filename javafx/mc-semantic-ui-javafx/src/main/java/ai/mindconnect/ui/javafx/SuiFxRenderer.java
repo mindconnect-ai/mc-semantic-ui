@@ -600,7 +600,9 @@ public class SuiFxRenderer {
     }
 
     private Node placeholder(UiNode node) {
-        var label = new Label("[" + typeName(node.getClass()) + " not yet supported by the JavaFX renderer]");
+        // A plugin's node (UiCustom) names its own type, not the class's.
+        String type = node instanceof ai.mindconnect.ui.model.UiCustom custom ? custom.getType() : typeName(node.getClass());
+        var label = new Label("[" + type + " not yet supported by the JavaFX renderer]");
         label.getStyleClass().add("sui-unsupported");
         return label;
     }

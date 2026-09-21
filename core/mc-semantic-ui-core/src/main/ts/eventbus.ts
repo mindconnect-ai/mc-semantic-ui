@@ -912,6 +912,9 @@ export class SuiEventBus {
         // Rail fly-outs and tooltips: reachable by pointer, keyboard and touch,
         // and not clipped by a scrolling rail.
         try { wireRailFlyouts(this.root); } catch { /* ignore */ }
+        // A plugin's node that arrived before its renderer (server-rendered,
+        // or drawn before installAll finished) becomes the real thing.
+        try { this.renderer.upgradePlaceholders?.(this.root); } catch { /* ignore */ }
         // One call covers every container marked data-sui-overflow="menu":
         // tab bars, header extras, application toolbars.
         try { wireOverflow(this.root); } catch { /* ignore */ }

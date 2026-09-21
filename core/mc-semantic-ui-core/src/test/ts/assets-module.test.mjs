@@ -123,4 +123,21 @@ describe("/sui/assets.js", () => {
         assert.deepEqual(partial.map(r => [r.id, r.ok]), [["brand-icons", false], ["acme-icons", false], ["ext", true]]);
         assert.equal(errors.length, 2);
     });
+
+    test("redraws the placeholders once the extensions are installed", async () => {
+        const source = readFileSync(TEMPLATE, "utf8").replace("/*SUI_ASSETS*/[]", JSON.stringify([
+            { id: "plugin", kind: "extension", url: js(`export function install(r) { r.calls.push("install"); }`) },
+        ]));
+        const file = path.join(dir, "upgrade.mjs");
+        writeFileSync(file, source);
+        const mod = await import(pathToFileURL(file).href);
+        const doc = { head: null, name: "doc" };
+        const renderer = { calls: [], upgradePlaceholders(scope) { this.calls.push(["upgrade", scope.name]); } };
+        await mod.installAll(renderer, {}, { document: doc });
+        assert.deepEqual(renderer.calls, ["install", ["upgrade", "doc"]], "after the installs, in the page's document");
+
+        const plain = { calls: [] };   // a renderer without the method is fine too
+        await mod.installAll(plain, {}, { document: doc });
+        assert.deepEqual(plain.calls, ["install"]);
+    });
 });
