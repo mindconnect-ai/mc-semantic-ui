@@ -2,7 +2,7 @@
 
 export type FieldType =
     | "TEXT" | "TEXTAREA" | "NUMBER" | "CURRENCY" | "PERCENT"
-    | "DATE" | "DATETIME"
+    | "DATE" | "DATETIME" | "TIME"
     | "BOOLEAN"
     | "SELECT" | "MULTISELECT"
     | "FILE" | "REFERENCE"

@@ -376,6 +376,15 @@ class SuiServerRendererTest {
     }
 
     @Test
+    void timeFieldRendersTheBrowsersTimePicker() {
+        var f = UiField.time("from", "From", java.time.LocalTime.of(8, 30)).asEditable().step("900");
+        String html = renderer.render(f);
+        assertTrue(html.contains("<input type=\"time\" id=\"from__input\" name=\"from\" value=\"08:30\" data-sui-type=\"TIME\" step=\"900\">"), html);
+        String ro = renderer.render(UiField.time("from", "From", "08:30"));
+        assertTrue(ro.contains("<span class=\"sui-value\">08:30</span>"), ro);
+    }
+
+    @Test
     void menuItemLoadingShowsAsBusy() {
         var menu = UiMenu.of("nav3", null,
                 UiMenuItem.link("m-slow", "Reports", "/reports").icon("chart").loading(true),
