@@ -28,6 +28,7 @@
              Its tests skip themselves on a machine without a display. -->
         <module>javafx/mc-semantic-ui-javafx</module>
         <module>javafx/mc-semantic-ui-javafx-iframe</module>
+        <module>javafx/mc-semantic-ui-javafx-richtext</module>
         <module>javafx/mc-semantic-ui-javafx-markdown</module>
         <module>javafx/mc-semantic-ui-javafx-json</module>
         <module>ext/mc-semantic-ui-ext-json</module>

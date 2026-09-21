@@ -271,6 +271,42 @@
     -fx-background-color: derive(-sui-danger-bg, -6%);
 }
 
+/* A menu in a button bar (UiActionMenu): a MenuButton wearing the same look
+   as the bar's buttons, with its arrow as the caret. */
+.menu-button.sui-action-menu {
+    -fx-background-color: -sui-surface;
+    -fx-background-radius: 8;
+    -fx-border-color: -sui-border-strong;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+.menu-button.sui-action-menu > .label {
+    -fx-padding: 7 2 7 14;
+    -fx-text-fill: -sui-text-body;
+}
+.menu-button.sui-action-menu > .arrow-button {
+    -fx-background-color: transparent;
+    -fx-padding: 7 12 7 6;
+}
+.menu-button.sui-action-menu > .arrow-button > .arrow {
+    -fx-background-color: -sui-text-muted;
+}
+.menu-button.sui-action-menu:hover,
+.menu-button.sui-action-menu:showing {
+    -fx-background-color: -sui-surface-alt;
+}
+.menu-button.sui-action-menu:focused {
+    -fx-border-color: -sui-primary;
+}
+.menu-button.sui-action-menu.sui-action-primary {
+    -fx-background-color: -sui-action;
+    -fx-border-color: transparent;
+}
+.menu-button.sui-action-menu.sui-action-primary > .label { -fx-text-fill: white; }
+.menu-button.sui-action-menu.sui-action-primary > .arrow-button > .arrow { -fx-background-color: white; }
+
 /* Links look like links, not buttons. */
 .sui-link,
 .hyperlink {
@@ -685,4 +721,84 @@
    transparent, so only the inset it would otherwise add has to go. */
 .sui-dialog-scroll {
     -fx-padding: 0;
+}
+
+/* ── Menu headings (UiMenuItem.heading) ──────────────────────────────────
+   A label over the entries that follow: disabled so the keyboard passes it
+   by, but not greyed out. */
+.sui-menu-heading,
+.sui-menu-heading:disabled {
+    -fx-opacity: 1;
+}
+.sui-menu-heading .label {
+    -fx-text-fill: -sui-text-subtle;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+/* ── Drawer (UiDrawer) ────────────────────────────────────────────────────
+   The panel on its edge, the handle for a minimized one. An overlay drawer
+   floats in .sui-drawer-layer over the scene; a PUSH drawer stands in the
+   layout. */
+.sui-drawer-panel {
+    -fx-background-color: -sui-surface;
+    -fx-border-color: -sui-border;
+    -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.14), 18, 0, 0, 4);
+}
+.sui-drawer-push > .sui-drawer-panel {
+    -fx-effect: null;
+}
+.sui-drawer-bottom > .sui-drawer-panel { -fx-border-width: 1 0 0 0; -fx-background-radius: 10 10 0 0; -fx-border-radius: 10 10 0 0; }
+.sui-drawer-top    > .sui-drawer-panel { -fx-border-width: 0 0 1 0; -fx-background-radius: 0 0 10 10; -fx-border-radius: 0 0 10 10; }
+.sui-drawer-left   > .sui-drawer-panel { -fx-border-width: 0 1 0 0; }
+.sui-drawer-right  > .sui-drawer-panel { -fx-border-width: 0 0 0 1; }
+.sui-drawer-header {
+    -fx-background-color: -sui-surface-alt;
+    -fx-border-color: -sui-border-soft;
+    -fx-border-width: 0 0 1 0;
+}
+.sui-drawer-title {
+    -fx-font-weight: bold;
+    -fx-text-fill: -sui-text;
+}
+.sui-drawer-btn {
+    -fx-background-color: transparent;
+    -fx-padding: 4 6 4 6;
+    -fx-cursor: hand;
+}
+.sui-drawer-btn:hover {
+    -fx-background-color: -sui-border-soft;
+}
+.sui-drawer-body,
+.sui-drawer-body > .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 8 12 8 12;
+}
+.sui-drawer-handle {
+    -fx-background-color: -sui-surface;
+    -fx-border-color: -sui-border-strong;
+    -fx-text-fill: -sui-text-body;
+    -fx-padding: 7 14 7 14;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.12), 10, 0, 0, 2);
+}
+.sui-drawer-bottom > .sui-drawer-handle { -fx-background-radius: 8 8 0 0; -fx-border-radius: 8 8 0 0; -fx-border-width: 1 1 0 1; }
+.sui-drawer-top    > .sui-drawer-handle { -fx-background-radius: 0 0 8 8; -fx-border-radius: 0 0 8 8; -fx-border-width: 0 1 1 1; }
+.sui-drawer-left   > .sui-drawer-handle { -fx-background-radius: 0 8 8 0; -fx-border-radius: 0 8 8 0; -fx-border-width: 1 1 1 0; }
+.sui-drawer-right  > .sui-drawer-handle { -fx-background-radius: 8 0 0 8; -fx-border-radius: 8 0 0 8; -fx-border-width: 1 0 1 1; }
+.sui-drawer-handle:hover {
+    -fx-background-color: -sui-surface-alt;
+}
+.sui-drawer-badge {
+    -fx-background-color: -sui-primary;
+    -fx-text-fill: white;
+    -fx-background-radius: 999;
+    -fx-padding: 0 6 0 6;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+.sui-drawer-resize:hover {
+    -fx-background-color: -sui-primary;
+    -fx-opacity: 0.35;
 }

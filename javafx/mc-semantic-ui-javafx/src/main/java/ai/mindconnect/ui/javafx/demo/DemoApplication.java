@@ -23,6 +23,8 @@ import ai.mindconnect.ui.model.UiSpinner;
 import ai.mindconnect.ui.model.UiStack;
 import ai.mindconnect.ui.model.UiTable;
 import ai.mindconnect.ui.model.UiText;
+import ai.mindconnect.ui.model.UiDrawer;
+import ai.mindconnect.ui.model.UiCustom;
 import ai.mindconnect.ui.model.UiToast;
 import ai.mindconnect.ui.model.UiTree;
 import ai.mindconnect.ui.model.UiTreeNode;
@@ -146,6 +148,7 @@ public class DemoApplication extends Application {
     private UiNode ui() {
         return UiSection.of("main", null)
                 .section("customer", "Customer", customerForm())
+                .section("composer", "Mail composer", composer())
                 // The table is wrapped in a stack on purpose: a patch replaces a
                 // node inside its parent, and a tab's content has no parent pane
                 // to replace it in.
@@ -165,6 +168,48 @@ public class DemoApplication extends Application {
      * A menu-button (the "…" overflow) next to a progress bar. Both are model
      * nodes; neither needs a line of JavaFX here.
      */
+    /**
+     * The newer elements together, as mc-commercial's mail composer uses them:
+     * a RICHTEXT body with a fixed height, a button bar whose AI actions sit
+     * behind one menu, the AI chat as a drawer rising from the bottom of the
+     * composer — its content a plugin's own node type — and a PUSH drawer
+     * beside it.
+     */
+    private UiNode composer() {
+        var form = UiForm.of("mail", "New mail")
+                .field(UiField.text("to", "To", "ada@example.com").asEditable())
+                .field(UiField.text("subject", "Subject", "Our meeting").asEditable())
+                .field(UiField.richtext("body", "Message", "<p>Hi Ada,</p><p>shall we move it to <b>Thursday</b>?</p>")
+                        .asEditable().editorHeight("140px"))
+                .action(UiAction.primary("send", "Send").icon("send").onClick(UiTrigger.invoke("sendMail")))
+                .action(UiAction.secondary("attach", "Attach").icon("paperclip").onClick(UiTrigger.invoke("ai")))
+                .action(UiAction.menu("ai-menu", "AI",
+                                UiMenuItem.of("ai-draft", "Draft with AI").icon("wand-sparkles").onClick(UiTrigger.invoke("ai", "mail")),
+                                UiMenuItem.divider(),
+                                UiMenuItem.heading("Quick actions"),
+                                UiMenuItem.of("ai-shorten", "Shorten").icon("scissors").onClick(UiTrigger.invoke("ai")),
+                                UiMenuItem.of("ai-summary", "Summarize").icon("list-collapse").onClick(UiTrigger.invoke("ai")),
+                                UiMenuItem.of("ai-translate", "Translate").icon("file-text").disabled("Not in this demo"))
+                        .icon("sparkles"))
+                .action(UiAction.secondary("check", "Check").onClick(UiTrigger.invoke("ai")));
+
+        var chat = UiDrawer.of("ai-chat", "Draft with AI", UiCustom.of("chat-widget").prop("greeting",
+                        "Here is a first draft. Shall I make it shorter or more formal?"))
+                .edge(UiDrawer.Edge.BOTTOM).scope(UiDrawer.Scope.CONTAINER)
+                .size("55%").minSize("140px").maxSize("90%").resizable()
+                .icon("sparkles").badge("1").closable()
+                .onClose(UiTrigger.toast(UiToast.info("Chat closed — onClose lets the server clean up.")));
+
+        var details = UiDrawer.of("mail-details", "Details",
+                        UiStack.of(UiText.of("Thread: 4 mails"), UiText.of("Last reply: yesterday"), UiText.of("Labels: work")))
+                .edge(UiDrawer.Edge.RIGHT).mode(UiDrawer.Mode.PUSH).size("220px").icon("info");
+
+        return UiStack.of(
+                UiText.of("A button bar with an AI menu, a rich-text body, the AI chat as a drawer from the bottom "
+                        + "(minimize it: what you type in it stays) and a drawer beside the mail that takes room (PUSH)."),
+                UiStack.of(UiStack.of(form, chat).gap(8), details).direction(UiStack.Direction.HORIZONTAL).gap(12));
+    }
+
     private UiNode ordersToolbar() {
         var overflow = UiMenuButton.of("orders-overflow",
                         UiMenuItem.of("export", "Export as CSV")
@@ -549,6 +594,27 @@ public class DemoApplication extends Application {
 
     /** Every trigger in this demo lands in one of these. */
     private void installHandlers() {
+        // The chat widget is a plugin's own node type (UiCustom): the desktop
+        // paints it with a renderer registered under its type name.
+        renderer.registerCustom("chat-widget", (node, ctx) -> {
+            var greeting = new javafx.scene.control.Label("Assistant: " + node.prop("greeting"));
+            greeting.setWrapText(true);
+            var ask = new javafx.scene.control.TextField();
+            ask.setPromptText("Ask the assistant — e.g. make it friendlier");
+            var send = new javafx.scene.control.Button("Send");
+            send.setOnAction(e -> bus.toast(UiToast.info("Asked: " + ask.getText())));
+            var row = new javafx.scene.layout.HBox(8, ask, send);
+            javafx.scene.layout.HBox.setHgrow(ask, javafx.scene.layout.Priority.ALWAYS);
+            return new javafx.scene.layout.VBox(10, greeting, row);
+        });
+        bus.registerClientHandler("sendMail", ctx -> bus.toast(UiToast.success(
+                "To " + ctx.payload().get("to") + ": " + ctx.payload().get("subject")).title("Sent")));
+        bus.registerClientHandler("ai", ctx -> {
+            String what = ctx.source() instanceof UiAction a ? a.getLabel() : "AI";
+            bus.toast(UiToast.info(what + ": would send " + ctx.payload().size() + " fields — subject “"
+                    + ctx.payload().get("subject") + "”"));
+        });
+
         bus.registerClientHandler("saveCustomer", ctx -> {
             // ctx.payload() holds every field in the form — the flat ones, the
             // ones in the horizontal stack, the textarea.

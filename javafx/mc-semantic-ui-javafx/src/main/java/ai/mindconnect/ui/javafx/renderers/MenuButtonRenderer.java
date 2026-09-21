@@ -54,6 +54,16 @@ public class MenuButtonRenderer implements FxNodeRenderer<UiMenuButton> {
 
         var label = SuiFxText.first(item.getLabel(), item.getTitle());
 
+        // A heading over the entries that follow: a label, not an item — the
+        // keyboard passes a disabled item by, and the stylesheet keeps it
+        // from looking greyed out.
+        if (item.isHeading()) {
+            var heading = new MenuItem(label);
+            heading.setDisable(true);
+            heading.getStyleClass().add("sui-menu-heading");
+            return heading;
+        }
+
         if (item.getChildren() != null && !item.getChildren().isEmpty()) {
             var submenu = new Menu(label);
             Icons.lead(submenu, item.getIcon(), ctx);

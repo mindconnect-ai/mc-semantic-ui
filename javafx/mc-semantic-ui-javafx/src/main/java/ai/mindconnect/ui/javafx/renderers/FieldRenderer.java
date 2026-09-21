@@ -75,7 +75,8 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
         Node control;
         Supplier<Object> value;
         if (!node.isEditable()) {
-            var readOnly = new Label(display(node.getValue()));
+            var readOnly = new Label(node.getFieldType() == UiField.FieldType.RICHTEXT
+                    ? richTextAsText(node.getValue()) : display(node.getValue()));
             readOnly.getStyleClass().add("sui-field-readonly");
             readOnly.setWrapText(true);
             control = readOnly;
@@ -88,7 +89,11 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
             value = built.value();
         }
         control.getStyleClass().add("sui-field-control");
-        box.getChildren().add(withTrailing(withLeadingIcon(control, node, ctx), node, ctx));
+        var placed = withTrailing(withLeadingIcon(control, node, ctx), node, ctx);
+        box.getChildren().add(placed);
+        if (node.isEditable() && node.getFieldType() == UiField.FieldType.RICHTEXT) {
+            sizeRichText(box, placed, control, node);
+        }
 
         if (node.getId() != null && ctx.form() != null) {
             ctx.form().register(node.getId(), value);
@@ -168,12 +173,14 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
         return row;
     }
 
-    private record Bound(Node control, Supplier<Object> value) { }
+    /** A painted control and what reads its current value — what {@link #richText} returns. */
+    public record Bound(Node control, Supplier<Object> value) { }
 
     private Bound buildControl(UiField node, FxRenderContext ctx) {
         var type = node.getFieldType() == null ? UiField.FieldType.TEXT : node.getFieldType();
         return switch (type) {
-            case TEXTAREA, RICHTEXT -> textArea(node, ctx);   // the HTML, as text: no rich editing on the desktop yet
+            case TEXTAREA -> textArea(node, ctx);
+            case RICHTEXT -> richText(node, ctx);
             case BOOLEAN -> checkBox(node, ctx);
             case DATE -> datePicker(node, ctx);
             case SELECT -> node.isExpanded() ? radioGroup(node, ctx) : comboBox(node, ctx);
@@ -184,6 +191,54 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
             case NUMBER, CURRENCY, PERCENT -> numberField(node, ctx);
             default -> textField(node, ctx);
         };
+    }
+
+    /**
+     * The control for a {@code RICHTEXT} field. Here: a text area holding the
+     * HTML — this module has no rich editor, because one needs
+     * {@code javafx-web}. {@code mc-semantic-ui-javafx-richtext} installs a
+     * subclass that paints a real editor.
+     */
+    protected Bound richText(UiField node, FxRenderContext ctx) {
+        return textArea(node, ctx);
+    }
+
+    /**
+     * {@code editorHeight} and {@code fill} on a RICHTEXT field: a fixed height
+     * for the editor, or all the height the field's parent gives it (the field
+     * grows in a VBox, and its editor with it).
+     */
+    protected static void sizeRichText(VBox field, Node placed, Node control, UiField node) {
+        if (node.getEditorHeight() != null && control instanceof javafx.scene.layout.Region region) {
+            double px = FxDrawer.px(node.getEditorHeight(), 320, 1200, 800, -1);
+            if (px > 0) {
+                region.setPrefHeight(px);
+                region.setMinHeight(px);
+                region.setMaxHeight(px);
+            }
+        }
+        if (node.isFill()) {
+            VBox.setVgrow(field, Priority.ALWAYS);
+            VBox.setVgrow(placed, Priority.ALWAYS);
+            if (control instanceof javafx.scene.layout.Region region) region.setMaxHeight(Double.MAX_VALUE);
+            if (control instanceof TextArea area) area.setPrefRowCount(2);
+        }
+    }
+
+    /**
+     * A RICHTEXT value shown read-only: its text, with paragraphs, breaks and
+     * list items as line breaks — sanitised first, like every rich value, then
+     * stripped of its tags.
+     */
+    static String richTextAsText(Object value) {
+        if (value == null || String.valueOf(value).isEmpty()) return "—";
+        String html = ai.mindconnect.ui.html.RichTextSanitizer.sanitize(String.valueOf(value));
+        String text = html.replaceAll("(?i)<br\\s*/?>|</p>|</li>|</blockquote>", "\n")
+                .replaceAll("(?i)<li>", "• ")
+                .replaceAll("<[^>]*>", "")
+                .replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"")
+                .replace("&#39;", "'").replace("&nbsp;", " ").replace("&amp;", "&");
+        return text.strip().replaceAll("\n{3,}", "\n\n");
     }
 
     // ── controls ──────────────────────────────────────────────────────────
