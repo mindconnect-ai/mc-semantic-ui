@@ -1,8 +1,9 @@
 {{!--
   UiMenuItem → one entry. A group (has children) renders as a native <details>
   disclosure so nesting expands/collapses with no JS; a leaf renders as an <a>
-  (onClick → data-trigger via the bus, else a plain navigation). Mirror of
-  renderMenuItem() in renderers/menu.ts.
+  (onClick → data-trigger via the bus, else a plain navigation). A `loading`
+  leaf carries is-loading/aria-busy: the spinner takes the icon's place.
+  Mirror of renderMenuItem() in renderers/menu.ts.
 --}}
 {{#if children}}
 <li class="sui-menu-item sui-menu-item--group{{#if selected}} is-active{{/if}}"{{{events this "click"}}} id="{{id}}" data-id="{{id}}" role="none">
@@ -13,6 +14,6 @@
 </li>
 {{else}}
 <li class="sui-menu-item{{#if selected}} is-active{{/if}}" id="{{id}}" data-id="{{id}}" role="none">
-    <a class="sui-menu-link" href="{{#if href}}{{href}}{{else}}#{{/if}}"{{#if onClick}} data-trigger='{{{trigger onClick}}}'{{#if confirm}} data-confirm="{{confirm}}"{{/if}}{{else}}{{#if href}} data-href="{{href}}"{{/if}}{{/if}}{{#if selected}} aria-current="page"{{/if}} role="menuitem"><span class="sui-menu-icon">{{#if icon}}{{{icon icon}}}{{/if}}</span><span class="sui-menu-label">{{label}}</span>{{#if badge}}<span class="sui-menu-badge">{{badge}}</span>{{/if}}</a><span class="sui-menu-tip">{{label}}</span>
+    <a class="sui-menu-link{{#if loading}} is-loading{{/if}}"{{#if loading}} aria-busy="true"{{/if}} href="{{#if href}}{{href}}{{else}}#{{/if}}"{{#if onClick}} data-trigger='{{{trigger onClick}}}'{{#if confirm}} data-confirm="{{confirm}}"{{/if}}{{else}}{{#if href}} data-href="{{href}}"{{/if}}{{/if}}{{#if selected}} aria-current="page"{{/if}} role="menuitem"><span class="sui-menu-icon">{{#if icon}}{{{icon icon}}}{{/if}}</span><span class="sui-menu-label">{{label}}</span>{{#if badge}}<span class="sui-menu-badge">{{badge}}</span>{{/if}}</a><span class="sui-menu-tip">{{label}}</span>
 </li>
 {{/if}}
