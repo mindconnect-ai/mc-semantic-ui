@@ -1,6 +1,8 @@
 package ai.mindconnect.ui.javafx;
 
+import ai.mindconnect.ui.javafx.renderers.ActionMenuRenderer;
 import ai.mindconnect.ui.javafx.renderers.ActionRenderer;
+import ai.mindconnect.ui.javafx.renderers.DrawerRenderer;
 import ai.mindconnect.ui.javafx.renderers.DialogRenderer;
 import ai.mindconnect.ui.javafx.renderers.DetailRenderer;
 import ai.mindconnect.ui.javafx.renderers.FieldGroupRenderer;
@@ -87,7 +89,9 @@ import java.util.Optional;
  * {@code scrollpane}, {@code icon}, {@code app-shell}, {@code header},
  * {@code action}, {@code tree}, {@code dialog},
  * {@code spinner}, {@code progress}, {@code link}, {@code menu},
- * {@code menu-button}, {@code detail}, {@code list} and {@code upload}.
+ * {@code menu-button}, {@code detail}, {@code list}, {@code upload},
+ * {@code action-menu} and {@code drawer} — and a plugin's own type through
+ * {@link #registerCustom}.
  * Anything else paints as a
  * visible placeholder rather than failing, so a tree that is only partly
  * supported still comes up.
@@ -114,6 +118,8 @@ import java.util.Optional;
 public class SuiFxRenderer {
 
     private final Map<Class<?>, FxNodeRenderer<?>> renderers = new HashMap<>();
+    /** Renderers for plugins' node types ({@code UiCustom}), by type name. */
+    private final Map<String, FxNodeRenderer<ai.mindconnect.ui.model.UiCustom>> customRenderers = new HashMap<>();
     /**
      * Only ever used to merge attribute patches; the bus keeps its own for the
      * wire.
@@ -488,6 +494,8 @@ public class SuiFxRenderer {
         register(UiDetail.class,     new DetailRenderer());
         register(UiList.class,       new ListRenderer());
         register(UiUpload.class,     new UploadRenderer());
+        register(ai.mindconnect.ui.model.UiActionMenu.class, new ActionMenuRenderer());
+        register(ai.mindconnect.ui.model.UiDrawer.class,     new DrawerRenderer());
     }
 
     public static SuiFxRenderer createDefaultRenderer() {
@@ -496,6 +504,17 @@ public class SuiFxRenderer {
 
     public static SuiFxRenderer createDefaultRenderer(SuiFxOverlay overlay) {
         return createDefaultRenderer().attach(overlay);
+    }
+
+    /**
+     * Registers (or replaces) the renderer for a plugin's node type — a
+     * {@link ai.mindconnect.ui.model.UiCustom} whose {@code type} is
+     * {@code type}. Without one, such a node paints as a placeholder naming
+     * its type, the desktop twin of the browser's {@code .sui-custom-missing}.
+     */
+    public SuiFxRenderer registerCustom(String type, FxNodeRenderer<ai.mindconnect.ui.model.UiCustom> renderer) {
+        customRenderers.put(type, renderer);
+        return this;
     }
 
     /** Registers (or replaces) the renderer for one node type. */
@@ -520,7 +539,9 @@ public class SuiFxRenderer {
     public Node render(UiNode node, FxRenderContext ctx) {
         if (node == null) return new Label();
 
-        var renderer = (FxNodeRenderer<UiNode>) lookup(node.getClass());
+        var renderer = node instanceof ai.mindconnect.ui.model.UiCustom custom
+                ? (FxNodeRenderer<UiNode>) (FxNodeRenderer<?>) customRenderers.get(custom.getType())
+                : (FxNodeRenderer<UiNode>) lookup(node.getClass());
         Node fx = renderer == null ? placeholder(node) : renderer.render(node, ctx);
 
         applyCommon(node, fx, ctx);

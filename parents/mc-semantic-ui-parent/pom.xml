@@ -181,6 +181,11 @@
             </dependency>
             <dependency>
                 <groupId>ai.mindconnect</groupId>
+                <artifactId>mc-semantic-ui-javafx-richtext</artifactId>
+                <version>0.4.2-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>ai.mindconnect</groupId>
                 <artifactId>mc-semantic-ui-javafx-markdown</artifactId>
                 <version>0.4.2-SNAPSHOT</version>
             </dependency>
