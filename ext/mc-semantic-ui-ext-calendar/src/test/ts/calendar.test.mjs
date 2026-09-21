@@ -55,6 +55,13 @@ describe("calendar renderer", () => {
         assert.doesNotMatch(html, />Today</);   // no `today` in the model, nothing to go to
     });
 
+    test("extras land in the header, after the view switch", () => {
+        const html = renderer.render({ type: "calendar", id: "c", date: "2026-09-21",
+            extras: [{ type: "text", id: "legend", text: "Team A" }] });
+        assert.match(html, /<\/div><div class="sui-calendar-extras">.*Team A.*<\/div><\/header><div class="sui-calendar-body">/);
+        assert.doesNotMatch(renderer.render({ type: "calendar", id: "c", date: "2026-09-21" }), /sui-calendar-extras/);
+    });
+
     test("navigation steps by day, week or month and keeps the view", () => {
         const html = ext.renderCalendar({ type: "calendar", id: "c", view: "MONTH", date: "2026-01-31", onNavigate: { url: "/c?d={date}&v={view}" } });
         assert.match(html, /\/c\?d=2026-02-28&v=MONTH/);   // clamped to February

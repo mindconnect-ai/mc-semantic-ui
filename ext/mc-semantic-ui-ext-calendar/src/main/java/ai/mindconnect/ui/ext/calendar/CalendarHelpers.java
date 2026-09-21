@@ -14,10 +14,16 @@ public final class CalendarHelpers implements SuiHelperContributor {
 
     @Override
     public void contribute(Handlebars handlebars, ObjectMapper mapper) {
-        // {{{calendarHtml this}}} — the whole element, straight from CalendarPainter.
-        handlebars.registerHelper("calendarHtml", (ctx, opts) -> {
+        // {{{calendarOpen this}}} … {{{calendarRest this}}} — the element in two
+        // halves, straight from CalendarPainter; the template renders the
+        // header's extras between them with the core's `render` helper.
+        handlebars.registerHelper("calendarOpen", (ctx, opts) -> {
             if (!(ctx instanceof UiCalendar calendar)) return "";
-            return new Handlebars.SafeString(CalendarPainter.html(calendar, mapper));
+            return new Handlebars.SafeString(CalendarPainter.open(calendar, mapper));
+        });
+        handlebars.registerHelper("calendarRest", (ctx, opts) -> {
+            if (!(ctx instanceof UiCalendar calendar)) return "";
+            return new Handlebars.SafeString(CalendarPainter.rest(calendar, mapper));
         });
     }
 }

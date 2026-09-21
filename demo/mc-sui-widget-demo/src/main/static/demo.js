@@ -598,14 +598,12 @@ function calendarTab() {
         onNavigate: go("/cal?date={date}&view={view}"),
         onSelect: openNewEvent("{date}", "{time}"),
     });
-    const monthWithButton = stack("cal-month-wrap", [
-        stack("cal-month-actions", [
-            { type: "action", id: "cal-new", label: "New event", icon: "plus", style: "PRIMARY", onClick: openNewEvent("2026-09-21", "") },
-            { type: "action", id: "cal-forget", label: "Forget added", icon: "eraser", style: "SECONDARY",
-              onClick: { behavior: "INVOKE", handler: "demo-forget-events" } },
-        ], { direction: "HORIZONTAL", gap: 8 }),
-        calendar("cal-month", "MONTH"),
-    ], { gap: 12 });
+    // The header takes the page's own widgets after the view switch (extras).
+    const monthWithButton = { ...calendar("cal-month", "MONTH"), extras: [
+        { type: "action", id: "cal-new", label: "New event", icon: "plus", style: "PRIMARY", onClick: openNewEvent("2026-09-21", "") },
+        { type: "action", id: "cal-forget", label: "Forget added", icon: "eraser", style: "SECONDARY",
+          onClick: { behavior: "INVOKE", handler: "demo-forget-events" } },
+    ] };
     const calendarJava =
 `UiCalendar.of("cal", UiCalendar.View.WEEK, LocalDate.of(2026, 9, 21))
     .labels(Locale.GERMAN)                       // weekday and month names from java.time
@@ -622,6 +620,8 @@ function calendarTab() {
                                     .onClick(UiTrigger.patch(UiPatch.Operation.remove("c-1-dlg")))))))))
     .event(UiCalendarEvent.allDay("c-2", "Offsite", LocalDate.of(2026, 9, 22), LocalDate.of(2026, 9, 24)))
     .onNavigate(UiTrigger.go("/cal?date={date}&view={view}"))
+    // Widgets of the page's own in the header, after the view switch.
+    .extra(UiAction.primary("cal-new", "New event").icon("plus").onClick(UiTrigger.patch(UiPatch.Operation.append("sui-dialogs", newEventDialog))))
     // A pick opens a dialog to add an event; {date} and {time} are filled in
     // wherever the trigger carries them — here into the form's fields.
     .onSelect(UiTrigger.patch(UiPatch.Operation.append("sui-dialogs",

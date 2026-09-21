@@ -72,6 +72,18 @@ class UiCalendarModuleTest {
     }
 
     @Test
+    void extrasRenderInTheHeaderThroughTheRenderer() {
+        var cal = sample().extra(ai.mindconnect.ui.model.UiText.of("legend", "Team A"));
+        var mapper = new ObjectMapper().findAndRegisterModules();
+        String html = new ai.mindconnect.ui.ssr.SuiServerRenderer(mapper, List.of(new CalendarHelpers())).render(cal);
+        int extras = html.indexOf("<div class=\"sui-calendar-extras\">"), close = html.indexOf("</header>");
+        assertTrue(extras > 0 && extras < close, html);
+        assertTrue(html.contains("Team A"), html);
+        String plain = new ai.mindconnect.ui.ssr.SuiServerRenderer(mapper, List.of(new CalendarHelpers())).render(sample());
+        assertTrue(!plain.contains("sui-calendar-extras"), plain);
+    }
+
+    @Test
     void theHeadingUsesTheModelsWords() {
         var cal = sample().labels(Locale.GERMAN);
         cal.setView(UiCalendar.View.DAY);

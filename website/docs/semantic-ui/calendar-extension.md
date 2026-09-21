@@ -146,6 +146,7 @@ bus.registerClientHandler("add-event", ctx => {
 | `labels` | `Labels` | The words shown; any left null is English. |
 | `events` | `List<UiCalendarEvent>` | The events — all of them; the painter picks what falls into the view. |
 | `onNavigate`, `onSelect` | `UiTrigger` | See above. Both optional; without `onNavigate` the calendar still navigates, on its own. |
+| `extras` | `List<UiNode>` | Widgets of the page's own in the header, after the view switch — a "New event" button, a filter, a legend. Any node type; `.extra(node)` adds one. |
 
 `UiCalendarEvent`:
 

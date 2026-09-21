@@ -115,6 +115,12 @@ public class UiCalendar extends UiNode {
     private UiTrigger onNavigate;
     /** A day or an hour picked: {@code {date}} and {@code {hour}} in its URL. */
     private UiTrigger onSelect;
+    /**
+     * Nodes of the page's own in the header, after the view switch — a "New
+     * event" button, a filter, a legend. Any node type; rendered by the
+     * renderer like everything else.
+     */
+    private List<UiNode> extras;
 
     /** A calendar on {@code date}, with today set to the server's clock. */
     public static UiCalendar of(String id, View view, LocalDate date) {
@@ -177,6 +183,13 @@ public class UiCalendar extends UiNode {
 
     public UiCalendar onSelect(UiTrigger trigger) {
         this.onSelect = trigger;
+        return this;
+    }
+
+    /** A widget of the page's own for the header — see {@link #extras}. */
+    public UiCalendar extra(UiNode node) {
+        if (extras == null) extras = new ArrayList<>();
+        extras.add(node);
         return this;
     }
 }

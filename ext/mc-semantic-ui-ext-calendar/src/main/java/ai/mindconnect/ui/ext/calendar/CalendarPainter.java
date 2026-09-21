@@ -268,7 +268,8 @@ public final class CalendarPainter {
             views.append(btn(c, esc(label), iso(c.date), v.name(), v == c.view ? " is-active" : "", ""));
         }
         views.append("</div>");
-        return "<header class=\"sui-calendar-head\">" + nav + title + views + "</header>";
+        // Left open: the template adds the page's extras before closing it.
+        return "<header class=\"sui-calendar-head\">" + nav + title + views;
     }
 
     private static String weekdayHeads(Ctx c, LocalDate first) {
@@ -342,8 +343,12 @@ public final class CalendarPainter {
                 + "<div class=\"sui-calendar-times\"><div class=\"sui-calendar-hours\">" + hourLabels + "</div>" + cols + "</div></div>";
     }
 
-    /** The whole element — what {@code {{{calendarHtml this}}}} inserts. */
-    public static String html(UiCalendar node, ObjectMapper mapper) {
+    /**
+     * The element up to the header's slot for the page's extras — what
+     * {@code {{{calendarOpen this}}}} inserts. The template renders the extras
+     * with the core's {@code render} helper and then {@link #rest} closes.
+     */
+    public static String open(UiCalendar node, ObjectMapper mapper) {
         Ctx c = context(node, mapper);
         String select = node.getOnSelect() != null
                 ? " data-select-trigger='" + SuiHandlebarsHelpers.encodeTrigger(node.getOnSelect(), mapper) + "'" : "";
@@ -351,7 +356,18 @@ public final class CalendarPainter {
         return "<sui-calendar class=\"" + cls("sui-calendar sui-calendar--" + view.toLowerCase(), node) + "\""
                 + SuiHandlebarsHelpers.eventAttrs(node, mapper) + " id=\"" + esc(node.getId()) + "\" data-sui=\"calendar\""
                 + " data-view=\"" + view + "\" data-date=\"" + iso(c.date) + "\"" + select + ">"
-                + header(c) + "<div class=\"sui-calendar-body\">" + (c.view == UiCalendar.View.MONTH ? monthBody(c) : timeBody(c))
+                + header(c);
+    }
+
+    /** The header's close and the body — what {@code {{{calendarRest this}}}} inserts. */
+    public static String rest(UiCalendar node, ObjectMapper mapper) {
+        Ctx c = context(node, mapper);
+        return "</header><div class=\"sui-calendar-body\">" + (c.view == UiCalendar.View.MONTH ? monthBody(c) : timeBody(c))
                 + "</div></sui-calendar>";
+    }
+
+    /** The whole element, extras left out — the two halves in one, for callers outside a template. */
+    public static String html(UiCalendar node, ObjectMapper mapper) {
+        return open(node, mapper) + rest(node, mapper);
     }
 }
