@@ -580,8 +580,8 @@ function calendarTab() {
         node: { type: "form", id: "ev-new-form", fields: [
             { type: "field", id: "ev-title", label: "Title", fieldType: "TEXT", editable: true, required: true, placeholder: "What is it?" },
             { type: "field", id: "ev-date", label: "Date", fieldType: "DATE", editable: true, value: date },
-            { type: "field", id: "ev-start", label: "Start", fieldType: "TEXT", editable: true, value: time, placeholder: "HH:MM — leave empty for all day" },
-            { type: "field", id: "ev-end", label: "End", fieldType: "TEXT", editable: true, placeholder: "HH:MM" },
+            { type: "field", id: "ev-start", label: "Start", fieldType: "TIME", editable: true, value: time, step: "900", hint: "Leave empty for an all-day event" },
+            { type: "field", id: "ev-end", label: "End", fieldType: "TIME", editable: true, step: "900" },
         ], actions: [
             { type: "action", id: "ev-save", label: "Save", style: "PRIMARY", onClick: { behavior: "INVOKE", handler: "demo-add-event", payload: "ev-new-form" } },
             { type: "action", id: "ev-cancel", label: "Cancel", style: "SECONDARY",
@@ -626,7 +626,8 @@ function calendarTab() {
             UiDialog.of("New event", null, UiForm.of("ev-new-form", null)
                     .field(UiField.text("ev-title", "Title", null).asEditable().asRequired())
                     .field(UiField.date("ev-date", "Date", "{date}").asEditable())
-                    .field(UiField.text("ev-start", "Start", "{time}").asEditable())
+                    .field(UiField.time("ev-start", "Start", "{time}").asEditable().step("900"))
+                    .field(UiField.time("ev-end", "End", null).asEditable().step("900"))
                     .action(UiAction.primary("ev-save", "Save").onClick(UiTrigger.api("POST", "/cal/events", "ev-new-form")))))));
 
 // Browser:  import { install } from "/sui-ext/calendar/extension.js"; install(renderer, { bus });
