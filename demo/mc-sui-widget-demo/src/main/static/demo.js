@@ -513,7 +513,30 @@ function kanbanTab() {
 
 // ── Tab: Calendar (extension) ────────────────────────────────────────────────
 function calendarTab() {
-    const ev = (id, title, start, end, o = {}) => ({ type: "calendar-event", id, title, start, end, onClick: toastTrigger(`Opened ${title}`), ...o });
+    // A click on an event opens it in a dialog — an inline PATCH that APPENDs a
+    // UiDialog into the body-level #sui-dialogs host, closed by REMOVE. No
+    // backend: everything the dialog shows is in the event itself.
+    const when = (start, end) => {
+        const day = (s) => s.slice(0, 10), time = (s) => s.slice(11, 16);
+        if (start.length === 10) return end && end !== start ? `${day(start)} – ${day(end)}, all day` : `${day(start)}, all day`;
+        return `${day(start)}, ${time(start)}${end ? ` – ${time(end)}` : ""}`;
+    };
+    const eventDialog = (id, title, start, end, color) => ({
+        type: "dialog", id: `${id}-dlg`, title,
+        node: { type: "stack", id: `${id}-dlg-body`, gap: 12, children: [
+            { type: "detail", id: `${id}-dlg-detail`, fields: [
+                { type: "field", id: `${id}-dlg-when`, label: "When", fieldType: "TEXT", value: when(start, end) },
+                { type: "field", id: `${id}-dlg-colour`, label: "Colour", fieldType: "TEXT", value: color ?? "default" },
+            ] },
+            { type: "action", id: `${id}-dlg-close`, label: "Close", style: "SECONDARY",
+              onClick: { behavior: "PATCH", patch: { patches: [{ op: "REMOVE", targetId: `${id}-dlg` }], toasts: [] } } },
+        ] },
+    });
+    const ev = (id, title, start, end, o = {}) => ({
+        type: "calendar-event", id, title, start, end,
+        onClick: { behavior: "PATCH", patch: { patches: [{ op: "APPEND", targetId: "sui-dialogs", node: eventDialog(id, title, start, end, o.color) }], toasts: [] } },
+        ...o,
+    });
     const events = [
         ev("c-1", "Standup", "2026-09-21T09:00", "2026-09-21T09:30", { color: "#4f6bed" }),
         ev("c-2", "Offsite", "2026-09-22", "2026-09-24", { color: "#29a3a3" }),
@@ -539,7 +562,13 @@ function calendarTab() {
     .hours(7, 19)                                // the hours the day and week views show
     .event(UiCalendarEvent.timed("c-1", "Standup",
             LocalDateTime.of(2026, 9, 21, 9, 0), LocalDateTime.of(2026, 9, 21, 9, 30)).color("#4f6bed")
-            .onClick(UiTrigger.go("/events/c-1")))
+            // Open the event in a dialog with no round trip: an inline PATCH that
+            // APPENDs a UiDialog into the #sui-dialogs host (REMOVE closes it).
+            .onClick(UiTrigger.patch(UiPatch.Operation.append("sui-dialogs",
+                    UiDialog.of("Standup", null, UiStack.of(
+                            UiDetail.of("c-1-detail", null).field(UiField.text("when", "When", "2026-09-21, 09:00 – 09:30")),
+                            UiAction.secondary("c-1-close", "Close")
+                                    .onClick(UiTrigger.patch(UiPatch.Operation.remove("c-1-dlg")))))))))
     .event(UiCalendarEvent.allDay("c-2", "Offsite", LocalDate.of(2026, 9, 22), LocalDate.of(2026, 9, 24)))
     .onNavigate(UiTrigger.go("/cal?date={date}&view={view}"))
     .onSelect(UiTrigger.api("POST", "/cal/pick?date={date}&hour={hour}"));
@@ -550,7 +579,7 @@ function calendarTab() {
 //           plain trigger links, so they work with JavaScript switched off.`;
     return stack("tab-calendar", [
         text("calendar-intro",
-            "The calendar node ships in the mc-semantic-ui-ext-calendar module: a month, a week or a day of events. Previous, next and the view switch re-render the calendar from its own model, so they work right here with no backend; with an onNavigate (set below) they fire it too, with {date} and {view} filled in. A click on a day or an hour fires onSelect with {date} and {hour} — the stub backend answers with a toast."),
+            "The calendar node ships in the mc-semantic-ui-ext-calendar module: a month, a week or a day of events. Previous, next and the view switch re-render the calendar from its own model, so they work right here with no backend; with an onNavigate (set below) they fire it too, with {date} and {view} filled in. A click on a day or an hour fires onSelect with {date} and {hour} — the stub backend answers with a toast. A click on an event opens it in a dialog, by an inline PATCH, no backend either."),
         specimen("sp-cal-month", "Month view", calendar("cal-month", "MONTH"), calendarJava),
         specimen("sp-cal-week", "Week view — timed events in their hour, all-day ones above", calendar("cal-week", "WEEK"), calendarJava),
         specimen("sp-cal-day", "Day view", calendar("cal-day", "DAY"), calendarJava),
