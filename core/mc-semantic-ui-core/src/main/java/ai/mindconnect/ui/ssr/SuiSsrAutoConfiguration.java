@@ -68,6 +68,11 @@ public class SuiSsrAutoConfiguration {
         // With an asset registry in the context, every server-rendered page
         // links the registry's stylesheets in its head.
         ai.mindconnect.ui.assets.SuiAssetRegistry registry = assets.getIfAvailable();
+        // …and resolves icon tokens from the registry's icon sets, as
+        // installAll() does in the browser.
+        if (registry != null) {
+            IconRenderer.setIconSets(() -> registry.iconSprites(currentContextPath()));
+        }
         return new WebMvcConfigurer() {
             @Override
             public void extendMessageConverters(
@@ -75,6 +80,12 @@ public class SuiSsrAutoConfiguration {
                 converters.add(0, new UiPageHtmlMessageConverter(renderer, registry));
             }
         };
+    }
+
+    private static String currentContextPath() {
+        var attrs = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        return attrs instanceof org.springframework.web.context.request.ServletRequestAttributes servlet
+                ? servlet.getRequest().getContextPath() : "";
     }
 
     /**
