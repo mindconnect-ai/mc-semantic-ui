@@ -296,11 +296,20 @@
                     <version>3.2.3</version>
                 </plugin>
                 <!-- Managed here (version + repackage goal) so Spring Boot app modules can
-                     declare the plugin without a version, exactly as under spring-boot-starter-parent. -->
+                     declare the plugin without a version, exactly as under spring-boot-starter-parent:
+                     an app that lists the plugin gets an executable jar from `mvn package`. The
+                     execution id matches the starter parent's, so a module that binds its own
+                     `repackage` execution merges with this one instead of running it twice. -->
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
+                    <executions>
+                        <execution>
+                            <id>repackage</id>
+                            <goals><goal>repackage</goal></goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <!-- Frontend (TS renderers + editor SPA) build.
                      installDirectory points at ONE shared location at the repo root, so
