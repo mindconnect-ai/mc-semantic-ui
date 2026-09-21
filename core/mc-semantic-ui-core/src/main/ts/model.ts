@@ -122,6 +122,17 @@ export interface UiField {
      */
     orderable?: boolean;
     /**
+     * Only for RICHTEXT: the height of the whole editor, toolbar included — a
+     * CSS length (`"320px"`, `"40vh"`). The toolbar stays, the text scrolls.
+     * Absent: the editor grows with its content.
+     */
+    editorHeight?: string;
+    /**
+     * Only for RICHTEXT: fill the height of the flex parent (a dialog body),
+     * toolbar fixed, text scrolling. Absent when false.
+     */
+    fill?: boolean;
+    /**
      * Only meaningful for {@code TEXTAREA}: when true, pressing Enter
      * inside the textarea submits the surrounding form; Shift+Enter
      * still inserts a newline. Used for chat-style inputs.

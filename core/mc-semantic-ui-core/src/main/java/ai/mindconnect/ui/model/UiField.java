@@ -147,6 +147,28 @@ public class UiField extends UiNode {
      */
     private boolean orderable;
 
+    /**
+     * Only for {@link FieldType#RICHTEXT}: the height of the whole editor, its
+     * toolbar included — a CSS length such as {@code "320px"}, {@code "20rem"}
+     * or {@code "40vh"}. The toolbar stays put and the text scrolls beneath
+     * it. Null (the default): the editor grows with its content.
+     */
+    private String editorHeight;
+
+    /**
+     * Only for {@link FieldType#RICHTEXT}: the field fills the height of its
+     * flex parent — a dialog body between a fixed header and fixed buttons —
+     * with the toolbar fixed and the text scrolling. The parent has to be a
+     * flex column that gives it the room ({@code min-height: 0} on the way
+     * down). Omitted from JSON when false.
+     */
+    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    private boolean fill;
+
+    /** A CSS length: a number and a unit, nothing else can reach the style attribute. */
+    public static final java.util.regex.Pattern CSS_LENGTH =
+            java.util.regex.Pattern.compile("\\d{1,5}(?:\\.\\d{1,3})?(?:px|rem|em|vh|dvh|svh|lvh|%)");
+
     // ── factory methods ───────────────────────────────────────────────────
 
     public static UiField text(String id, String label, Object value) {
@@ -500,6 +522,29 @@ public class UiField extends UiNode {
      * in between is rounded to the nearest one when the field changes.
      */
     public UiField minutes(int n) { this.step = String.valueOf(Math.max(1, n) * 60); return this; }
+
+    /**
+     * For a {@link FieldType#RICHTEXT} field: a fixed height for the whole
+     * editor, toolbar included — the toolbar stays, the text scrolls. See
+     * {@link #editorHeight}.
+     *
+     * @throws IllegalArgumentException unless it is a CSS length such as {@code "320px"}
+     */
+    public UiField editorHeight(String height) { setEditorHeight(height); return this; }
+
+    /** Sets {@link #editorHeight}; null clears it. */
+    public void setEditorHeight(String height) {
+        if (height != null && !CSS_LENGTH.matcher(height).matches()) {
+            throw new IllegalArgumentException("editorHeight must be a CSS length such as \"320px\", \"20rem\" or \"40vh\": " + height);
+        }
+        this.editorHeight = height;
+    }
+
+    /**
+     * For a {@link FieldType#RICHTEXT} field: fill the height of the flex
+     * parent, toolbar fixed, text scrolling. See {@link #fill}.
+     */
+    public UiField fill() { this.fill = true; return this; }
 
     /** Convenience: short-form min/max range for a date field. */
     public UiField range(String min, String max) {

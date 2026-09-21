@@ -53,6 +53,8 @@ which reports the new value without submitting anything.*
 | `accept` | `String` | `FILE` only: the HTML `accept` filter (`"image/*"`, `".pdf,.docx"`). |
 | `multiple` | `boolean` | `FILE` only: allow selecting more than one file. |
 | `expanded` | `boolean` | `SELECT` / `MULTISELECT` only: show every option at once — radio buttons for `SELECT`, checkboxes for `MULTISELECT`. Set with `.asRadio()` / `.asCheckboxes()`. The submitted value keeps its shape. |
+| `editorHeight` | `string` | `RICHTEXT` only: the height of the whole editor, toolbar included, as a CSS length (`"320px"`, `"20rem"`, `"40vh"`). The toolbar stays, the text scrolls. Set with `.editorHeight("320px")`; anything but a length is refused. |
+| `fill` | `boolean` | `RICHTEXT` only: the field fills the height of its flex parent, toolbar fixed, text scrolling. Set with `.fill()`. |
 | `orderable` | `boolean` | Expanded `MULTISELECT` only: checked options lead the list with move-up/down buttons, and the list is submitted in the order shown. Set with `.orderable()`, which implies `.asCheckboxes()`. The buttons need the SPA EventBus or JavaFX. |
 | `cssClass` | `String` | Extra CSS class on the field wrapper. |
 
@@ -159,6 +161,25 @@ What the field gives the user:
 focus — a quick action or a "Use this text" button can push new HTML into the
 field while the user is in it. A merge of anything else (a `validationError`,
 say) keeps what the user typed, as for every field.
+
+**Height.** Left alone, the editor grows with its content, and a long text
+takes the toolbar out of view with it. A reply to a long HTML mail, say,
+leaves the toolbar out of reach. Bound the height and the toolbar stays while
+only the text scrolls:
+
+```java
+// A fixed height for the whole editor, toolbar included
+UiField.richtext("reply", "Reply", quoted).asEditable().editorHeight("320px");
+
+// All the height the flex parent gives it: a dialog body between a fixed
+// header and fixed buttons
+UiField.richtext("reply", "Reply", quoted).asEditable().fill();
+```
+
+`fill()` makes the field a flex item (`flex: 1 1 auto; min-height: 0`) and
+hands the room on to the editor box. It fills only what it is given, so every
+container above it has to be a flex column that gives it room, with
+`min-height: 0` where one would otherwise grow to its content.
 
 **Every value is sanitised before it is shown** — read-only and in the
 editor, in both renderers — with the same allowlist a paste goes through: the
