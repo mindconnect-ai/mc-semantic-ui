@@ -493,6 +493,14 @@ public class UiField extends UiNode {
     /** Sets step granularity. See {@link #step}. */
     public UiField step(String step) { this.step = step; return this; }
 
+    /**
+     * For a {@link FieldType#TIME} field: the times offered, every {@code n}
+     * minutes — {@code minutes(15)} for quarter hours. Sets {@link #step} in
+     * seconds; the browser's picker lists only those times, and a value typed
+     * in between is rounded to the nearest one when the field changes.
+     */
+    public UiField minutes(int n) { this.step = String.valueOf(Math.max(1, n) * 60); return this; }
+
     /** Convenience: short-form min/max range for a date field. */
     public UiField range(String min, String max) {
         this.min = min; this.max = max; return this;
