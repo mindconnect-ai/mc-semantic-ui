@@ -787,6 +787,15 @@
 .sui-drawer-top    > .sui-drawer-handle { -fx-background-radius: 0 0 8 8; -fx-border-radius: 0 0 8 8; -fx-border-width: 0 1 1 1; }
 .sui-drawer-left   > .sui-drawer-handle { -fx-background-radius: 0 8 8 0; -fx-border-radius: 0 8 8 0; -fx-border-width: 1 1 1 0; }
 .sui-drawer-right  > .sui-drawer-handle { -fx-background-radius: 8 0 0 8; -fx-border-radius: 8 0 0 8; -fx-border-width: 1 0 1 1; }
+/* A PUSH drawer's handle stands on its own in the layout, not flush with an
+   edge: a whole button, every side framed and rounded. After the per-edge
+   rules above, so it wins over them. */
+.sui-drawer-push > .sui-drawer-handle {
+    -fx-border-width: 1;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-effect: null;
+}
 .sui-drawer-handle:hover {
     -fx-background-color: -sui-surface-alt;
 }
