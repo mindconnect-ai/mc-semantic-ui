@@ -46,6 +46,11 @@ fresh empty one, so nothing has to be moved by hand at release time.
   that resizes it (as `width`/`height` attributes), and dragging moves it. A `MERGE` of `value` replaces the
   content, focused or not. Read-only, the HTML is shown as formatted text.
 
+- `UiField.time(id, label, value)` — `FieldType.TIME`, a time of day as
+  `HH:mm` in the browser's own time picker (`<input type="time">`), with
+  `min`, `max` and `step` (seconds) as on a date field. A `LocalTime` is
+  accepted and written without seconds.
+
 - `UiMenu.toggleIcon` — the glyph on a menu's own toggle, `menu` (the
   hamburger) when unset. A menu that folds to a rail beside its content is not
   the same gesture as a drawer over it, and `panel-left-close` says so where

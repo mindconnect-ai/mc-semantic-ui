@@ -44,7 +44,7 @@ which reports the new value without submitting anything.*
 | `trailing` | `UiAction` | Action rendered on the control's row, right of the input — a Browse… next to a path field, an Encrypt next to a key field. Editable fields only. |
 | `validationError` | `String` | Per-field error message; also puts the wrapper into its error style. |
 | `options` | `List<Option>` | Choices for `SELECT` / `MULTISELECT`. Each `Option` has `value` and `label`. |
-| `min` | `String` | Lower bound, verbatim `min` attribute. Numeric and date types. |
+| `min` | `String` | Lower bound, verbatim `min` attribute. Numeric, date and time types. |
 | `max` | `String` | Upper bound, verbatim `max` attribute. |
 | `step` | `String` | Step granularity, verbatim `step` attribute (e.g. `"0.01"`). |
 | `submitOnEnter` | `boolean` | `TEXTAREA` only: Enter submits the surrounding form, Shift+Enter inserts a newline. |
@@ -69,6 +69,7 @@ which reports the new value without submitting anything.*
 | `PERCENT` | `<input type="number">` | `min`, `max`, `step` |
 | `DATE` | `<input type="date">` | `min`, `max`, `step` — `yyyy-MM-dd` |
 | `DATETIME` | `<input type="datetime-local">` | `min`, `max`, `step` — `yyyy-MM-ddTHH:mm` |
+| `TIME` | `<input type="time">` | `min`, `max` — `HH:mm`; `step` in seconds (`"900"` for quarter hours). `UiField.time(id, label, "08:30")`, or a `LocalTime` |
 | `BOOLEAN` | `<input type="checkbox">` | `value` (truthy = checked) |
 | `SELECT` | `<select>`, or radio buttons when `expanded` | `options` |
 | `MULTISELECT` | `<select multiple>`, or checkboxes when `expanded` | `options`, `orderable`; `value` may be a list or a comma-separated string |

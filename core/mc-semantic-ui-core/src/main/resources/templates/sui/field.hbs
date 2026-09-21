@@ -52,6 +52,8 @@
       <input type="date" id="{{id}}__input" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}"{{#if this.min}} min="{{this.min}}"{{/if}}{{#if max}} max="{{max}}"{{/if}}{{#if step}} step="{{step}}"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
     {{~else if (eq fieldType "DATETIME")~}}
       <input type="datetime-local" id="{{id}}__input" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}"{{#if this.min}} min="{{this.min}}"{{/if}}{{#if max}} max="{{max}}"{{/if}}{{#if step}} step="{{step}}"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
+    {{~else if (eq fieldType "TIME")~}}
+      <input type="time" id="{{id}}__input" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}"{{#if this.min}} min="{{this.min}}"{{/if}}{{#if max}} max="{{max}}"{{/if}}{{#if step}} step="{{step}}"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
     {{~else if (eq fieldType "FILE")~}}
       <input type="file" id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if accept}} accept="{{accept}}"{{/if}}{{#if multiple}} multiple{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
     {{~else if (eq fieldType "PASSWORD")~}}

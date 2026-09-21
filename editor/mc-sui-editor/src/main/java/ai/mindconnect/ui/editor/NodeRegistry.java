@@ -444,7 +444,7 @@ public final class NodeRegistry {
                         PropertyMeta.required("label", PropertyKind.STRING),
                         PropertyMeta.enumOf("fieldType",
                                 List.of("TEXT", "TEXTAREA", "RICHTEXT", "NUMBER", "CURRENCY", "PERCENT",
-                                        "DATE", "DATETIME", "BOOLEAN",
+                                        "DATE", "DATETIME", "TIME", "BOOLEAN",
                                         "SELECT", "MULTISELECT", "FILE", "REFERENCE",
                                         "PASSWORD", "HIDDEN")),
                         PropertyMeta.of("value", PropertyKind.STRING),

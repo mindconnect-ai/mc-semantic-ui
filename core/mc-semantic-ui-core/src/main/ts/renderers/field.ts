@@ -118,6 +118,9 @@ function renderInput(f: UiField): string {
             return `<input type="date" id="${id}" name="${name}" value="${valueAttr}"${rangeAttrs}${changeAttrs}>`;
         case "DATETIME":
             return `<input type="datetime-local" id="${id}" name="${name}" value="${valueAttr}"${rangeAttrs}${changeAttrs}>`;
+        case "TIME":
+            // HH:mm; step is in seconds ("900" = quarter hours). Parity with field.hbs.
+            return `<input type="time" id="${id}" name="${name}" value="${valueAttr}"${rangeAttrs}${changeAttrs}>`;
         case "FILE": {
             const accept = f.accept ? ` accept="${escapeHtml(f.accept)}"` : "";
             const multiple = f.multiple ? " multiple" : "";

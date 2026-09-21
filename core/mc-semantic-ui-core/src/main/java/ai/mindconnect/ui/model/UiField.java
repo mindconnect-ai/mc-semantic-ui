@@ -17,6 +17,8 @@ public class UiField extends UiNode {
     public enum FieldType {
         TEXT, TEXTAREA, NUMBER, CURRENCY, PERCENT,
         DATE, DATETIME,
+        /** A time of day, {@code HH:mm} — the browser's own time picker. */
+        TIME,
         BOOLEAN,
         SELECT, MULTISELECT,
         FILE, REFERENCE,
@@ -183,6 +185,16 @@ public class UiField extends UiNode {
 
     public static UiField date(String id, String label, Object value) {
         return of(id, label, FieldType.DATE, value);
+    }
+
+    /**
+     * A time of day as {@code HH:mm} ({@code "08:30"}); a {@code LocalTime}
+     * is accepted too and written without seconds. {@link #min}, {@link #max}
+     * and {@link #step} (in seconds — {@code "900"} for quarter hours) apply.
+     */
+    public static UiField time(String id, String label, Object value) {
+        if (value instanceof java.time.LocalTime t) value = String.format("%02d:%02d", t.getHour(), t.getMinute());
+        return of(id, label, FieldType.TIME, value);
     }
 
     public static UiField bool(String id, String label, boolean value) {
