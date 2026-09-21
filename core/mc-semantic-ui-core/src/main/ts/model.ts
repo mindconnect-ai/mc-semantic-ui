@@ -1,7 +1,7 @@
 // ── Primitive enums ─────────────────────────────────────────────────────────
 
 export type FieldType =
-    | "TEXT" | "TEXTAREA" | "NUMBER" | "CURRENCY" | "PERCENT"
+    | "TEXT" | "TEXTAREA" | "RICHTEXT" | "NUMBER" | "CURRENCY" | "PERCENT"
     | "DATE" | "DATETIME"
     | "BOOLEAN"
     | "SELECT" | "MULTISELECT"

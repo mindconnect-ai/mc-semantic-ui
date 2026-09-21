@@ -4,6 +4,7 @@ import { renderIcon } from "./icon.js";
 import { renderActions } from "./shared.js";
 import { cls, evt } from "./util.js";
 import { choicesInDisplayOrder } from "./choices.js";
+import { renderRichTextToolbar } from "./richtext.js";
 
 export function renderField(f: UiField): string {
     // HIDDEN: no wrapper, no label — only the value, submitted with the form
@@ -15,7 +16,11 @@ export function renderField(f: UiField): string {
     }
     let input = f.editable
         ? renderInput(f)
-        : `<span class="sui-value">${f.value != null ? escapeHtml(f.value) : "—"}</span>`;
+        : f.fieldType === "RICHTEXT" && f.value != null && String(f.value) !== ""
+            // Formatted text is shown as what it is — the value is HTML the
+            // server meant to be rendered, as in the editor.
+            ? `<div class="sui-richtext-view">${String(f.value)}</div>`
+            : `<span class="sui-value">${f.value != null ? escapeHtml(f.value) : "—"}</span>`;
     // Leading in-field icon (decorative): wrap the control so CSS can lay the
     // icon over the input's left padding. Only meaningful for editable
     // single-line controls — never for a group of radios or checkboxes, where
@@ -82,6 +87,17 @@ function renderInput(f: UiField): string {
             // per-textarea listener of their own.
             const submitOnEnter = f.submitOnEnter ? ' data-submit-on-enter="true"' : "";
             return `<textarea id="${id}" name="${name}" rows="4"${submitOnEnter}${changeAttrs}>${valueAttr}</textarea>`;
+        }
+        case "RICHTEXT": {
+            // An editable area carrying the HTML as-is, a toolbar above it,
+            // and a hidden input that holds the same HTML for the form —
+            // wired by wireRichText() (renderers/richtext.ts): the input
+            // follows every edit, pastes are reduced to plain formatting, the
+            // toolbar drives the editor. Parity with field.hbs.
+            const placeholder = f.placeholder ? ` data-placeholder="${escapeHtml(f.placeholder)}"` : "";
+            return `<div class="sui-richtext" data-sui-richtext>${renderRichTextToolbar()}`
+                + `<div class="sui-richtext-editor" id="${id}" contenteditable="true" role="textbox" aria-multiline="true"${placeholder}>${f.value != null ? String(f.value) : ""}</div>`
+                + `<input type="hidden" name="${name}" value="${valueAttr}" data-sui-type="RICHTEXT"${changeAttrs}></div>`;
         }
         case "BOOLEAN":
             return `<input type="checkbox" id="${id}" name="${name}"${changeAttrs} ${f.value ? "checked" : ""}>`;

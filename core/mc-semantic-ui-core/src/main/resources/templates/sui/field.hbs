@@ -31,6 +31,11 @@
     {{~#unless (expandedChoice this)}}{{#if icon}}<div class="sui-input-icon">{{{icon icon}}}{{/if}}{{/unless~}}
     {{~#if (eq fieldType "TEXTAREA")~}}
       <textarea id="{{id}}__input" name="{{id}}" rows="4" data-sui-type="{{fieldType}}"{{#if submitOnEnter}} data-submit-on-enter="true"{{/if}}{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>{{value}}</textarea>
+    {{~else if (eq fieldType "RICHTEXT")~}}
+      {{!-- Formatted text: the HTML as-is in an editable area, a toolbar
+           above it, and a hidden input carrying the same HTML for the form.
+           Mirror of the RICHTEXT case in renderInput(); the browser wires it. --}}
+      <div class="sui-richtext" data-sui-richtext><div class="sui-richtext-toolbar" role="toolbar" aria-label="Formatting"><button type="button" class="sui-richtext-btn" data-sui-richtext-cmd="bold" aria-label="Bold" title="Bold">{{{icon "bold"}}}</button><button type="button" class="sui-richtext-btn" data-sui-richtext-cmd="italic" aria-label="Italic" title="Italic">{{{icon "italic"}}}</button><button type="button" class="sui-richtext-btn" data-sui-richtext-cmd="underline" aria-label="Underline" title="Underline">{{{icon "underline"}}}</button><button type="button" class="sui-richtext-btn" data-sui-richtext-cmd="bullets" aria-label="Bulleted list" title="Bulleted list">{{{icon "list"}}}</button><button type="button" class="sui-richtext-btn" data-sui-richtext-cmd="numbers" aria-label="Numbered list" title="Numbered list">{{{icon "list-ordered"}}}</button><button type="button" class="sui-richtext-btn" data-sui-richtext-cmd="link" aria-label="Link" title="Link">{{{icon "link"}}}</button><button type="button" class="sui-richtext-btn" data-sui-richtext-cmd="quote" aria-label="Quote" title="Quote">{{{icon "text-quote"}}}</button><button type="button" class="sui-richtext-btn" data-sui-richtext-cmd="clear" aria-label="Remove formatting" title="Remove formatting">{{{icon "remove-formatting"}}}</button></div><div class="sui-richtext-editor" id="{{id}}__input" contenteditable="true" role="textbox" aria-multiline="true"{{#if placeholder}} data-placeholder="{{placeholder}}"{{/if}}>{{{value}}}</div><input type="hidden" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}"{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}></div>
     {{~else if (eq fieldType "BOOLEAN")~}}
       <input type="checkbox" id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}{{#if value}} checked{{/if}}>
     {{~else if (eq fieldType "SELECT")~}}
@@ -60,7 +65,11 @@
     {{~#unless (expandedChoice this)}}{{#if icon}}</div>{{/if}}{{/unless~}}
     {{~#if trailing}}{{> action trailing}}</div>{{/if~}}
   {{~else~}}
-    <span class="sui-value">{{#if value}}{{value}}{{else}}—{{/if}}</span>
+    {{~#if (eq fieldType "RICHTEXT")~}}
+      {{~#if value}}<div class="sui-richtext-view">{{{value}}}</div>{{else}}<span class="sui-value">—</span>{{/if~}}
+    {{~else~}}
+      <span class="sui-value">{{#if value}}{{value}}{{else}}—{{/if}}</span>
+    {{~/if~}}
   {{~/if~}}
   {{~#if hint}}<small class="sui-hint">{{hint}}</small>{{/if~}}
   {{~#if validationError}}<span class="sui-error">{{validationError}}</span>{{/if~}}
