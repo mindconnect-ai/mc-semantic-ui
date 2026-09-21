@@ -391,6 +391,23 @@ Server-rendered `UiPage`s get the links in their head automatically. See
 [the asset registry](https://mindconnect-ai.github.io/mc-semantic-ui/semantic-ui/extension-assets)
 for declaring assets, overriding a shipped one and registering at run time.
 
+### Eigene Icons in einem Plugin
+
+A plugin that brings icons — provider logos, say — ships an SVG sprite of
+`<symbol id="brand-…">` and declares it as an icon set in its `assets.json`:
+
+```json
+{ "id": "brand-icons", "kind": "icons", "prefix": "brand-", "href": "/sui-ext/brand/brand-icons.svg" }
+```
+
+Every token starting with `brand-` then resolves from that sprite — in the
+browser (`installAll` adds the set before the first render) and in
+server-rendered pages alike; every other token still comes from
+`/sui/icons.svg`. Several plugins each bring their own prefix, the longest
+matching one wins. Do not replace the resolver for this; a plugin that needs
+more than a sprite wraps `getIconResolver()` instead. See
+[icon sets](https://mindconnect-ai.github.io/mc-semantic-ui/semantic-ui/extension-assets#icon-sets).
+
 ## The visual wysiwyg editor
 
 A built-in visual editor lives in `editor/mc-sui-editor-standalone-app`. It's three

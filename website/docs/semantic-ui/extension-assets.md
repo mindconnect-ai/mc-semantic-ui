@@ -77,13 +77,67 @@ SuiAssetContribution officeAssets() {
 | Field | Meaning |
 |---|---|
 | `id` | Unique name: letters, digits, `.`, `_`, `-`. By convention `<name>` for the module and `<name>.css` for its stylesheet. |
-| `kind` | `css` — linked in the head; `module` — imported, nothing more; `extension` — imported, then `install(renderer, { bus })`. |
+| `kind` | `css` — linked in the head; `module` — imported, nothing more; `extension` — imported, then `install(renderer, { bus })`; `icons` — an SVG sprite for the icon tokens starting with `prefix` ([below](#icon-sets)). |
 | `href` | Where the browser loads it: a path on this server, starting with a single `/`. The servlet context path is added when the registry serves it. |
 | `order` | Load order, and the rank among declarations of the same id. Default `0`. |
 | `disabled` | `true` takes the asset off the page — see below. |
+| `prefix` | For `icons` only, and required there: the token prefix the sprite serves, lowercase-kebab ending in `-` (`brand-`). |
 
 The files themselves are ordinary static resources: put them under
 `META-INF/resources/…` in the jar and Spring Boot serves them.
+
+## Icon sets
+
+A plugin that brings its own icons — provider logos such as `brand-microsoft`
+and `brand-google` — declares its sprite as an icon set:
+
+```json
+[
+  { "id": "brand-icons", "kind": "icons", "prefix": "brand-", "href": "/sui-ext/brand/brand-icons.svg" }
+]
+```
+
+```java
+SuiAsset.icons("brand-icons", "brand-", "/sui-ext/brand/brand-icons.svg")
+```
+
+Every icon token that starts with the prefix comes from that sprite, in the
+browser and on the server alike: `installAll(renderer, bus)` adds the sets to
+the renderer before it installs anything else, and server-rendered pages
+resolve the same tokens to the same markup. Any other token keeps coming from
+the standard sprite, `/sui/icons.svg`.
+
+- **Several plugins, several sets.** Each prefix is served by its own sprite;
+  a token takes the **longest** prefix it starts with, so `acme-logo-` can sit
+  inside `acme-`.
+- **Two sets for one prefix** compete like two declarations of one id: the
+  higher `order` wins; on a tie the id that sorts last, with a warning in the
+  log. `disabled` takes a set off the page, and its tokens go back to the
+  standard sprite.
+- **The sprite** is a plain SVG of `<symbol id="…">` elements, the id being
+  the full token (`brand-microsoft`). An icon from a set carries the class
+  `sui-icon--set` and is drawn **filled**, not stroked: a shape with a fixed
+  `fill` keeps its colour (a logo), a shape with `fill="currentColor"` — or
+  with no fill — follows the text colour. The standard icons stay as they are.
+
+```xml
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="brand-microsoft" viewBox="0 0 24 24">
+    <rect x="1" y="1" width="10" height="10" fill="#F25022"/>
+    <rect x="13" y="1" width="10" height="10" fill="#7FBA00"/>
+    <rect x="1" y="13" width="10" height="10" fill="#00A4EF"/>
+    <rect x="13" y="13" width="10" height="10" fill="#FFB900"/>
+  </symbol>
+  <symbol id="brand-github" viewBox="0 0 24 24">
+    <path fill="currentColor" d="…"/>
+  </symbol>
+</svg>
+```
+
+A plugin no longer needs to replace the icon resolver for this — which only
+ever worked for one plugin, since the next one replaced it again. A plugin
+that must do more than a sprite can wrap the resolver instead of replacing it;
+see [the icon library](./icons.md#adding-to-the-resolver).
 
 ## Overriding and switching off
 

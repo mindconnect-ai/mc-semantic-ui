@@ -1,0 +1,22 @@
+{
+  "standard": "/sui/icons.svg",
+  "sets": {
+    "brand-": "/sui-ext/brand/brand-icons.svg",
+    "acme-": "/sui-ext/acme/acme-icons.svg",
+    "acme-logo-": "/sui-ext/acme/logos.svg"
+  },
+  "cases": [
+    {"name": "a set's token comes from its sprite, as a filled icon", "token": "brand-microsoft",
+     "html": "<svg class=\"sui-icon sui-icon--set\" aria-hidden=\"true\"><use href=\"/sui-ext/brand/brand-icons.svg#brand-microsoft\"></use></svg>"},
+    {"name": "class and title are kept", "token": "acme-rocket", "cssClass": "big", "title": "Rakete",
+     "html": "<svg class=\"sui-icon sui-icon--set big\" role=\"img\" aria-label=\"Rakete\"><title>Rakete</title><use href=\"/sui-ext/acme/acme-icons.svg#acme-rocket\"></use></svg>"},
+    {"name": "the longest prefix wins", "token": "acme-logo-main", "id": "logo",
+     "html": "<svg id=\"logo\" class=\"sui-icon sui-icon--set\" aria-hidden=\"true\"><use href=\"/sui-ext/acme/logos.svg#acme-logo-main\"></use></svg>"},
+    {"name": "no prefix matches: the standard sprite, unchanged", "token": "trash",
+     "html": "<svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#trash\"></use></svg>"},
+    {"name": "a prefix without its dash is no match", "token": "brand", "cssClass": "x",
+     "html": "<svg class=\"sui-icon x\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#brand\"></use></svg>"},
+    {"name": "a literal glyph stays a literal glyph", "token": "📁",
+     "html": "<span aria-hidden=\"true\">📁</span>"}
+  ]
+}

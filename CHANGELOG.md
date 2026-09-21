@@ -21,8 +21,39 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **Icon sets in the asset registry.** A plugin declares its own icons as an
+  asset of the new kind `icons` — an SVG sprite for every token starting with
+  a prefix:
+
+  ```json
+  { "id": "brand-icons", "kind": "icons", "prefix": "brand-", "href": "/sui-ext/brand/brand-icons.svg" }
+  ```
+
+  `installAll(renderer, bus)` adds the sets before the first render
+  (`renderer.addIconSprite(prefix, url)`, also `addIconSprite` in
+  `renderers/icon.js`), and server-rendered pages resolve the same tokens to
+  the same markup. With several sets the longest matching prefix wins; two
+  sets for one prefix compete by `order`, then id, and `disabled` takes one
+  off. Tokens no prefix matches still come from `/sui/icons.svg`. An icon from
+  a set carries `sui-icon--set` and is drawn filled, so a symbol may use fixed
+  colours or `fill="currentColor"`; the standard icons are unchanged. Java:
+  `SuiAsset.icons(id, prefix, href)`, `SuiAssetRegistry.iconSprites(contextPath)`,
+  `IconRenderer.setIconSets(…)`.
+- **`getIconResolver()`** (and `IconRenderer.getResolver()`): a plugin wraps
+  the active resolver instead of replacing it — `setIconResolver` still
+  replaces everything, icon sets included, and so took every other plugin's
+  icons with it.
+
 ### Fixed
 
+- **A ticked checkbox is visible in clody again**: the theme's rule for every
+  field input had put the surface colour back over the checked fill (a white
+  tick on white) and rounded the box into a circle; radio buttons lost their
+  dot the same way. amethyst, gipiti and sorbet had the same rule and the
+  same fault. The rules now leave checkboxes and radios to sui.css, at the
+  specificity they had, so text fields, textareas and selects look as before.
 - **A rail fly-out says whose it is.** In a folded (`RAIL`) menu a group is
   only its icon, and its fly-out showed the children alone — three accounts
   with the same icon opened three identical lists of folders. The fly-out is

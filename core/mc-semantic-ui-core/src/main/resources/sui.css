@@ -673,6 +673,11 @@ a.sui-tree-label:hover { text-decoration: underline; }
     display: inline-block; vertical-align: -0.125em; /* sit on the text baseline */
     fill: none; stroke: currentColor;
 }
+/* An icon from a plugin's icon set (an asset of kind "icons"): its symbols
+   are filled shapes, not strokes. A shape without a fill takes the text
+   colour, `fill="currentColor"` does the same explicitly, and a fixed fill
+   (a brand logo) keeps its colour. */
+.sui-icon.sui-icon--set { fill: currentColor; stroke: none; }
 /* Controls with a leading icon become flex rows with a small gap so glyph
    and label centre-align. :has keeps text-only controls untouched. */
 .sui-btn:has(.sui-icon),
