@@ -132,15 +132,15 @@ the client replaces exactly that panel. The demo does this over a real socket.
 
 ## What is supported
 
-22 node types render today, with no module beyond the renderer itself:
+24 node types render today, with no module beyond the renderer itself:
 
 | | |
 |---|---|
 | Frame | `UiAppShell`, `UiHeader` |
-| Layout | `UiStack`, `UiSection` (tabs), `UiScrollPane`, `UiFieldGroup` |
+| Layout | `UiStack`, `UiSection` (tabs), `UiScrollPane`, `UiFieldGroup`, `UiDrawer` |
 | Data | `UiTable` (sorting, row actions, pagination), `UiTree`, `UiDetail`, `UiList` |
-| Input | `UiForm`, `UiField` (text, textarea, number, boolean, date, select, multiselect, file), `UiUpload` |
-| Action | `UiAction`, `UiLink`, `UiMenu`, `UiMenuButton` |
+| Input | `UiForm`, `UiField` (text, textarea, rich text, number, boolean, date, select, multiselect, file), `UiUpload` |
+| Action | `UiAction`, `UiActionMenu` (`UiAction.menu`), `UiLink`, `UiMenu`, `UiMenuButton` |
 | Feedback | `UiText`, `UiIcon`, `UiDialog`, `UiSpinner`, `UiProgress`, toasts |
 
 Anything else paints a visible placeholder instead of throwing, so an unknown
@@ -178,8 +178,14 @@ in-place patch does not.
 The bus's default mapper calls `findAndRegisterModules()`, so `markdown`,
 `chart`, `diagram` and `json-viewer` parse as soon as their jars are on the
 classpath — without it a page containing one fails to parse at all. A type
-nothing on the classpath knows arrives as `null` and paints as nothing, rather
-than taking the whole page down; the SPA degrades the same way.
+nothing on the classpath knows arrives as a `UiCustom` and paints a
+placeholder naming its type, rather than taking the whole page down; the SPA
+degrades the same way. A plugin that paints its own type on the desktop
+registers a renderer under the type's name:
+
+```java
+renderer.registerCustom("chat-widget", (node, ctx) -> new ChatPane(node.prop("session")));
+```
 
 `navigate` is the one field with no desktop counterpart — it is a history
 push, and a window has no address bar — so instead of being acted on it goes to
@@ -262,6 +268,55 @@ content you trust.
 `UiHeader.ExtrasOverflow.MENU` is not implemented either: the extras row wraps
 rather than collapsing into a dropdown.
 :::
+
+### Menus in a button bar
+
+`UiAction.menu(…)` paints as a JavaFX `MenuButton` with the bar's button look.
+Headings (`UiMenuItem.heading`) and dividers are in it. Its entries are
+painted in the form's context, so an entry that names no payload sends the
+form it is in, and one that names the form finds it by id, as on the web.
+The popup is JavaFX's own: it flips above the button near the bottom of the
+screen and works from the keyboard. A menu is never the form's submit.
+
+### Drawers
+
+A `UiDrawer` with `mode(PUSH)` stands in the layout like any node and takes
+room along its edge. An `OVERLAY` drawer (the default) leaves an invisible
+anchor in the layout and floats in a layer over the scene. It lies on the
+window's edge (`VIEWPORT`) or on the edge of the container its anchor is in
+(`CONTAINER`), clipped to that container. If the scene's root is not a
+`StackPane` (a dialog window's is a `VBox`), the root is wrapped in one the
+first time a drawer needs the layer.
+
+Minimize, open and close only show and hide parts of the painted drawer, so
+the content is never painted again. A patch that replaces the drawer keeps the
+state the user chose unless it sets one. The handle is a button, and
+<kbd>Esc</kbd> inside minimizes the drawer. `onStateChange` fires with
+`{state}` filled in, and `onClose` fires as well when the X closes it.
+Minimized handles at one edge line up. Sizes take `px`, `%` (of the area),
+`vh`/`vw` (of the window) and `em`/`rem` (16px).
+
+### Rich text, in its own artifact
+
+The renderer paints a `RICHTEXT` field as a text area holding the HTML (read
+only: its text) and honours `editorHeight` and `fill`. A real editor is
+JavaFX's `HTMLEditor`, which needs `javafx-web`, so it has a module of its
+own:
+
+```xml
+<dependency>
+    <groupId>ai.mindconnect</groupId>
+    <artifactId>mc-semantic-ui-javafx-richtext</artifactId>
+</dependency>
+```
+
+```java
+SuiFxRichText.install(renderer);
+```
+
+What the editor submits is its body, reduced by `RichTextSanitizer` to the
+vocabulary every RICHTEXT field has. The editor's fonts and colours come back
+as plain formatting, never as style or script.
 
 ### The extension types
 
