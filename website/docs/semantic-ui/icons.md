@@ -64,6 +64,29 @@ Every renderer routes through the active resolver, so one call re-skins every
 icon on the page — including the ones inside built-in nodes such as menu items
 and table row actions.
 
+## Adding to the resolver
+
+`setIconResolver` replaces everything, icon sets included — right for an app
+that owns its icons, wrong for a plugin, which would take the icons of every
+other plugin with it. A plugin wraps the active resolver instead:
+
+```js
+import { getIconResolver, setIconResolver } from "/sui/renderer.js";
+const previous = getIconResolver();
+setIconResolver((name, opts) => name.startsWith("live-") ? liveBadge(name, opts) : previous(name, opts));
+```
+
+```java
+IconRenderer.Resolver previous = IconRenderer.getResolver();
+IconRenderer.setResolver((name, cls, title, id) ->
+        name.startsWith("live-") ? liveBadge(name) : previous.render(name, cls, title, id));
+```
+
+For icons that are just symbols in a sprite, nothing of this is needed:
+declare the sprite as an [icon set](./extension-assets.md#icon-sets) and every
+token with its prefix resolves from it — `addIconSprite(prefix, url)` in the
+browser, which `installAll` calls for you.
+
 ## Changing the default sprite
 
 The sprite is a **generated, committed** artifact; the Maven build only copies
@@ -83,7 +106,10 @@ application JSON, stay exactly the same.
 ## Styling
 
 `.sui-icon` is `1em × 1em`, `fill: none`, `stroke: currentColor`. Colour an icon
-by setting `color` on it or on an ancestor. The sprite's status helpers —
+by setting `color` on it or on an ancestor. An icon from an
+[icon set](./extension-assets.md#icon-sets) also carries `sui-icon--set` and is
+filled instead: `fill: currentColor; stroke: none`, so a symbol's own fixed
+colours win. The sprite's status helpers —
 `sui-icon--success`, `--warning`, `--danger`, `--muted` — are ready-made
 `cssClass` values.
 

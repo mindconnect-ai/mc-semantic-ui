@@ -30,13 +30,14 @@ import { renderField }        from "./renderers/field.js";
 import { renderFieldGroup }   from "./renderers/fieldgroup.js";
 import { renderDialog }       from "./renderers/dialog.js";
 import { renderUpload }       from "./renderers/upload.js";
-import { renderIconNode }     from "./renderers/icon.js";
+import { renderIconNode, addIconSprite } from "./renderers/icon.js";
 import { renderSpinner }      from "./renderers/spinner.js";
 import { renderProgress }     from "./renderers/progress.js";
 // Icon rendering is behind a swappable resolver — re-exported so apps can
 // point at a different sprite / inline SVG / icon font.
 export {
-    renderIcon, setIconResolver, setIconSpriteUrl, spriteIconResolver,
+    renderIcon, setIconResolver, getIconResolver, setIconSpriteUrl, spriteIconResolver,
+    addIconSprite, removeIconSprite, iconSpritesInUse, spriteUrlFor,
     type IconResolver, type IconOpts,
 } from "./renderers/icon.js";
 // Menu state machine — re-exported so apps can restore a user's persisted
@@ -195,6 +196,19 @@ export class SuiRenderer {
                 console.warn("SuiRenderer: Idiomorph load failed; falling back to innerHTML morph", err);
                 return this.morpher;
             });
+    }
+
+    /**
+     * Adds an icon set: tokens starting with {@code prefix} (e.g.
+     * {@code "brand-"}) come from the sprite at {@code url}. The same as the
+     * module function {@code addIconSprite}, reached through the renderer so
+     * the asset registry's {@code installAll(renderer, bus)} registers the
+     * sets with the icon module this renderer really uses — wherever that
+     * module was loaded from.
+     */
+    addIconSprite(prefix: string, url: string): this {
+        addIconSprite(prefix, url);
+        return this;
     }
 
     /**

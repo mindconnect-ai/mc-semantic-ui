@@ -208,7 +208,7 @@ class SuiAssetRegistryTest {
 
     @Test
     void theModuleCarriesTheAssetsUnderTheContextPath() {
-        var registry = new SuiAssetRegistry(null, List.of(() -> List.of(
+        var registry = new SuiAssetRegistry(null, List.<SuiAssetContribution>of(() -> List.of(
                 SuiAsset.css("c.css", "/c.css"), SuiAsset.extension("e", "/e.js"))));
         String js = registry.moduleScript("/admin");
         assertTrue(js.contains("const ASSETS = [{\"id\":\"c.css\",\"kind\":\"css\",\"url\":\"/admin/c.css\"},"
@@ -218,5 +218,92 @@ class SuiAssetRegistryTest {
         assertTrue(registry.headTags("/admin/").contains("href=\"/admin/c.css\""));
         assertEquals("/admin/e.js", registry.describe("/admin").get(1).get("url"));
         assertNotEquals(registry.etag("", "js"), registry.etag("/admin", "js"));
+    }
+
+    // ── Icon sets ───────────────────────────────────────────────────────────
+
+    private static ai.mindconnect.ui.assets.SuiAsset icons(String id, String prefix, String href, int order) {
+        return SuiAsset.icons(id, prefix, href).withOrder(order);
+    }
+
+    @Test
+    void twoJarsWithAnIconSetEachBothRenderAndTheStandardIconsToo() throws Exception {
+        URL brand = jar("brand", "[{\"id\": \"brand-icons\", \"kind\": \"icons\", \"prefix\": \"brand-\", \"href\": \"/sui-ext/brand/brand-icons.svg\"}]");
+        URL acme = jar("acme", "[{\"id\": \"acme-icons\", \"kind\": \"icons\", \"prefix\": \"acme-\", \"href\": \"/sui-ext/acme/acme-icons.svg\"}]");
+        try (var loader = new URLClassLoader(new URL[]{brand, acme}, null)) {
+            var registry = new SuiAssetRegistry(loader, List.of());
+            assertEquals(java.util.Map.of("brand-", "/sui-ext/brand/brand-icons.svg", "acme-", "/sui-ext/acme/acme-icons.svg"),
+                    registry.iconSprites(""));
+            assertEquals(List.of("brand-", "acme-"), List.copyOf(registry.iconSprites("").keySet()), "longest prefix first");
+            assertEquals("/app/sui-ext/acme/acme-icons.svg", registry.iconSprites("/app").get("acme-"));
+
+            ai.mindconnect.ui.ssr.IconRenderer.setIconSets(() -> registry.iconSprites(""));
+            try {
+                assertTrue(ai.mindconnect.ui.ssr.IconRenderer.render("brand-microsoft").contains("/sui-ext/brand/brand-icons.svg#brand-microsoft"));
+                assertTrue(ai.mindconnect.ui.ssr.IconRenderer.render("acme-rocket").contains("/sui-ext/acme/acme-icons.svg#acme-rocket"));
+                assertTrue(ai.mindconnect.ui.ssr.IconRenderer.render("trash").contains("/sui/icons.svg#trash"));
+            } finally {
+                ai.mindconnect.ui.ssr.IconRenderer.setIconSets(null);
+            }
+
+            // The browser gets the prefix with each set, nothing else changes.
+            String module = registry.moduleScript("");
+            assertTrue(module.contains("{\"id\":\"brand-icons\",\"kind\":\"icons\",\"url\":\"/sui-ext/brand/brand-icons.svg\",\"prefix\":\"brand-\"}"), module);
+            assertTrue(registry.describe("").stream().allMatch(row -> row.containsKey("prefix")));
+        }
+    }
+
+    @Test
+    void theLongestPrefixWins() {
+        var registry = new SuiAssetRegistry(null, List.<SuiAssetContribution>of(() -> List.of(
+                SuiAsset.icons("acme", "acme-", "/acme.svg"),
+                SuiAsset.icons("acme-logos", "acme-logo-", "/logos.svg"))));
+        assertEquals(List.of("acme-logo-", "acme-"), List.copyOf(registry.iconSprites("").keySet()));
+        ai.mindconnect.ui.ssr.IconRenderer.setIconSets(() -> registry.iconSprites(""));
+        try {
+            assertEquals("/logos.svg", ai.mindconnect.ui.ssr.IconRenderer.spriteUrlFor("acme-logo-main"));
+            assertEquals("/acme.svg", ai.mindconnect.ui.ssr.IconRenderer.spriteUrlFor("acme-logout"));
+            assertEquals("/sui/icons.svg", ai.mindconnect.ui.ssr.IconRenderer.spriteUrlFor("acme"));
+        } finally {
+            ai.mindconnect.ui.ssr.IconRenderer.setIconSets(null);
+        }
+    }
+
+    @Test
+    void oneSetPerPrefixTheHigherOrderThenTheLastIdWins() {
+        var byOrder = SuiAssetRegistry.resolve(List.of(
+                new Declaration(icons("brand-a", "brand-", "/a.svg", 5), Source.BEAN, "x"),
+                new Declaration(icons("brand-b", "brand-", "/b.svg", 0), Source.BEAN, "x")));
+        assertEquals(List.of("brand-a"), byOrder.assets().stream().map(SuiAsset::id).toList());
+        assertTrue(byOrder.warnings().isEmpty(), byOrder.warnings().toString());
+
+        var tie = SuiAssetRegistry.resolve(List.of(
+                new Declaration(icons("brand-b", "brand-", "/b.svg", 0), Source.BEAN, "x"),
+                new Declaration(icons("brand-a", "brand-", "/a.svg", 0), Source.BEAN, "x")));
+        assertEquals(List.of("brand-b"), tie.iconSets().stream().map(SuiAsset::id).toList());
+        assertEquals(1, tie.warnings().size());
+        assertTrue(tie.warnings().get(0).contains("prefix 'brand-'"), tie.warnings().get(0));
+    }
+
+    @Test
+    void aDisabledIconSetLeavesItsTokensToTheStandardSprite() throws Exception {
+        var registry = new SuiAssetRegistry(null, List.<SuiAssetContribution>of(() -> List.of(SuiAsset.icons("brand-icons", "brand-", "/brand.svg"))));
+        assertEquals(1, registry.iconSprites("").size());
+        registry.register(SuiAsset.disabled("brand-icons", 10));
+        assertTrue(registry.iconSprites("").isEmpty());
+        assertFalse(registry.moduleScript("").contains("brand-icons"));
+        registry.unregister("brand-icons");
+        assertEquals("/brand.svg", registry.iconSprites("").get("brand-"));
+    }
+
+    @Test
+    void anIconSetNeedsAKebabPrefixEndingInADash() {
+        for (String bad : new String[]{null, "", "brand", "Brand-", "brand--", "-", "1brand-", "brand-\"x-"}) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> SuiAssetRegistry.fromClasspath().register(SuiAsset.icons("b", bad, "/b.svg")), String.valueOf(bad));
+        }
+        assertThrows(IllegalArgumentException.class,
+                () -> SuiAssetRegistry.fromClasspath().register(SuiAsset.icons("b", "brand-", "https://evil.example/b.svg")));
+        SuiAssetRegistry.fromClasspath().register(SuiAsset.icons("b", "acme-logo-", "/b.svg"));
     }
 }

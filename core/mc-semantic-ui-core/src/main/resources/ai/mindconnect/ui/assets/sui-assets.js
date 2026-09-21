@@ -6,7 +6,10 @@
 //     import { installAll } from "/sui/assets.js";
 //     await installAll(renderer, bus);   // before the first render
 
-/** The resolved assets, in load order: `{ id, kind, url }`, kind one of css, module, extension. */
+/**
+ * The resolved assets, in load order: `{ id, kind, url }`, kind one of css,
+ * module, extension, icons — an icon set also carries its `prefix`.
+ */
 const ASSETS = /*SUI_ASSETS*/[];
 
 /**
@@ -16,6 +19,30 @@ const ASSETS = /*SUI_ASSETS*/[];
  * hosted, for a stylesheet linked into the page as much as for an import.
  */
 const resolve = (url) => new URL(url, import.meta.url).href;
+
+/**
+ * Adds every icon set to the renderer's icon module — `renderer.addIconSprite`,
+ * so the sets land in the module instance the renderer really renders with.
+ * Synchronous and first, so the first render already finds them. Returns the
+ * report rows, one per icon set.
+ */
+function installIcons(renderer) {
+    const report = [];
+    for (const asset of ASSETS) {
+        if (asset.kind !== "icons") continue;
+        try {
+            if (!renderer || typeof renderer.addIconSprite !== "function") {
+                throw new Error("the renderer has no addIconSprite(prefix, url)");
+            }
+            renderer.addIconSprite(asset.prefix, resolve(asset.url));
+            report.push({ id: asset.id, ok: true });
+        } catch (err) {
+            console.error(`sui-assets: icon set "${asset.id}" (${asset.url}) could not be added; the rest go on`, err);
+            report.push({ id: asset.id, ok: false, error: String((err && err.message) || err) });
+        }
+    }
+    return report;
+}
 
 export const assets = ASSETS;
 
@@ -43,7 +70,8 @@ export function linkStyles(doc = globalThis.document) {
 }
 
 /**
- * Links the stylesheets, imports every module and extension, and calls
+ * Links the stylesheets, adds the icon sets, imports every module and
+ * extension, and calls
  * `install(renderer, { bus })` on each extension, in order. The imports start
  * together; the installs run one after another in the registry's order, so an
  * extension that builds on another finds it installed.
@@ -58,9 +86,9 @@ export function linkStyles(doc = globalThis.document) {
  */
 export async function installAll(renderer, bus, options = {}) {
     const styles = linkStyles(options.document ?? globalThis.document);
-    const code = ASSETS.filter(asset => asset.kind !== "css");
+    const report = installIcons(renderer);
+    const code = ASSETS.filter(asset => asset.kind === "module" || asset.kind === "extension");
     const loads = code.map(asset => import(resolve(asset.url)).then(mod => ({ mod }), error => ({ error })));
-    const report = [];
     for (let i = 0; i < code.length; i++) {
         const asset = code[i];
         const { mod, error } = await loads[i];
