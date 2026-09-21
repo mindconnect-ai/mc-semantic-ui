@@ -21,6 +21,12 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- `UiCalendar.extras` — nodes of the page's own in the calendar's header,
+  after the view switch: a "New event" button, a filter, a legend. Any node
+  type, rendered by the renderer; `.extra(node)` adds one.
+
 ### Changed
 
 - A `calendar` moves without a server: previous, next, today and the view

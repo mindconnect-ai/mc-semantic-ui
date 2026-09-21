@@ -1,6 +1,8 @@
 {{!--
-  UiCalendar → the whole element from CalendarPainter.java, the server-side
-  twin of renderCalendar() in calendar/extension.ts. The painter, not the
-  template, does the work, so the two stay one function apart.
+  UiCalendar → the element from CalendarPainter.java, the server-side twin of
+  renderCalendar() in calendar/extension.ts, in two halves: the painter draws
+  up to the header's slot, this template renders the page's extras there with
+  the core's `render` helper, and the painter closes. The painter, not the
+  template, does the drawing, so the two stay one function apart.
 --}}
-{{{calendarHtml this}}}
+{{{calendarOpen this}}}{{#if extras}}<div class="sui-calendar-extras">{{#each extras}}{{{render this}}}{{/each}}</div>{{/if}}{{{calendarRest this}}}

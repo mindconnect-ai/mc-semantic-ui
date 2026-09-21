@@ -81,6 +81,12 @@ export interface UiCalendarWire extends NodeBase {
     onNavigate?: Trigger;
     /** A day or an hour picked: `{date}` and `{hour}` in its URL. */
     onSelect?: Trigger;
+    /**
+     * Nodes of the page's own in the header, after the view switch — a New
+     * event button, a filter, a legend. Rendered through the renderer, so any
+     * node type goes.
+     */
+    extras?: Array<{ type: string; id: string }>;
 }
 
 /** Wire shape of `calendar-event` — mirrors UiCalendarEvent.java. */
@@ -361,7 +367,8 @@ function header(c: Ctx): string {
             btn(esc(v === "DAY" ? c.labels.day : v === "WEEK" ? c.labels.week : c.labels.month),
                 toIso(c.date), v, v === c.view ? " is-active" : "")).join("")
         + `</div>`;
-    return `<header class="sui-calendar-head">${nav}${title}${views}</header>`;
+    // Left open: renderCalendar() adds the page's extras before closing it.
+    return `<header class="sui-calendar-head">${nav}${title}${views}`;
 }
 
 function weekdayHeads(c: Ctx, first: Ymd, withDates: boolean): string {
@@ -432,13 +439,18 @@ function timeBody(c: Ctx): string {
 const models = new Map<string, UiCalendarWire>();
 let rendererRef: SuiRenderer | null = null;
 
-export function renderCalendar(node: UiCalendarWire): string {
+export function renderCalendar(node: UiCalendarWire, r: SuiRenderer): string {
     models.set(node.id, node);
     const c = context(node);
     const select = node.onSelect ? ` data-select-trigger='${encodeTrigger(node.onSelect)}'` : "";
+    // The header's slot for the page's own widgets — rendered here, not in
+    // the painter, because only the renderer knows how to draw them; the SSR
+    // template does the same with the core's `render` helper.
+    const extras = node.extras && node.extras.length > 0
+        ? `<div class="sui-calendar-extras">${node.extras.map(n => r.render(n as never)).join("")}</div>` : "";
     return `<sui-calendar class="${cls(`sui-calendar sui-calendar--${c.view.toLowerCase()}`, node)}"${evt(node)} id="${esc(node.id)}" data-sui="calendar"`
         + ` data-view="${c.view}" data-date="${toIso(c.date)}"${select}>`
-        + header(c) + `<div class="sui-calendar-body">${c.view === "MONTH" ? monthBody(c) : timeBody(c)}</div></sui-calendar>`;
+        + header(c) + extras + `</header><div class="sui-calendar-body">${c.view === "MONTH" ? monthBody(c) : timeBody(c)}</div></sui-calendar>`;
 }
 
 // ── Picking a day or an hour ────────────────────────────────────────────────
