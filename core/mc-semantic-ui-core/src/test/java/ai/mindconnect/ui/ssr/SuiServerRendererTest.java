@@ -379,7 +379,14 @@ class SuiServerRendererTest {
     void timeFieldRendersTheBrowsersTimePicker() {
         var f = UiField.time("from", "From", java.time.LocalTime.of(8, 30)).asEditable().minutes(15);
         String html = renderer.render(f);
-        assertTrue(html.contains("<input type=\"time\" id=\"from__input\" name=\"from\" value=\"08:30\" data-sui-type=\"TIME\" step=\"900\">"), html);
+        assertTrue(html.contains("<input type=\"time\" id=\"from__input\" name=\"from\" value=\"08:30\" data-sui-type=\"TIME\" step=\"900\" list=\"from__input__list\">"), html);
+        // The datalist of the offered times is what makes the browser's picker show only those.
+        assertTrue(html.contains("<datalist id=\"from__input__list\"><option value=\"00:00\"></option><option value=\"00:15\"></option>"), html);
+        assertTrue(html.contains("<option value=\"23:45\"></option></datalist>"), html);
+        String bounded = renderer.render(UiField.time("b", "B", "08:00").asEditable().minutes(30).min("08:00").max("09:00"));
+        assertTrue(bounded.contains("<datalist id=\"b__input__list\"><option value=\"08:00\"></option><option value=\"08:30\"></option><option value=\"09:00\"></option></datalist>"), bounded);
+        String everyMinute = renderer.render(UiField.time("m", "M", "08:00").asEditable());
+        assertFalse(everyMinute.contains("datalist"), everyMinute);
         String ro = renderer.render(UiField.time("from", "From", "08:30"));
         assertTrue(ro.contains("<span class=\"sui-value\">08:30</span>"), ro);
     }

@@ -15,7 +15,18 @@ describe("TIME field", () => {
 
     test("editable: an <input type=time> with the value and bounds", () => {
         const html = renderField({ type: "field", id: "from", label: "From", fieldType: "TIME", editable: true, value: "08:30", min: "06:00", max: "20:00", step: "900" });
-        assert.match(html, /<input type="time" id="from__input" name="from" value="08:30" min="06:00" max="20:00" step="900">/);
+        assert.match(html, /<input type="time" id="from__input" name="from" value="08:30" min="06:00" max="20:00" step="900" list="from__input__list">/);
+    });
+
+    test("a step of five minutes or more brings a datalist of the times it allows", async () => {
+        const { timeOptions } = await import(`${DIST}/renderers/field.js`);
+        assert.deepEqual(timeOptions({ step: "900", min: "08:00", max: "09:00" }), ["08:00", "08:15", "08:30", "08:45", "09:00"]);
+        assert.equal(timeOptions({ step: "300" }).length, 288);
+        assert.deepEqual(timeOptions({ step: "60" }), []);      // every minute: the picker does that itself
+        assert.deepEqual(timeOptions({}), []);
+        const html = renderField({ type: "field", id: "t", label: "T", fieldType: "TIME", editable: true, value: "08:30", min: "08:00", max: "08:30", step: "900" });
+        assert.match(html, /<input type="time" id="t__input" name="t" value="08:30" min="08:00" max="08:30" step="900" list="t__input__list">/);
+        assert.match(html, /<datalist id="t__input__list"><option value="08:00"><\/option><option value="08:15"><\/option><option value="08:30"><\/option><\/datalist>/);
     });
 
     test("a typed time is rounded to the nearest step", async () => {

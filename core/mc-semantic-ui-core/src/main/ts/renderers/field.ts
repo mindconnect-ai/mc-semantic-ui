@@ -23,6 +23,28 @@ export function snapTimeValue(value: string, stepSeconds: number): string {
     return `${pad(Math.floor(snapped / 60))}:${pad(snapped % 60)}`;
 }
 
+/**
+ * The times a TIME field offers, `HH:mm`, every `step` seconds from `min`
+ * (or midnight) to `max` (or the end of the day) — the rows of the datalist
+ * the input carries. Empty unless the step is whole minutes of five or more:
+ * the browser's own picker lists every minute whatever the step says, and
+ * only a datalist makes it show the stepped times instead. Twin of the
+ * `timeOptions` SSR helper.
+ */
+export function timeOptions(f: { step?: string; min?: string; max?: string }): string[] {
+    const step = Number(f.step);
+    if (!(step >= 300) || step % 60 !== 0) return [];
+    const minutesOf = (v: string | undefined, fallback: number): number => {
+        const m = v ? /^(\d{2}):(\d{2})/.exec(v) : null;
+        return m ? Number(m[1]) * 60 + Number(m[2]) : fallback;
+    };
+    const from = minutesOf(f.min, 0), to = minutesOf(f.max, 1439);
+    const pad = (n: number): string => (n < 10 ? "0" : "") + n;
+    const out: string[] = [];
+    for (let m = from; m <= to; m += step / 60) out.push(`${pad(Math.floor(m / 60))}:${pad(m % 60)}`);
+    return out;
+}
+
 export function renderField(f: UiField): string {
     // HIDDEN: no wrapper, no label — only the value, submitted with the form
     // whether or not the field is editable. The input carries the model id
@@ -135,9 +157,17 @@ function renderInput(f: UiField): string {
             return `<input type="date" id="${id}" name="${name}" value="${valueAttr}"${rangeAttrs}${changeAttrs}>`;
         case "DATETIME":
             return `<input type="datetime-local" id="${id}" name="${name}" value="${valueAttr}"${rangeAttrs}${changeAttrs}>`;
-        case "TIME":
-            // HH:mm; step is in seconds ("900" = quarter hours). Parity with field.hbs.
-            return `<input type="time" id="${id}" name="${name}" value="${valueAttr}"${rangeAttrs}${changeAttrs}>`;
+        case "TIME": {
+            // HH:mm; step is in seconds ("900" = quarter hours). A step of five
+            // minutes or more comes with a datalist of the times it allows,
+            // which is what makes the browser's picker offer only those.
+            // Parity with field.hbs.
+            const times = timeOptions(f);
+            const list = times.length > 0 ? ` list="${id}__list"` : "";
+            const datalist = times.length > 0
+                ? `<datalist id="${id}__list">${times.map(t => `<option value="${t}"></option>`).join("")}</datalist>` : "";
+            return `<input type="time" id="${id}" name="${name}" value="${valueAttr}"${rangeAttrs}${list}${changeAttrs}>${datalist}`;
+        }
         case "FILE": {
             const accept = f.accept ? ` accept="${escapeHtml(f.accept)}"` : "";
             const multiple = f.multiple ? " multiple" : "";

@@ -36,7 +36,10 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 - `UiField.minutes(n)` on a `TIME` field — the times offered every `n`
   minutes (`minutes(15)` for quarter hours), and a value typed in between is
-  rounded to the nearest one when the field changes.
+  rounded to the nearest one when the field changes. A step of five minutes
+  or more puts a `<datalist>` of exactly those times on the input, which is
+  what makes the browser's picker offer only them: its own minute list
+  ignores `step`.
 
 - `UiField.richtext(id, label, html)` — `FieldType.RICHTEXT`, formatted text.
   The value is an HTML string and comes back as a string under the field id,
