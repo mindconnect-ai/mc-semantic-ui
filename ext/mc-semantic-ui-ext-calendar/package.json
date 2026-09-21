@@ -1,7 +1,7 @@
 {
   "name": "@mindconnect-ai/mc-semantic-ui-ext-calendar",
-  "version": "0.3.5-SNAPSHOT",
-  "description": "Kanban extension for mc-semantic-ui \u2014 adds the `kanban` node type: a board of lanes whose cards are dragged between them",
+  "version": "0.4.0",
+  "description": "Kanban extension for mc-semantic-ui — adds the `kanban` node type: a board of lanes whose cards are dragged between them",
   "keywords": [
     "mc-semantic-ui",
     "server-driven-ui",
@@ -39,7 +39,7 @@
     "test": "node --test src/test/ts/*.test.mjs"
   },
   "peerDependencies": {
-    "@mindconnect-ai/mc-semantic-ui-core": "0.3.5-SNAPSHOT"
+    "@mindconnect-ai/mc-semantic-ui-core": "0.4.0"
   },
   "devDependencies": {
     "@mindconnect-ai/mc-semantic-ui-core": "file:../../core/mc-semantic-ui-core",

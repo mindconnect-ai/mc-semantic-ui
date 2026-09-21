@@ -43,7 +43,7 @@ wiring below: the jar declares its files, and `installAll(renderer, bus)` from
 <dependency>
   <groupId>ai.mindconnect</groupId>
   <artifactId>mc-semantic-ui-ext-kanban</artifactId>
-  <version>0.3.5</version>
+  <version>0.4.0</version>
 </dependency>
 ```
 
