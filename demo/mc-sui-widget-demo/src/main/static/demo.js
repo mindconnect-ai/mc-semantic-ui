@@ -75,6 +75,8 @@ const DEMO_FORM_ERRORS = {
 const DEMO_FORM_FIELDS = [
     { type: "field", id: "f-name",  label: "Name",        fieldType: "TEXT",     required: true, editable: true, placeholder: "e.g. Widget" },
     { type: "field", id: "f-desc",  label: "Description", fieldType: "TEXTAREA", editable: true, hint: "Markdown supported", placeholder: "Describe the product…" },
+    { type: "field", id: "f-notes", label: "Notes",       fieldType: "RICHTEXT", editable: true, placeholder: "Formatted notes — try pasting from a web page",
+      value: "<p>Ships in <b>two sizes</b>. Known issues:</p><ul><li>the lid squeaks</li><li>no <i>left-handed</i> version yet</li></ul>" },
     { type: "field", id: "f-price", label: "Price",       fieldType: "NUMBER",   editable: true, value: 19.0, step: "0.01" },
     { type: "field", id: "f-count", label: "In stock",    fieldType: "NUMBER",   editable: true, value: 128, min: "0" },
     { type: "field", id: "f-launch",label: "Launch date", fieldType: "DATE",     editable: true, value: "2026-07-06" },
@@ -351,6 +353,7 @@ function formsTab() {
 `UiForm.of("demo-form", "New product")
     .field(UiField.text("f-name", "Name", null).asRequired().asEditable().placeholder("e.g. Widget"))
     .field(UiField.textarea("f-desc", "Description", null).asEditable().hint("Markdown supported").placeholder("Describe the product…"))
+    .field(UiField.richtext("f-notes", "Notes", "<p>Ships in <b>two sizes</b>.</p>").asEditable().placeholder("Formatted notes"))
     .field(UiField.number("f-price", "Price", 19.0).asEditable().step("0.01"))
     .field(UiField.number("f-count", "In stock", 128).asEditable().min("0"))
     .field(UiField.date("f-launch", "Launch date", "2026-07-06").asEditable())

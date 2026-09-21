@@ -173,7 +173,7 @@ public class FieldRenderer implements FxNodeRenderer<UiField> {
     private Bound buildControl(UiField node, FxRenderContext ctx) {
         var type = node.getFieldType() == null ? UiField.FieldType.TEXT : node.getFieldType();
         return switch (type) {
-            case TEXTAREA -> textArea(node, ctx);
+            case TEXTAREA, RICHTEXT -> textArea(node, ctx);   // the HTML, as text: no rich editing on the desktop yet
             case BOOLEAN -> checkBox(node, ctx);
             case DATE -> datePicker(node, ctx);
             case SELECT -> node.isExpanded() ? radioGroup(node, ctx) : comboBox(node, ctx);
