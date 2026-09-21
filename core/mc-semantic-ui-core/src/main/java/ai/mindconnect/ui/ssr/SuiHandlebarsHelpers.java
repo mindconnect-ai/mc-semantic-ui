@@ -339,6 +339,13 @@ public final class SuiHandlebarsHelpers {
         hb.registerHelper("choices", (ctx, opts) ->
                 ctx instanceof ai.mindconnect.ui.model.UiField f ? choiceMaps(f) : java.util.List.of());
 
+        // {{#each (timeOptions this)}} → the times a TIME field offers, HH:mm,
+        // every `step` seconds from min (or midnight) to max (or the end of
+        // the day); empty unless the step is whole minutes of five or more.
+        // Twin of timeOptions() in renderers/field.ts.
+        hb.registerHelper("timeOptions", (ctx, opts) ->
+                ctx instanceof ai.mindconnect.ui.model.UiField f ? timeOptions(f) : java.util.List.of());
+
         // {{#with (choiceGroup this)}} → everything choice-group.hbs needs about
         // an expanded field, worked out once: the input type, the group role,
         // whether rows are orderable, plus the field's id, type, change markers
@@ -786,6 +793,22 @@ public final class SuiHandlebarsHelpers {
         if (trigger == null) return;
         sb.append(" data-sui-on-").append(name)
           .append("='").append(encodeTrigger(trigger, mapper)).append("'");
+    }
+
+    /** The rows of a TIME field's datalist — see the {@code timeOptions} helper. */
+    public static java.util.List<String> timeOptions(ai.mindconnect.ui.model.UiField f) {
+        int step;
+        try { step = Integer.parseInt(f.getStep() == null ? "" : f.getStep().trim()); } catch (NumberFormatException e) { return java.util.List.of(); }
+        if (step < 300 || step % 60 != 0) return java.util.List.of();
+        int from = minutesOf(f.getMin(), 0), to = minutesOf(f.getMax(), 1439);
+        var out = new java.util.ArrayList<String>();
+        for (int m = from; m <= to; m += step / 60) out.add(String.format(java.util.Locale.ROOT, "%02d:%02d", m / 60, m % 60));
+        return out;
+    }
+
+    private static int minutesOf(String v, int fallback) {
+        var m = v == null ? null : java.util.regex.Pattern.compile("^(\\d{2}):(\\d{2})").matcher(v);
+        return m != null && m.find() ? Integer.parseInt(m.group(1)) * 60 + Integer.parseInt(m.group(2)) : fallback;
     }
 
     public static String escapeHtml(Object value) {
