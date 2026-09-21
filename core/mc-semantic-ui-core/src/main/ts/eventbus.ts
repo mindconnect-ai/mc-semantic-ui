@@ -213,7 +213,8 @@ export type LoadingPolicy = "auto" | "manual" | ((ctx: BehaviorContext) => boole
  *   <li>Click on {@code [data-trigger]} / {@code [data-action]} →
  *       dispatched through the matching behaviour.</li>
  *   <li>Click on {@code [data-href]} without a trigger → routed through
- *       {@link #navigate}.</li>
+ *       {@link #navigate}, with the link marked busy ({@code .is-loading})
+ *       until the page has arrived.</li>
  *   <li>Click on {@code .sui-tab} → either client-side panel switch
  *       (no {@code data-href}/{@code href}) or SPA navigation when the
  *       tab is rendered as an {@code <a>} with a navigation target
@@ -1102,6 +1103,24 @@ export class SuiEventBus {
     }
 
     /**
+     * Navigates as a click on {@code link} — a plain {@code [data-href]} entry
+     * such as a menu item — and shows the link as busy meanwhile, the way
+     * {@link #dispatch} does for a trigger. A page that takes a while to
+     * arrive otherwise gives no sign that the click landed; a sidebar item
+     * that stays inert for two seconds reads as broken, and is clicked again.
+     * Honours the {@code "manual"} loading policy; a function policy is
+     * about triggers and does not apply here.
+     */
+    private async navigateFrom(link: HTMLElement, href: string): Promise<void> {
+        const busyEl = this.loadingPolicy === "manual" ? null : this.markBusy(link);
+        try {
+            await this.navigate(href);
+        } finally {
+            if (busyEl) this.clearBusy(busyEl);
+        }
+    }
+
+    /**
      * Marks the clicked control as busy: adds `.is-loading` (CSS spinner +
      * pointer-events:none) and `aria-busy`. Skips the renderer root — that is
      * the fallback source for element-less imperative dispatches, and painting
@@ -1517,7 +1536,7 @@ export class SuiEventBus {
             if (trigger) {
                 await this.dispatch(trigger, link);
             } else if (link.dataset.href) {
-                await this.navigate(link.dataset.href);
+                await this.navigateFrom(link, link.dataset.href);
             }
             return;
         }
