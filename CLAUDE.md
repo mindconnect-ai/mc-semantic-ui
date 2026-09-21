@@ -63,7 +63,8 @@ not move with the directory.
 - `ext/mc-semantic-ui-ext-json` (`json-viewer`),
   `ext/mc-semantic-ui-ext-markdown` (`markdown`),
   `ext/mc-semantic-ui-ext-diagram` (`diagram`),
-  `ext/mc-semantic-ui-ext-chart` (`chart`) — each adds node types
+  `ext/mc-semantic-ui-ext-chart` (`chart`),
+  `ext/mc-semantic-ui-ext-calendar` (`calendar`, `calendar-event`) — each adds node types
 - `editor/mc-sui-editor` (+ `-app`, `-standalone-app`) — embeddable visual editor
 - `demo/mc-sui-shop-spring-demo` (Postgres CRUD), `mc-sui-widget-demo`,
   `mc-sui-file-explorer-demo`, `mc-sui-shop-client-demo`,

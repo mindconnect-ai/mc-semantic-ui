@@ -34,6 +34,7 @@
         <module>ext/mc-semantic-ui-ext-markdown</module>
         <module>ext/mc-semantic-ui-ext-diagram</module>
         <module>ext/mc-semantic-ui-ext-chart</module>
+        <module>ext/mc-semantic-ui-ext-calendar</module>
         <module>editor/mc-sui-editor</module>
         <!-- standalone-app assembles the editor SPA under target/dist; the
              Spring showcase (mc-sui-editor-app) reuses that dist, so it must

@@ -90,8 +90,8 @@ preview you can click.
 | [`progress`](./elements/progress.md) | Progress bar or ring |
 | [`icon`](./elements/icon.md) | Standalone icon from the swappable icon library |
 
-Beyond the core, four extensions add a node type each. All of them use the
-same registration mechanism you'd use for your own type — add the artifact and
+Beyond the core, five extensions add node types of their own. All of them use
+the same registration mechanism you'd use for your own type — add the artifact and
 the node appears in the Java model, in Jackson, in the browser renderer and in
 SSR at once.
 
@@ -99,6 +99,7 @@ SSR at once.
 |---|---|---|
 | `chart` | `mc-semantic-ui-ext-chart` | [about](./chart-extension.md) |
 | `diagram` | `mc-semantic-ui-ext-diagram` | [about](./diagram-extension.md) |
+| `calendar`, `calendar-event` | `mc-semantic-ui-ext-calendar` | [about](./calendar-extension.md) |
 | `markdown` | `mc-semantic-ui-ext-markdown` | |
 | `json-viewer` | `mc-semantic-ui-ext-json` | |
 
