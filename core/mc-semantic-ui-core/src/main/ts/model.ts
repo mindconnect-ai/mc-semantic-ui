@@ -739,7 +739,7 @@ export interface UiIFrame extends UiNodeBase {
     src?: string;
     /** CSS length capping the frame's height; absent = fill the flex parent. */
     height?: string;
-    /** Optional sandbox attribute value; absent = no sandbox (same-origin embeds). */
+    /** Optional sandbox attribute value; absent = no sandbox (same-origin embeds), `""` = the strictest sandbox. */
     sandbox?: string;
 }
 

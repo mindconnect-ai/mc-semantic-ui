@@ -2,5 +2,7 @@
   UiIFrame → an embedded browsing context. Parity with renderIFrame() in
   renderers/iframe.ts. Sizing lives in sui.css under .sui-iframe: a height
   caps the frame in normal flow, without one it fills a flex-column parent.
+  `sandboxed`, not `sandbox`, decides whether the attribute is written:
+  Handlebars takes "" for false, and sandbox="" is the strictest sandbox.
 --}}
-<iframe class="sui-iframe{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" src="{{src}}"{{#if title}} title="{{title}}"{{/if}}{{#if height}} style="height:{{height}}; flex:none"{{/if}}{{#if sandbox}} sandbox="{{sandbox}}"{{/if}} loading="lazy"></iframe>
+<iframe class="sui-iframe{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" src="{{src}}"{{#if title}} title="{{title}}"{{/if}}{{#if height}} style="height:{{height}}; flex:none"{{/if}}{{#if sandboxed}} sandbox="{{sandbox}}"{{/if}} loading="lazy"></iframe>

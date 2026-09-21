@@ -1,5 +1,6 @@
 package ai.mindconnect.ui.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -38,9 +39,21 @@ public class UiIFrame extends UiNode {
      * Optional {@code sandbox} attribute value (e.g.
      * {@code "allow-scripts allow-same-origin"}). Null renders no sandbox —
      * full trust, appropriate for same-origin embeds like a bundled
-     * Swagger UI. Set it when embedding third-party content.
+     * Swagger UI. Set it when embedding third-party content. The empty
+     * string is the strictest sandbox — no scripts, no forms, a unique
+     * origin — and is rendered as {@code sandbox=""}.
      */
     private String sandbox;
+
+    /**
+     * Whether the frame gets a {@code sandbox} attribute at all: whenever
+     * {@link #sandbox} is set, the empty string included. For the template,
+     * where an empty string would read as false.
+     */
+    @JsonIgnore
+    public boolean isSandboxed() {
+        return sandbox != null;
+    }
 
     public static UiIFrame of(String id, String src) {
         var f = new UiIFrame();
