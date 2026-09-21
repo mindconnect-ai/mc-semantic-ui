@@ -241,29 +241,31 @@ public final class CalendarPainter {
         };
     }
 
-    private static String btn(Ctx c, UiTrigger t, String label, Map<String, String> values, String extra) {
-        return "<a class=\"sui-calendar-btn" + extra + "\" href=\"#\" data-trigger='"
-                + SuiHandlebarsHelpers.encodeTrigger(fill(t, values), c.mapper) + "'>" + label + "</a>";
+    /**
+     * One header button: where it goes as {@code data-nav-date} /
+     * {@code data-nav-view} for the browser element's own re-render, and the
+     * {@code onNavigate} trigger when there is one. Mirrors {@code btn()} in
+     * {@code header()} of extension.ts.
+     */
+    private static String btn(Ctx c, String label, String date, String view, String extra, String aria) {
+        UiTrigger t = c.node.getOnNavigate();
+        return "<a class=\"sui-calendar-btn" + extra + "\" href=\"#\" data-nav-date=\"" + date + "\" data-nav-view=\"" + view + "\""
+                + (t != null ? " data-trigger='" + SuiHandlebarsHelpers.encodeTrigger(fill(t, Map.of("date", date, "view", view)), c.mapper) + "'" : "")
+                + aria + ">" + label + "</a>";
     }
 
     private static String header(Ctx c) {
-        UiTrigger t = c.node.getOnNavigate();
         String title = "<h2 class=\"sui-calendar-title\">" + esc(heading(c)) + "</h2>";
-        if (t == null) return "<header class=\"sui-calendar-head\">" + title + "</header>";
         String view = c.view.name();
         String nav = "<div class=\"sui-calendar-nav\">"
-                + "<a class=\"sui-calendar-btn\" href=\"#\" data-trigger='"
-                + SuiHandlebarsHelpers.encodeTrigger(fill(t, Map.of("date", iso(shift(c, -1)), "view", view)), c.mapper)
-                + "' aria-label=\"" + esc(c.labels.previous) + "\">&lsaquo;</a>"
-                + (c.today != null ? btn(c, t, esc(c.labels.today), Map.of("date", iso(c.today), "view", view), "") : "")
-                + "<a class=\"sui-calendar-btn\" href=\"#\" data-trigger='"
-                + SuiHandlebarsHelpers.encodeTrigger(fill(t, Map.of("date", iso(shift(c, 1)), "view", view)), c.mapper)
-                + "' aria-label=\"" + esc(c.labels.next) + "\">&rsaquo;</a>"
+                + btn(c, "&lsaquo;", iso(shift(c, -1)), view, "", " aria-label=\"" + esc(c.labels.previous) + "\"")
+                + (c.today != null ? btn(c, esc(c.labels.today), iso(c.today), view, "", "") : "")
+                + btn(c, "&rsaquo;", iso(shift(c, 1)), view, "", " aria-label=\"" + esc(c.labels.next) + "\"")
                 + "</div>";
         var views = new StringBuilder("<div class=\"sui-calendar-views\">");
         for (UiCalendar.View v : new UiCalendar.View[]{UiCalendar.View.DAY, UiCalendar.View.WEEK, UiCalendar.View.MONTH}) {
             String label = v == UiCalendar.View.DAY ? c.labels.day : v == UiCalendar.View.WEEK ? c.labels.week : c.labels.month;
-            views.append(btn(c, t, esc(label), Map.of("date", iso(c.date), "view", v.name()), v == c.view ? " is-active" : ""));
+            views.append(btn(c, esc(label), iso(c.date), v.name(), v == c.view ? " is-active" : "", ""));
         }
         views.append("</div>");
         return "<header class=\"sui-calendar-head\">" + nav + title + views + "</header>";

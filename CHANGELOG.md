@@ -21,6 +21,14 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Changed
+
+- A `calendar` moves without a server: previous, next, today and the view
+  switch re-render it from the model it was drawn from, so a calendar with no
+  `onNavigate` still navigates, and one whose server answers with nothing
+  still shows the period asked for. The trigger, when there is one, fires
+  after the re-render as before.
+
 ### Added
 
 - `UiMenu.toggleIcon` — the glyph on a menu's own toggle, `menu` (the

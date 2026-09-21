@@ -550,7 +550,7 @@ function calendarTab() {
 //           plain trigger links, so they work with JavaScript switched off.`;
     return stack("tab-calendar", [
         text("calendar-intro",
-            "The calendar node ships in the mc-semantic-ui-ext-calendar module: a month, a week or a day of events. The buttons fire onNavigate with {date} and {view} filled in; a click on a day or an hour fires onSelect with {date} and {hour}. Here the stub backend answers every one with a toast, so the views below are fixed on one week of September 2026."),
+            "The calendar node ships in the mc-semantic-ui-ext-calendar module: a month, a week or a day of events. Previous, next and the view switch re-render the calendar from its own model, so they work right here with no backend; with an onNavigate (set below) they fire it too, with {date} and {view} filled in. A click on a day or an hour fires onSelect with {date} and {hour} — the stub backend answers with a toast."),
         specimen("sp-cal-month", "Month view", calendar("cal-month", "MONTH"), calendarJava),
         specimen("sp-cal-week", "Week view — timed events in their hour, all-day ones above", calendar("cal-week", "WEEK"), calendarJava),
         specimen("sp-cal-day", "Day view", calendar("cal-day", "DAY"), calendarJava),

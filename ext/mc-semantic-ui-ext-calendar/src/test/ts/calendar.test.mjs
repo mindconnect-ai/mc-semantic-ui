@@ -47,6 +47,14 @@ describe("calendar renderer", () => {
         assert.match(sunday, /<span class="sui-calendar-weekday" role="columnheader">Sun<\/span><span class="sui-calendar-weekday" role="columnheader">Mon/);
     });
 
+    test("the header buttons work without a server: every one says where it goes", () => {
+        const html = ext.renderCalendar({ type: "calendar", id: "c", view: "WEEK", date: "2026-09-21" });
+        assert.match(html, /data-nav-date="2026-09-14" data-nav-view="WEEK" aria-label="Previous"/);
+        assert.match(html, /data-nav-date="2026-09-21" data-nav-view="DAY">Day</);
+        assert.doesNotMatch(html, /data-trigger/);
+        assert.doesNotMatch(html, />Today</);   // no `today` in the model, nothing to go to
+    });
+
     test("navigation steps by day, week or month and keeps the view", () => {
         const html = ext.renderCalendar({ type: "calendar", id: "c", view: "MONTH", date: "2026-01-31", onNavigate: { url: "/c?d={date}&v={view}" } });
         assert.match(html, /\/c\?d=2026-02-28&v=MONTH/);   // clamped to February

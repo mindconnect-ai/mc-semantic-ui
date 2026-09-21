@@ -20,7 +20,7 @@ server and one in TypeScript for the browser, held to the same bytes.
 |---|---|
 | Node types | `calendar` (`UiCalendar`), `calendar-event` (`UiCalendarEvent`) |
 | Views | `MONTH`, `WEEK`, `DAY` |
-| Moving around | previous / next / today and the view switch fire `onNavigate` with `{date}` and `{view}` — plain trigger links, no script needed |
+| Moving around | previous / next / today and the view switch re-render the calendar from its own model — no server needed; with an `onNavigate` they fire it too, `{date}` and `{view}` filled in, so the server can send the new period's events |
 | Picking | a click on a day or an hour fires `onSelect` with `{date}` and `{hour}` — through the browser bundle |
 | Events | all-day (may span days) or timed (sit in their hour); an accent `color`; `onClick` like any node |
 | Words | English, or `labels` from the model — `labels(Locale)` takes the names from `java.time` |
@@ -104,11 +104,14 @@ Two triggers, two sets of placeholders filled into their URL:
 | `onNavigate` | previous, next, today, and the Day / Week / Month buttons | `{date}` — the day to show, `yyyy-MM-dd`; `{view}` — `DAY`, `WEEK` or `MONTH` |
 | `onSelect` | a click on a month cell, an all-day cell, or an hour slot | `{date}` — the day, `yyyy-MM-dd`; `{hour}` — the hour (0–23), or empty for a day |
 
-Navigation is filled in at render time — each button is a complete trigger
-link — so it works on a server-rendered page with no script at all. Previous
-and next step by a day, a week or a month depending on the view, clamping the
-day of month where a month is shorter. The server answers with the calendar
-for that period: a new page, or a `REPLACE` of the calendar node.
+Navigation happens in the page first: the calendar keeps the model it was
+drawn from, and a button re-renders it for the new date and view from the
+events it already has — so a calendar with no `onNavigate` at all still
+moves. With one, each button is also a complete trigger link, filled in at
+render time; it fires after the re-render, and the server may answer with the
+events of that period as a `REPLACE` of the calendar node (or with nothing).
+Previous and next step by a day, a week or a month depending on the view,
+clamping the day of month where a month is shorter.
 
 ## The nodes
 
@@ -126,7 +129,7 @@ for that period: a new page, or a `REPLACE` of the calendar node.
 | `maxEventsPerDay` | `Integer` | Chips a month cell shows before folding the rest into "+n more". Default 3. |
 | `labels` | `Labels` | The words shown; any left null is English. |
 | `events` | `List<UiCalendarEvent>` | The events — all of them; the painter picks what falls into the view. |
-| `onNavigate`, `onSelect` | `UiTrigger` | See above. |
+| `onNavigate`, `onSelect` | `UiTrigger` | See above. Both optional; without `onNavigate` the calendar still navigates, on its own. |
 
 `UiCalendarEvent`:
 
