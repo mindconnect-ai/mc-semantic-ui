@@ -252,6 +252,12 @@ what a typed tree describes well:
 - LLM-agent-operable UIs — a finite vocabulary is far easier for an agent to
   drive than free-form HTML
 
+The [kanban extension](./kanban-extension.md) (a board whose cards are dragged
+between lanes) and the [calendar extension](./calendar-extension.md) (month,
+week and day views of events) follow the same shape: node types and both
+painters in one module, rendered server-side as well, with the browser bundle
+adding what a page cannot do without JavaScript — the dragging, the picking.
+
 If a screen can be described as *"these fields, this table, these actions"*, it
 fits. And when one corner of a page needs something bespoke, you don't leave the
 framework: add a node type (or drop in a [UI island](./ui-island.md)) and keep

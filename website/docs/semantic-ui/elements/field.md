@@ -62,7 +62,7 @@ which reports the new value without submitting anything.*
 |---|---|---|
 | `TEXT` | `<input type="text">` | `placeholder`, `icon` |
 | `TEXTAREA` | `<textarea rows="4">` | `submitOnEnter` |
-| `RICHTEXT` | an editable area with a formatting toolbar, and a hidden input carrying the HTML | `placeholder` — the value is an HTML string, submitted as a string under the field id like a `TEXTAREA`'s. Toolbar: bold, italic, underline, bulleted and numbered list, link, quote, remove formatting. Pasted content is reduced to that vocabulary on the client (no script, style, event handlers or external CSS); an image on the clipboard is embedded as a `data:` URL, scaled to at most 1280px; click an image to resize it by its corner handle (written as `width`/`height` attributes), drag it to move it. A `MERGE` of `value` replaces the content. Read-only, the HTML is shown as formatted text. |
+| `RICHTEXT` | an editable area with a formatting toolbar, and a hidden input carrying the HTML | `placeholder` — the value is an HTML string, submitted as a string under the field id like a `TEXTAREA`'s. See [Rich text](#rich-text) below. |
 | `PASSWORD` | `<input type="password">` + eye toggle | `placeholder` — the built-in toggle flips the input to plain text and back; the value never leaves the field |
 | `NUMBER` | `<input type="number">` | `min`, `max`, `step` |
 | `CURRENCY` | `<input type="number">` | `min`, `max`, `step` (use `"0.01"`) |
@@ -133,6 +133,40 @@ they are not shown, and the order is the one the server rendered.
 every single-line control — not with `HIDDEN` or a radio / checkbox group. `CURRENCY` and
 `PERCENT` are semantic labels only: the renderer emits the same number input as
 `NUMBER`, so format the display value yourself for the read-only case.
+
+### Rich text
+
+`RICHTEXT` is formatted text. The value is an HTML string, and it comes back
+as a string under the field id exactly like a `TEXTAREA`'s — the server stores
+and renders HTML, nothing else changes.
+
+```java
+UiField.richtext("notes", "Notes", "<p>Ships in <b>two sizes</b>.</p>")
+    .asEditable().asRequired().placeholder("Formatted notes");
+```
+
+What the field gives the user:
+
+| | |
+|---|---|
+| Toolbar | bold, italic, underline, bulleted list, numbered list, link, quote, remove formatting — and the usual shortcuts (Ctrl/⌘-B, -I, -U) |
+| Pasting | reduced to that same vocabulary on the client: `script`, `style`, `link`, `meta`, `iframe` and form controls are dropped with their content, other unknown tags are unwrapped, every attribute is dropped but a safe `href` on a link and `src`/`alt`/`width`/`height` on an image. Plain text becomes paragraphs. |
+| Images | an image on the clipboard (a screenshot, a copied picture) is embedded as a `data:` URL, scaled to at most 1280px on its longer side; a click on an image shows a corner handle that resizes it, written as `width`/`height` attributes; dragging moves it |
+| `onChange`, `submitOnChange` | as on a textarea: a change is reported when the editor loses focus |
+| Read-only | the HTML shown as formatted text |
+
+**A `MERGE` of `value` replaces the content**, whether or not the editor has
+focus — a quick action or a "Use this text" button can push new HTML into the
+field while the user is in it. A merge of anything else (a `validationError`,
+say) keeps what the user typed, as for every field.
+
+**The value is the server's HTML, shown as-is.** The editor trusts what the
+server sends; the client-side hygiene is for what the user pastes. Sanitise on
+the server what you store, as with any HTML.
+
+**`TIME`** is the browser's own time picker: `UiField.time("from", "From",
+LocalTime.of(8, 30))` renders `<input type="time">` with the value as `HH:mm`;
+`min`, `max` and `step` (in seconds) apply as on a date field.
 
 ## Building one
 
