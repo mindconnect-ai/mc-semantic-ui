@@ -133,7 +133,7 @@ sends nothing.
 | `cards` | `List<UiKanbanCard>` | The cards, top to bottom. |
 | `limit` | `Integer` | Work-in-progress limit — shown as `n/limit`, and a full lane takes no card. |
 | `locked` | `boolean` | No card can be dropped here; its own cards can still leave. |
-| `color` | `String` | Accent colour along the lane's top edge. Any CSS colour. |
+| `color` | `String` | Accent colour along the lane's top edge — a hex value, a name, `rgb()`/`hsl()` or `var(--…)`; anything else is dropped. |
 
 `UiKanbanCard`:
 
@@ -143,7 +143,7 @@ sends nothing.
 | `description` | `String` | A line or two under the title. Plain text. |
 | `badge` | `String` | Short marker beside the title — a priority, a count, an initial. |
 | `tags` | `List<String>` | Small labels along the bottom edge. |
-| `color` | `String` | Accent colour along the card's left edge. |
+| `color` | `String` | Accent colour along the card's left edge — a hex value, a name, `rgb()`/`hsl()` or `var(--…)`; anything else is dropped. |
 | `locked` | `boolean` | The card stays put; it cannot be dragged. |
 | `onClick` … | `UiTrigger` | The node-level events every node carries — a click opens the card's detail, say. |
 

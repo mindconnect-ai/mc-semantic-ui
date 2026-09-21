@@ -113,8 +113,20 @@ function evt(node: NodeEvents): string {
         .map(([name, t]) => ` data-sui-on-${name}='${encodeTrigger(t!)}'`).join("");
 }
 
+/**
+ * Plain colour syntax — a hex value, a name, rgb()/hsl() with numbers in it,
+ * or var(--name). A `color` that is anything else, in particular a value with
+ * a semicolon that would add declarations of its own to the style attribute
+ * (`red;background:url(…)`), is dropped. The same pattern as CssColor.java.
+ */
+const SAFE_COLOR = /^(?:#[0-9a-fA-F]{3,8}|[a-zA-Z]{1,32}|(?:rgb|rgba|hsl|hsla)\([0-9.,% \/+-]{1,64}\)|var\(--[a-zA-Z0-9_-]{1,64}\))$/;
+export function safeColor(color: string | undefined): string | undefined {
+    return color != null && SAFE_COLOR.test(color) ? color : undefined;
+}
+
 function accent(color: string | undefined): string {
-    return color ? ` style="--sui-kanban-accent:${esc(color)}"` : "";
+    const c = safeColor(color);
+    return c ? ` style="--sui-kanban-accent:${esc(c)}"` : "";
 }
 
 export function renderKanban(node: UiKanbanWire, r: SuiRenderer): string {
@@ -344,7 +356,10 @@ function defineElement(): void {
             this.drag = null;
             if (!card || !drag) return;
             this.settle(card);
-            if (drag.parent.isConnected) drag.parent.insertBefore(card, drag.next?.isConnected ? drag.next : null);
+            // Back beside the card it came from — if that card is still in the
+            // same list; a patch during the drag may have moved or replaced it.
+            const next = drag.next && drag.next.parentElement === drag.parent ? drag.next : null;
+            if (drag.parent.isConnected) drag.parent.insertBefore(card, next);
         }
 
         private settle(card: HTMLElement): void {

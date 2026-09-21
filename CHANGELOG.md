@@ -21,24 +21,35 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Security
+
+- **A RICHTEXT value is sanitised wherever it is rendered.** The field used
+  to write its value into the page as it came — read-only and in the editor,
+  in both renderers — and only cleaned what the user pasted, so HTML stored
+  from any other source (an import, an API, an older client) ran its scripts
+  and handlers for whoever looked at it. Every value now goes through the same
+  allowlist as a paste first. The browser renderer uses `sanitizeRichText()`,
+  the server templates `ai.mindconnect.ui.html.RichTextSanitizer` — one
+  policy, held together by a shared set of test cases. Call
+  `RichTextSanitizer.sanitize()` on what a form submits before you store it.
+- **Links hidden behind control characters are refused.** The rich-text
+  link check matched the scheme as written, so `jav<tab>ascript:` or a
+  character reference spelling `javascript:` passed as a relative link — a
+  browser strips tabs and control characters and decodes references before it
+  reads the scheme. Both checks now read the URL the way a browser does, and
+  the sanitiser writes back exactly the value it checked.
+- **A `color` on a kanban lane or card, or a calendar event, must be a
+  colour.** It was escaped but otherwise written into the element's style
+  attribute as given, so `red;background:url(…)` added declarations of its
+  own — a tracking request, an overlay across the page. Only colour syntax
+  passes now (hex, a name, `rgb()`/`hsl()`, `var(--…)`); anything else is
+  dropped. `ai.mindconnect.ui.html.CssColor` holds the rule.
+
 ### Added
 
 - `UiCalendar.extras` — nodes of the page's own in the calendar's header,
   after the view switch: a "New event" button, a filter, a legend. Any node
   type, rendered by the renderer; `.extra(node)` adds one.
-
-### Changed
-
-- A `calendar` moves without a server: previous, next, today and the view
-  switch re-render it from the model it was drawn from, so a calendar with no
-  `onNavigate` still navigates, and one whose server answers with nothing
-  still shows the period asked for. The trigger, when there is one, fires
-  after the re-render as before. `onSelect` fills `{date}`, `{hour}` and the
-  new `{time}` wherever the trigger carries them, an inline patch included,
-  and `updateCalendar(id, mutate)` lets the page change a drawn calendar —
-  together, a "new event" dialog needs no server.
-
-### Added
 
 - `UiField.minutes(n)` on a `TIME` field — the times offered every `n`
   minutes (`minutes(15)` for quarter hours), and a value typed in between is
@@ -103,7 +114,32 @@ fresh empty one, so nothing has to be moved by hand at release time.
   painter in Java, one in TypeScript, held together by a parity test over all
   three views.
 
+### Changed
+
+- A `calendar` moves without a server: previous, next, today and the view
+  switch re-render it from the model it was drawn from, so a calendar with no
+  `onNavigate` still navigates, and one whose server answers with nothing
+  still shows the period asked for. The trigger, when there is one, fires
+  after the re-render as before. `onSelect` fills `{date}`, `{hour}` and the
+  new `{time}` wherever the trigger carries them, an inline patch included,
+  and `updateCalendar(id, mutate)` lets the page change a drawn calendar —
+  together, a "new event" dialog needs no server.
+
 ### Fixed
+
+- A calendar handed a day that does not exist (`2026-02-30`) showed it as
+  the day the browser rolled it over to, while the server fell back to today;
+  both now fall back to today.
+- A kanban card whose drag was cancelled while a patch re-rendered the lane
+  around it stayed where the pointer had left it, with an error in the
+  console; it goes back to its lane.
+- An image pasted into a RICHTEXT field that needs no scaling goes in as it
+  is: an animated GIF keeps its animation, a transparent one its
+  transparency. A larger one is scaled to PNG unless it was a JPEG.
+- A RICHTEXT field no longer leaves a window listener behind each time its
+  form is re-rendered, and a calendar no longer keeps a copy of every model
+  it ever drew: it moves between periods through the renderer's own model and
+  a REPLACE, so focus inside it survives a click on Next.
 
 - `UiAppShell` no longer leaves a headerless shell with no way to fold its
   menu. The shell switched the menu's own toggle off unconditionally, on the

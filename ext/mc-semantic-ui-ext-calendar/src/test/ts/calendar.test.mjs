@@ -88,5 +88,21 @@ describe("calendar renderer", () => {
         renderer.render({ type: "calendar", id: "u", date: "2026-09-21", events: [] });
         assert.equal(ext.updateCalendar("u", n => ({ ...n, events: [{ type: "calendar-event", id: "e", title: "New", start: "2026-09-22" }] })), true);
         assert.equal(ext.updateCalendar("nope", n => n), false);
+        assert.equal(renderer.modelOf("u").events.length, 1, "the renderer holds the new model");
+    });
+
+    test("a day that does not exist is no date: both painters fall back to today", () => {
+        const html = ext.renderCalendar({ type: "calendar", id: "c", date: "2026-02-30", today: "2026-09-21" }, renderer);
+        assert.match(html, /<h2 class="sui-calendar-title">September 2026<\/h2>/);
+        assert.throws(() => ext.parseDate("2026-13-01"));
+        assert.deepEqual(ext.parseDate("2028-02-29"), { y: 2028, m: 2, d: 29 });
+    });
+
+    test("only colour syntax reaches the style attribute", () => {
+        const html = ext.renderCalendar({ type: "calendar", id: "c", date: "2026-09-21", events: [
+            { type: "calendar-event", id: "a", title: "A", start: "2026-09-21", color: "red;background:url(https://ev.il)" },
+            { type: "calendar-event", id: "b", title: "B", start: "2026-09-22", color: "#4f6bed" }] }, renderer);
+        assert.doesNotMatch(html, /ev\.il|background/);
+        assert.match(html, /--sui-calendar-accent:#4f6bed/);
     });
 });

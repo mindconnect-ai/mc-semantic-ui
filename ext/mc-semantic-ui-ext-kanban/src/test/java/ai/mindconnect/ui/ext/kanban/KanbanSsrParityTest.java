@@ -44,6 +44,16 @@ class KanbanSsrParityTest {
     }
 
     @Test
+    void onlyColourSyntaxReachesTheStyleAttribute() {
+        var board = UiKanban.of("b", UiKanbanLane.of("l", "Lane",
+                UiKanbanCard.of("c", "Card").color("red;background:url(https://ev.il)"),
+                UiKanbanCard.of("d", "Card").color("#4f6bed")).color("expression(alert(1))"));
+        String html = new SuiServerRenderer(new ObjectMapper().findAndRegisterModules()).render(board);
+        assertTrue(!html.contains("ev.il") && !html.contains("expression"), html);
+        assertTrue(html.contains("style=\"--sui-kanban-accent:#4f6bed\""), html);
+    }
+
+    @Test
     void aBoardBuiltInJavaRendersWithoutAnyJavaScriptHooksWhenReadOnly() {
         var board = UiKanban.of("b", UiKanbanLane.of("l", "Lane", UiKanbanCard.of("c", "Card")))
                 .readOnly(true);

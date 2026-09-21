@@ -4,7 +4,7 @@ import { renderIcon } from "./icon.js";
 import { renderActions } from "./shared.js";
 import { cls, evt } from "./util.js";
 import { choicesInDisplayOrder } from "./choices.js";
-import { renderRichTextToolbar } from "./richtext.js";
+import { renderRichTextToolbar, sanitizeRichText } from "./richtext.js";
 
 /**
  * A time as `HH:mm`, rounded to the nearest multiple of `stepSeconds`
@@ -56,9 +56,10 @@ export function renderField(f: UiField): string {
     let input = f.editable
         ? renderInput(f)
         : f.fieldType === "RICHTEXT" && f.value != null && String(f.value) !== ""
-            // Formatted text is shown as what it is — the value is HTML the
-            // server meant to be rendered, as in the editor.
-            ? `<div class="sui-richtext-view">${String(f.value)}</div>`
+            // Formatted text is shown as formatted text — reduced first to
+            // what the editor itself produces, so a stored value that holds a
+            // script or a handler never runs. Parity with RichTextSanitizer.java.
+            ? `<div class="sui-richtext-view">${sanitizeRichText(String(f.value))}</div>`
             : `<span class="sui-value">${f.value != null ? escapeHtml(f.value) : "—"}</span>`;
     // Leading in-field icon (decorative): wrap the control so CSS can lay the
     // icon over the input's left padding. Only meaningful for editable
@@ -133,10 +134,12 @@ function renderInput(f: UiField): string {
             // wired by wireRichText() (renderers/richtext.ts): the input
             // follows every edit, pastes are reduced to plain formatting, the
             // toolbar drives the editor. Parity with field.hbs.
+            // The value is sanitised on the way in, as in the read-only view.
             const placeholder = f.placeholder ? ` data-placeholder="${escapeHtml(f.placeholder)}"` : "";
+            const html = sanitizeRichText(f.value != null ? String(f.value) : "");
             return `<div class="sui-richtext" data-sui-richtext>${renderRichTextToolbar()}`
-                + `<div class="sui-richtext-editor" id="${id}" contenteditable="true" role="textbox" aria-multiline="true"${placeholder}>${f.value != null ? String(f.value) : ""}</div>`
-                + `<input type="hidden" name="${name}" value="${valueAttr}" data-sui-type="RICHTEXT"${changeAttrs}></div>`;
+                + `<div class="sui-richtext-editor" id="${id}" contenteditable="true" role="textbox" aria-multiline="true"${placeholder}>${html}</div>`
+                + `<input type="hidden" name="${name}" value="${escapeHtml(html)}" data-sui-type="RICHTEXT"${changeAttrs}></div>`;
         }
         case "BOOLEAN":
             return `<input type="checkbox" id="${id}" name="${name}"${changeAttrs} ${f.value ? "checked" : ""}>`;

@@ -1,5 +1,6 @@
 package ai.mindconnect.ui.ext.calendar;
 
+import ai.mindconnect.ui.html.CssColor;
 import ai.mindconnect.ui.model.UiNode;
 import ai.mindconnect.ui.model.UiTrigger;
 import ai.mindconnect.ui.ssr.SuiHandlebarsHelpers;
@@ -27,18 +28,9 @@ public final class CalendarPainter {
 
     private CalendarPainter() {}
 
-    private static final Map<String, String> HTML_ESCAPE = Map.of(
-            "&", "&amp;", "<", "&lt;", ">", "&gt;", "\"", "&quot;", "'", "&#39;");
-
+    /** The core's escaping, so this painter's output never drifts from every other template's. */
     static String esc(Object value) {
-        if (value == null) return "";
-        String s = String.valueOf(value);
-        var sb = new StringBuilder(s.length());
-        for (int i = 0; i < s.length(); i++) {
-            String ch = String.valueOf(s.charAt(i));
-            sb.append(HTML_ESCAPE.getOrDefault(ch, ch));
-        }
-        return sb.toString();
+        return SuiHandlebarsHelpers.escapeHtml(value);
     }
 
     private static final String[] EN_WEEKDAYS = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
@@ -155,7 +147,8 @@ public final class CalendarPainter {
     }
 
     private static String accent(String color) {
-        return color == null || color.isEmpty() ? "" : " style=\"--sui-calendar-accent:" + esc(color) + "\"";
+        String c = CssColor.orNull(color);
+        return c == null ? "" : " style=\"--sui-calendar-accent:" + esc(c) + "\"";
     }
 
     private static UiTrigger fill(UiTrigger t, Map<String, String> values) {
@@ -185,7 +178,8 @@ public final class CalendarPainter {
         int s = Math.max(lo, e.startMin), en = Math.min(hi, e.endMin);
         if (en <= s) return "";
         // One style attribute: the accent (when there is one) and the position.
-        String style = (e.node.getColor() == null || e.node.getColor().isEmpty() ? "" : "--sui-calendar-accent:" + esc(e.node.getColor()) + ";")
+        String color = CssColor.orNull(e.node.getColor());
+        String style = (color == null ? "" : "--sui-calendar-accent:" + esc(color) + ";")
                 + "--sui-calendar-start:" + (s - lo) + ";--sui-calendar-length:" + Math.max(15, en - s);
         return "<div class=\"" + cls("sui-calendar-event", e.node) + "\"" + SuiHandlebarsHelpers.eventAttrs(e.node, mapper)
                 + " id=\"" + esc(e.node.getId()) + "\" data-sui=\"calendar-event\" style=\"" + style + "\">"

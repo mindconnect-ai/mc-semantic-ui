@@ -1,7 +1,9 @@
 package ai.mindconnect.ui.ext.kanban;
 
+import ai.mindconnect.ui.html.CssColor;
 import ai.mindconnect.ui.model.UiNode;
 import ai.mindconnect.ui.model.UiTrigger;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import lombok.Data;
@@ -38,6 +40,12 @@ public class UiKanbanCard extends UiNode {
         c.setId(id);
         c.setTitle(title);
         return c;
+    }
+
+    /** {@link #color} if it is plain colour syntax, else null — what the templates write into the style attribute. */
+    @JsonIgnore
+    public String getAccentColor() {
+        return CssColor.orNull(color);
     }
 
     public UiKanbanCard description(String description) {
