@@ -21,6 +21,15 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A ticked checkbox is visible in clody again**: the theme's rule for every
+  field input had put the surface colour back over the checked fill (a white
+  tick on white) and rounded the box into a circle; radio buttons lost their
+  dot the same way. amethyst, gipiti and sorbet had the same rule and the
+  same fault. The rules now leave checkboxes and radios to sui.css, at the
+  specificity they had, so text fields, textareas and selects look as before.
+
 ## [0.4.0] - 2026-09-21
 
 ### Security
