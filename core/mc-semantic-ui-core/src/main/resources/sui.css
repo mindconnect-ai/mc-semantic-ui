@@ -1558,6 +1558,21 @@ a[data-trigger].is-loading::before,
 }
 .sui-menu-icon { display: inline-flex; width: 20px; flex: 0 0 20px; justify-content: center; }
 .sui-menu-icon .sui-icon { width: 18px; height: 18px; }
+/* A busy entry — the bus marks a clicked item while its page or trigger is
+   in flight, or the server sets `loading`. The spinner takes the icon's place
+   rather than being prepended (the generic a[data-trigger] rule), so nothing
+   shifts and the rail, which shows only the icon, still shows it. */
+.sui-menu-link.is-loading { pointer-events: none; cursor: progress; }
+.sui-menu-link.is-loading::before { content: none; }
+.sui-menu-link.is-loading > .sui-menu-icon > * { display: none; }
+.sui-menu-link.is-loading > .sui-menu-icon::before {
+    content: "";
+    width: 16px; height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: sui-spin .9s linear infinite;
+}
 .sui-menu-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
 
 /* Group = a <details>; drop the native marker, use our own caret. */

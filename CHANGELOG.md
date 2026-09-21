@@ -28,6 +28,14 @@ fresh empty one, so nothing has to be moved by hand at release time.
   the same gesture as a drawer over it, and `panel-left-close` says so where
   three stacked lines do not.
 
+- A menu entry shows that it is busy. Clicking a `[data-href]` item — a
+  sidebar link in an app shell, say — now marks it `is-loading` until its page
+  has arrived, the way a button is marked while its trigger runs; a page that
+  takes a while gave no sign that the click had landed. `UiMenuItem.loading`
+  (inherited from `UiAction`, now honoured by the menu renderers) sets the
+  same state from the server. In the menu the spinner takes the icon's place
+  rather than being prepended, so nothing shifts and the rail still shows it.
+
 ### Fixed
 
 - `UiAppShell` no longer leaves a headerless shell with no way to fold its

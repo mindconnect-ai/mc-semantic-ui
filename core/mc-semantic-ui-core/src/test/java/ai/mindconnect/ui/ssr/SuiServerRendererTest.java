@@ -376,6 +376,18 @@ class SuiServerRendererTest {
     }
 
     @Test
+    void menuItemLoadingShowsAsBusy() {
+        var menu = UiMenu.of("nav3", null,
+                UiMenuItem.link("m-slow", "Reports", "/reports").icon("chart").loading(true),
+                UiMenuItem.link("m-fast", "Home", "/"));
+        String html = renderer.render(menu);
+        assertTrue(html.contains("<a class=\"sui-menu-link is-loading\" aria-busy=\"true\""), html);
+        // Only the busy one — the plain neighbour stays a plain link.
+        assertEquals(1, html.split("is-loading", -1).length - 1, html);
+        assertTrue(html.contains("data-href=\"/reports\""), html);
+    }
+
+    @Test
     void menuItemOnClickDispatchesInsteadOfNavigating() {
         var menu = UiMenu.of("nav2", null,
                 UiMenuItem.of("m-act", "Reload").icon("refresh")
