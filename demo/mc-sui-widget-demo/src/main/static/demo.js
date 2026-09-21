@@ -32,6 +32,10 @@ import { install as installChart } from "./sui-ext/chart/extension.js";
 // install() takes the bus too, so a drop can fire the board's onMove trigger.
 import { install as installKanban } from "./sui-ext/kanban/extension.js";
 
+// Calendar extension: month, week and day views. Its install() takes the bus
+// too, so picking a day or an hour can fire the calendar's onSelect trigger.
+import { install as installCalendar } from "./sui-ext/calendar/extension.js";
+
 // All icon tokens in the sprite, filled at boot from ./sui/icons.svg so the
 // gallery always reflects whatever the sprite actually ships.
 let ALL_ICONS = [];
@@ -504,6 +508,50 @@ function kanbanTab() {
         text("kanban-intro",
             "The kanban node ships in the mc-semantic-ui-ext-kanban module: lanes of cards, dragged between them. Drop a card and the board fires its onMove trigger — here answered by the demo's stub backend, so watch the toast. The Doing lane has a limit of 2, Done is locked, and the pinned card cannot be dragged."),
         specimen("sp-kanban", "Kanban board — drag a card to another lane", board, boardJava),
+
+// ── Tab: Calendar (extension) ────────────────────────────────────────────────
+function calendarTab() {
+    const ev = (id, title, start, end, o = {}) => ({ type: "calendar-event", id, title, start, end, onClick: toastTrigger(`Opened ${title}`), ...o });
+    const events = [
+        ev("c-1", "Standup", "2026-09-21T09:00", "2026-09-21T09:30", { color: "#4f6bed" }),
+        ev("c-2", "Offsite", "2026-09-22", "2026-09-24", { color: "#29a3a3" }),
+        ev("c-3", "Lunch with Ada", "2026-09-21T12:00", "2026-09-21T13:00"),
+        ev("c-4", "Design review", "2026-09-21T14:00", "2026-09-21T16:00", { color: "#e0a300" }),
+        ev("c-5", "Release", "2026-09-25", null, { color: "#c2410c" }),
+        ev("c-6", "Planning", "2026-09-28T10:00", "2026-09-28T11:30"),
+        ev("c-7", "Retro", "2026-09-25T15:00", "2026-09-25T16:00"),
+        ev("c-8", "1:1", "2026-09-23T11:00", "2026-09-23T11:30"),
+        ev("c-9", "Dentist", "2026-09-23T08:00", "2026-09-23T09:00", { color: "#7c3aed" }),
+        ev("c-10", "Demo day", "2026-09-23T16:00", "2026-09-23T17:00"),
+    ];
+    const calendar = (id, view) => ({
+        type: "calendar", id, view, date: "2026-09-21", today: "2026-09-21", selectedDate: "2026-09-23",
+        startHour: 7, endHour: 19, events,
+        onNavigate: go("/cal?date={date}&view={view}"),
+        onSelect: api("POST", "/cal/pick?date={date}&hour={hour}"),
+    });
+    const calendarJava =
+`UiCalendar.of("cal", UiCalendar.View.WEEK, LocalDate.of(2026, 9, 21))
+    .labels(Locale.GERMAN)                       // weekday and month names from java.time
+    .selectedDate(LocalDate.of(2026, 9, 23))
+    .hours(7, 19)                                // the hours the day and week views show
+    .event(UiCalendarEvent.timed("c-1", "Standup",
+            LocalDateTime.of(2026, 9, 21, 9, 0), LocalDateTime.of(2026, 9, 21, 9, 30)).color("#4f6bed")
+            .onClick(UiTrigger.go("/events/c-1")))
+    .event(UiCalendarEvent.allDay("c-2", "Offsite", LocalDate.of(2026, 9, 22), LocalDate.of(2026, 9, 24)))
+    .onNavigate(UiTrigger.go("/cal?date={date}&view={view}"))
+    .onSelect(UiTrigger.api("POST", "/cal/pick?date={date}&hour={hour}"));
+
+// Browser:  import { install } from "/sui-ext/calendar/extension.js"; install(renderer, { bus });
+// Server:   add the dependency — the calendar renders server-side too, from the
+//           same painter logic; previous / next / today and the view switch are
+//           plain trigger links, so they work with JavaScript switched off.`;
+    return stack("tab-calendar", [
+        text("calendar-intro",
+            "The calendar node ships in the mc-semantic-ui-ext-calendar module: a month, a week or a day of events. The buttons fire onNavigate with {date} and {view} filled in; a click on a day or an hour fires onSelect with {date} and {hour}. Here the stub backend answers every one with a toast, so the views below are fixed on one week of September 2026."),
+        specimen("sp-cal-month", "Month view", calendar("cal-month", "MONTH"), calendarJava),
+        specimen("sp-cal-week", "Week view — timed events in their hour, all-day ones above", calendar("cal-week", "WEEK"), calendarJava),
+        specimen("sp-cal-day", "Day view", calendar("cal-day", "DAY"), calendarJava),
     ], { gap: 16 });
 }
 
@@ -960,6 +1008,7 @@ function buildPage() {
                 { type: "section-entry", id: "sec-layout", title: "Layout & Charts", content: layoutTab() },
                 { type: "section-entry", id: "sec-diagram", title: "Diagram", icon: "grid", content: diagramTab() },
                 { type: "section-entry", id: "sec-kanban", title: "Kanban", icon: "kanban", content: kanbanTab() },
+                { type: "section-entry", id: "sec-calendar", title: "Calendar", icon: "calendar", content: calendarTab() },
                 { type: "section-entry", id: "sec-feedback", title: "Feedback", icon: "loading", content: feedbackTab() },
                 { type: "section-entry", id: "sec-icons",  title: "Icons",           icon: "star", content: iconsTab() },
             ],
@@ -1215,6 +1264,7 @@ async function boot() {
 
     const bus = new SuiEventBus(renderer, root);
     installKanban(renderer, { bus });                     // "kanban" node (extension); drops go through the bus
+    installCalendar(renderer, { bus });                   // "calendar" node (extension); picks go through the bus
     // No backend: fake the server. A small delay is deliberate — it lets the
     // inline loading feedback (the spinner the bus paints on the clicked
     // control) actually be visible before the response lands.

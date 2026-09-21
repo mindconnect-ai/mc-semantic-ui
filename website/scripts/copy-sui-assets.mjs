@@ -21,6 +21,7 @@ const CORE = resolve(repo, "core/mc-semantic-ui-core");
 const EXT = resolve(repo, "ext/mc-semantic-ui-ext-diagram");
 const EXT_CHART = resolve(repo, "ext/mc-semantic-ui-ext-chart");
 const EXT_KANBAN = resolve(repo, "ext/mc-semantic-ui-ext-kanban");
+const EXT_CALENDAR = resolve(repo, "ext/mc-semantic-ui-ext-calendar");
 const STATIC = resolve(here, "../static");
 
 let missing = [];
@@ -76,6 +77,13 @@ mergeDir(resolve(EXT_KANBAN, "target/ts-dist"), resolve(STATIC, "sui-ext"),
 mergeDir(resolve(EXT_KANBAN, "src/main/resources/META-INF/resources/sui-ext"),
         resolve(STATIC, "sui-ext"),
         "ext/mc-semantic-ui-ext-kanban/src/main/resources/META-INF/resources/sui-ext");
+
+// ── calendar extension: same shape again ────────────────────────────────────
+mergeDir(resolve(EXT_CALENDAR, "target/ts-dist"), resolve(STATIC, "sui-ext"),
+        "ext/mc-semantic-ui-ext-calendar/target/ts-dist (run: mvn -pl ext/mc-semantic-ui-ext-calendar install)");
+mergeDir(resolve(EXT_CALENDAR, "src/main/resources/META-INF/resources/sui-ext"),
+        resolve(STATIC, "sui-ext"),
+        "ext/mc-semantic-ui-ext-calendar/src/main/resources/META-INF/resources/sui-ext");
 
 // ── the backend-free apps, folded into the site ─────────────────────────────
 // These back the /widget-demo, /editor and /shop-client-demo links the docs

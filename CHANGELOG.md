@@ -49,6 +49,19 @@ fresh empty one, so nothing has to be moved by hand at release time.
   to the browser painter's bytes by a parity test; the browser bundle adds the
   dragging, through `install(renderer, { bus })`.
 
+- **A calendar**, in a new module `mc-semantic-ui-ext-calendar`: `calendar`
+  (`UiCalendar`) shows a month, a week or a day of `calendar-event`s. Previous,
+  next, today and the view switch are trigger links with `{date}` and `{view}`
+  filled into the `onNavigate` URL at render time, so they work with
+  JavaScript off; a click on a day or an hour fires `onSelect` with `{date}`
+  and `{hour}`, through the browser bundle (`install(renderer, { bus })`). An
+  event is all-day when its `start` has no time, and may span days; a timed
+  one sits in its hour of the day and week views. The words shown come from
+  `labels` — `labels(Locale)` fills the names from `java.time` — and `today`
+  travels in the model, so the server and the browser draw the same bytes: one
+  painter in Java, one in TypeScript, held together by a parity test over all
+  three views.
+
 ### Fixed
 
 - `UiAppShell` no longer leaves a headerless shell with no way to fold its

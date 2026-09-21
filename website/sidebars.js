@@ -104,6 +104,7 @@ const sidebars = {
             'semantic-ui/chart-extension',
             'semantic-ui/diagram-extension',
             'semantic-ui/kanban-extension',
+            'semantic-ui/calendar-extension',
           ],
         },
         {

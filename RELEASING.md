@@ -17,6 +17,7 @@ renderer and the visual editor:
 | Diagram extension | `ai.mindconnect:mc-semantic-ui-ext-diagram` |
 | Chart extension | `ai.mindconnect:mc-semantic-ui-ext-chart` |
 | Kanban extension | `ai.mindconnect:mc-semantic-ui-ext-kanban` |
+| Calendar extension | `ai.mindconnect:mc-semantic-ui-ext-calendar` |
 | JavaFX renderer | `ai.mindconnect:mc-semantic-ui-javafx` (experimental) |
 | Visual editor | `ai.mindconnect:mc-sui-editor` |
 
@@ -34,7 +35,7 @@ javadoc, GPG-signs everything, and uploads to the Central Portal, where the
 bundle waits as a draft until somebody presses Publish.
 
 **The client, its extensions and the editor → npm**, under
-`@mindconnect-ai/`. Seven packages, cut from the same commit and carrying the
+`@mindconnect-ai/`. Eight packages, cut from the same commit and carrying the
 same version as the poms, because each JAR and its tarball ship the identical
 `dist/` and SSR and SPA markup have to match. The extensions and the editor
 name the core as a peer at that exact version, and the workflow rewrites that

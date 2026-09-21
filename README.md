@@ -96,6 +96,7 @@ is a sweet spot, and where it explicitly isn't.
 | `ext/mc-semantic-ui-ext-diagram`      | Diagram extension (canvas-style graph nodes / edges)                       |
 | `ext/mc-semantic-ui-ext-chart`        | Chart extension (bar / line / area / pie / donut, SVG)                     |
 | `ext/mc-semantic-ui-ext-kanban`       | Kanban extension (lanes of cards, dragged between them; SSR too)          |
+| `ext/mc-semantic-ui-ext-calendar`     | Calendar extension (month / week / day views of events; SSR too)          |
 | `editor/mc-sui-editor`                | Embeddable visual editor (Tree + Property panel + Live preview)            |
 | `editor/mc-sui-editor-app`            | Standalone demo for the editor with sample content                         |
 | `editor/mc-sui-editor-standalone-app` | Backend-free editor SPA: projects/pages in localStorage, live preview, exports to static / Spring Boot / Node |
@@ -461,7 +462,8 @@ mc-semantic-ui/                            — repo root (the build reactor)
 │   ├── mc-semantic-ui-ext-markdown/     — UiMarkdown
 │   ├── mc-semantic-ui-ext-diagram/        — diagram (graph) extension
 │   ├── mc-semantic-ui-ext-chart/          — chart extension
-│   └── mc-semantic-ui-ext-kanban/         — kanban board extension
+│   ├── mc-semantic-ui-ext-kanban/         — kanban board extension
+│   └── mc-semantic-ui-ext-calendar/       — calendar extension
 │
 ├── editor/
 │   ├── mc-sui-editor/                     — embeddable editor starter
