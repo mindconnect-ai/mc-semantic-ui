@@ -1,4 +1,4 @@
 {{!--
   UiKanbanLane → one column. Mirror of renderKanbanLane() in kanban/extension.ts.
 --}}
-<section class="sui-kanban-lane{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui="kanban-lane" data-id="{{id}}"{{#if limit}} data-limit="{{limit}}"{{/if}}{{#if locked}} data-locked=""{{/if}}{{#if color}} style="--sui-kanban-accent:{{color}}"{{/if}}><header class="sui-kanban-lane-head"><h3 class="sui-kanban-lane-title">{{title}}</h3><span class="sui-kanban-lane-count">{{countLabel}}</span></header><ul class="sui-kanban-cards" role="list">{{#each cards}}{{{render this}}}{{/each}}</ul></section>
+<section class="sui-kanban-lane{{#if cssClass}} {{cssClass}}{{/if}}"{{{events this}}} id="{{id}}" data-sui="kanban-lane" data-id="{{id}}"{{#if limit}} data-limit="{{limit}}"{{/if}}{{#if locked}} data-locked=""{{/if}}{{#if accentColor}} style="--sui-kanban-accent:{{accentColor}}"{{/if}}><header class="sui-kanban-lane-head"><h3 class="sui-kanban-lane-title">{{title}}</h3><span class="sui-kanban-lane-count">{{countLabel}}</span></header><ul class="sui-kanban-cards" role="list">{{#each cards}}{{{render this}}}{{/each}}</ul></section>

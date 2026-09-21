@@ -1147,6 +1147,16 @@ class SuiServerRendererTest {
     }
 
     @Test
+    void richtextValuesAreSanitisedBeforeTheyAreRendered() {
+        String value = "<p>Hi</p><img src='x' onerror='alert(1)'><script>alert(2)</script>";
+        String editable = renderer.render(UiField.richtext("n", "Notes", value).asEditable());
+        assertFalse(editable.contains("onerror") || editable.contains("<script") || editable.contains("alert"), editable);
+        assertTrue(editable.contains("aria-multiline='true'><p>Hi</p></div>".replace('\'', '"')), editable);
+        String readOnly = renderer.render(UiField.richtext("n", "Notes", value));
+        assertTrue(readOnly.contains("<div class='sui-richtext-view'><p>Hi</p></div>".replace('\'', '"')), readOnly);
+    }
+
+    @Test
     void richtextReadOnlyShowsTheHtmlAsFormattedText() {
         String html = renderer.render(UiField.richtext("n", "Notes", "<p>Hi <b>there</b></p>"));
         assertTrue(html.contains("<div class=\"sui-richtext-view\"><p>Hi <b>there</b></p></div>"), html);

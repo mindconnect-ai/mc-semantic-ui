@@ -38,7 +38,7 @@ describe("RICHTEXT field", () => {
         assert.match(renderField({ type: "field", id: "n", label: "N", fieldType: "RICHTEXT" }), /<span class="sui-value">—<\/span>/);
     });
 
-    test("a paste keeps formatting tags and drops what runs or styles", () => {
+    test("the tag lists: kept, dropped with content, unwrapped", () => {
         for (const t of ["p", "b", "strong", "i", "em", "u", "ul", "ol", "li", "a", "blockquote", "br", "h2", "code"]) {
             assert.equal(rt.allowedTag(t), true, t);
             assert.equal(rt.droppedTag(t), false, t);
@@ -80,5 +80,53 @@ describe("RICHTEXT field", () => {
 
     test("the toolbar lists its commands in order", () => {
         assert.deepEqual(rt.RICHTEXT_COMMANDS.map(c => c[0]), ["bold", "italic", "underline", "bullets", "numbers", "link", "quote", "clear"]);
+    });
+});
+
+/**
+ * One policy in three places: this sanitiser, the Java RichTextSanitizer
+ * and whatever the renderer draws from them. Both test suites run the same
+ * cases from src/test/resources/richtext/sanitize-cases.json, so the browser
+ * and the server can never disagree about what survives.
+ */
+describe("sanitizeRichText", () => {
+    let sanitizeRichText, safeHref, cases;
+
+    before(async () => {
+        ({ sanitizeRichText, safeHref } = await import(`${DIST}/renderers/richtext.js`));
+        const { readFileSync } = await import("node:fs");
+        cases = JSON.parse(readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)),
+            "../resources/richtext/sanitize-cases.json"), "utf8"));
+    });
+
+    test("every shared case", () => {
+        for (const c of cases) assert.equal(sanitizeRichText(c.in), c.out, c.name);
+    });
+
+    test("cleaning clean output changes nothing", () => {
+        for (const c of cases) assert.equal(sanitizeRichText(c.out), c.out, c.name);
+    });
+
+    test("null and undefined are empty", () => {
+        assert.equal(sanitizeRichText(null), "");
+        assert.equal(sanitizeRichText(undefined), "");
+    });
+
+    test("a link scheme is checked as a browser reads it: controls and spaces removed", () => {
+        const tab = String.fromCharCode(9), nl = String.fromCharCode(10), soh = String.fromCharCode(1);
+        for (const bad of [`jav${tab}ascript:alert(1)`, `java${nl}script:x`, `${soh}javascript:x`, "java script:x"]) {
+            assert.equal(safeHref(bad), false, JSON.stringify(bad));
+        }
+    });
+
+    test("a rendered RICHTEXT value is sanitised, in the editor, the hidden input and read-only", async () => {
+        const { renderField } = await import(`${DIST}/renderers/field.js`);
+        const value = `<p>Hi</p><img src="x" onerror="alert(1)"><script>alert(2)</script>`;
+        const editable = renderField({ type: "field", id: "n", label: "N", fieldType: "RICHTEXT", editable: true, value });
+        assert.doesNotMatch(editable, /onerror|<script|alert/);
+        assert.match(editable, /contenteditable="true" role="textbox" aria-multiline="true"><p>Hi<\/p><\/div>/);
+        assert.match(editable, /<input type="hidden" name="n" value="&lt;p&gt;Hi&lt;\/p&gt;"/);
+        const readOnly = renderField({ type: "field", id: "n", label: "N", fieldType: "RICHTEXT", value });
+        assert.match(readOnly, /<div class="sui-richtext-view"><p>Hi<\/p><\/div>/);
     });
 });

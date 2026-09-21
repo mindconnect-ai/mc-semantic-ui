@@ -160,9 +160,14 @@ focus — a quick action or a "Use this text" button can push new HTML into the
 field while the user is in it. A merge of anything else (a `validationError`,
 say) keeps what the user typed, as for every field.
 
-**The value is the server's HTML, shown as-is.** The editor trusts what the
-server sends; the client-side hygiene is for what the user pastes. Sanitise on
-the server what you store, as with any HTML.
+**Every value is sanitised before it is shown** — read-only and in the
+editor, in both renderers — with the same allowlist a paste goes through: the
+browser uses `sanitizeRichText()`, the server templates
+`ai.mindconnect.ui.html.RichTextSanitizer`. A stored value that holds a
+script, a handler or a `javascript:` link, however it is spelled, is drawn
+without them. Still clean what you store: run
+`RichTextSanitizer.sanitize(html)` on what a form submits, so the value in
+your database is the value on the page.
 
 **`TIME`** is the browser's own time picker: `UiField.time("from", "From",
 LocalTime.of(8, 30))` renders `<input type="time">` with the value as `HH:mm`;

@@ -146,7 +146,11 @@ interface Ymd { y: number; m: number; d: number; }
 export function parseDate(iso: string): Ymd {
     const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
     if (!m) throw new Error(`sui-calendar: not a date: ${iso}`);
-    return { y: Number(m[1]), m: Number(m[2]), d: Number(m[3]) };
+    const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    // A day that does not exist is no date at all — as LocalDate.of() says on
+    // the server — rather than the day Date.UTC would roll it over to.
+    if (mo < 1 || mo > 12 || d < 1 || d > daysInMonth(y, mo)) throw new Error(`sui-calendar: no such day: ${iso}`);
+    return { y, m: mo, d };
 }
 
 /** Minutes past midnight from a `yyyy-MM-ddTHH:mm` value, or null when it carries no time. */
@@ -257,8 +261,20 @@ function onDay(events: Ev[], day: Ymd): Ev[] {
 // Mirrored line for line by CalendarPainter.java; the parity test holds both
 // to calendar.expected-*.html.
 
+/**
+ * Plain colour syntax — a hex value, a name, rgb()/hsl() with numbers in it,
+ * or var(--name). A `color` that is anything else, in particular a value with
+ * a semicolon that would add declarations of its own to the style attribute
+ * (`red;background:url(…)`), is dropped. The same pattern as CssColor.java.
+ */
+const SAFE_COLOR = /^(?:#[0-9a-fA-F]{3,8}|[a-zA-Z]{1,32}|(?:rgb|rgba|hsl|hsla)\([0-9.,% \/+-]{1,64}\)|var\(--[a-zA-Z0-9_-]{1,64}\))$/;
+export function safeColor(color: string | undefined): string | undefined {
+    return color != null && SAFE_COLOR.test(color) ? color : undefined;
+}
+
 function accent(color: string | undefined): string {
-    return color ? ` style="--sui-calendar-accent:${esc(color)}"` : "";
+    const c = safeColor(color);
+    return c ? ` style="--sui-calendar-accent:${esc(c)}"` : "";
 }
 
 function fill(t: Trigger, values: Record<string, string>): Trigger {
@@ -282,7 +298,8 @@ function block(e: Ev, startHour: number, endHour: number): string {
     const s = Math.max(lo, e.startMin!), en = Math.min(hi, e.endMin!);
     if (en <= s) return "";
     // One style attribute: the accent (when there is one) and the position.
-    const style = (e.node.color ? `--sui-calendar-accent:${esc(e.node.color)};` : "")
+    const color = safeColor(e.node.color);
+    const style = (color ? `--sui-calendar-accent:${esc(color)};` : "")
         + `--sui-calendar-start:${s - lo};--sui-calendar-length:${Math.max(15, en - s)}`;
     return `<div class="${cls("sui-calendar-event", e.node)}"${evt(e.node)} id="${esc(e.node.id)}" data-sui="calendar-event" style="${style}">`
         + `<span class="sui-calendar-event-time">${hhmm(e.startMin!)}</span><span class="sui-calendar-event-title">${esc(e.node.title)}</span></div>`;
@@ -435,12 +452,26 @@ function timeBody(c: Ctx): string {
         + `<div class="sui-calendar-times"><div class="sui-calendar-hours">${hourLabels}</div>${cols}</div></div>`;
 }
 
-/** The node behind each rendered calendar, by id — what a client-side navigation re-renders from. */
-const models = new Map<string, UiCalendarWire>();
+/**
+ * The renderer the extension was installed on. A calendar that redraws
+ * itself reads its model from it (modelOf) and hands the new one back as a
+ * REPLACE — the path a server's REPLACE takes, morphed and remembered — so
+ * the extension keeps no copy of any calendar of its own.
+ */
 let rendererRef: SuiRenderer | null = null;
 
+/** Draws a calendar again from a new model, as a REPLACE of its node. */
+function redraw(id: string, next: UiCalendarWire): void {
+    rendererRef!.applyPatch({ patches: [{ op: "REPLACE", targetId: id, node: next }] } as never);
+}
+
+/** The model a calendar was last drawn from, if this renderer drew it. */
+function modelOf(id: string): UiCalendarWire | undefined {
+    const node = rendererRef?.modelOf(id) as UiCalendarWire | undefined;
+    return node && node.type === "calendar" ? node : undefined;
+}
+
 export function renderCalendar(node: UiCalendarWire, r: SuiRenderer): string {
-    models.set(node.id, node);
     const c = context(node);
     const select = node.onSelect ? ` data-select-trigger='${encodeTrigger(node.onSelect)}'` : "";
     // The header's slot for the page's own widgets — rendered here, not in
@@ -497,14 +528,13 @@ export function selectTrigger(template: Trigger, date: string, hour: number | nu
  * Returns false when no calendar of that id has been rendered here.
  */
 export function updateCalendar(id: string, mutate: (node: UiCalendarWire) => UiCalendarWire): boolean {
-    const node = models.get(id);
+    const node = modelOf(id);
     if (!node || !rendererRef) return false;
     const next = mutate(node);
-    models.set(id, next);
-    if (typeof document !== "undefined") {
-        const el = document.getElementById(id);
-        if (el) el.outerHTML = rendererRef.render(next as never);
-    }
+    // Not on the page (yet, or at all): the renderer still learns the new
+    // model, so the next draw starts from it.
+    if (typeof document === "undefined" || !document.getElementById(id)) rendererRef.render(next as never);
+    else redraw(id, next);
     return true;
 }
 
@@ -557,7 +587,7 @@ function defineElement(): void {
  * click still finds the button in the page.
  */
 function navigateFrom(el: HTMLElement, e: MouseEvent, btn: HTMLElement): void {
-    const node = models.get(el.id);
+    const node = modelOf(el.id);
     const date = btn.dataset.navDate, view = btn.dataset.navView as CalendarView | undefined;
     if (!node || !rendererRef || !date || !view) return;   // not ours to handle: the trigger link stands
     const raw = btn.getAttribute("data-trigger");
@@ -570,9 +600,8 @@ function navigateFrom(el: HTMLElement, e: MouseEvent, btn: HTMLElement): void {
     else if (!raw) e.preventDefault();
     const id = el.id;
     queueMicrotask(() => {
-        const current = document.getElementById(id);
-        if (!current) return;
-        current.outerHTML = rendererRef!.render(next as never);
+        if (!document.getElementById(id)) return;
+        redraw(id, next);
         const fresh = document.getElementById(id) ?? undefined;
         if (trigger && bus) void bus.dispatch(trigger, fresh);
     });

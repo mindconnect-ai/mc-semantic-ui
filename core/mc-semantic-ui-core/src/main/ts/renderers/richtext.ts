@@ -8,8 +8,9 @@ import { renderIcon } from "./icon.js";
  * <ul>
  *   <li>{@link renderRichTextToolbar} — the toolbar's markup, shared by the
  *       browser renderer (renderers/field.ts) and mirrored in field.hbs;</li>
- *   <li>{@link sanitizeHtml} — what a paste is reduced to: the same small
- *       vocabulary the toolbar produces, and nothing that runs or styles;</li>
+ *   <li>{@link sanitizeRichText} — what a value and a paste are reduced to:
+ *       the same small vocabulary the toolbar produces, and nothing that runs
+ *       or styles;</li>
  *   <li>{@link wireRichText} — the behaviour, run by the event bus after
  *       every render: the toolbar drives the editor, every edit lands in the
  *       hidden input, and a value the server changed lands in the editor.</li>
@@ -59,11 +60,20 @@ export function allowedTag(tag: string): boolean { return ALLOWED_TAGS.has(tag.t
 export function droppedTag(tag: string): boolean { return DROPPED_TAGS.has(tag.toLowerCase()); }
 
 /**
+ * A URL as a browser resolves its scheme: every control character and space
+ * removed — a browser drops tabs and newlines anywhere in a URL, so
+ * `jav\tascript:` is `javascript:` to it — and lower-cased.
+ */
+function schemeView(url: string): string {
+    return url.replace(/[\u0000-\u0020\u007f-\u009f]/g, "").toLowerCase();
+}
+
+/**
  * Whether a link target may be kept: http(s), mailto, tel, or a relative
- * path — never a scheme that runs something.
+ * path — never a scheme that runs something, however it is spelled.
  */
 export function safeHref(href: string): boolean {
-    const v = href.trim().toLowerCase();
+    const v = schemeView(href);
     if (v === "") return false;
     if (/^(https?:|mailto:|tel:)/.test(v)) return true;
     if (/^[a-z][a-z0-9+.-]*:/.test(v)) return false;   // any other scheme
@@ -72,56 +82,131 @@ export function safeHref(href: string): boolean {
 
 /**
  * Whether an image source may be kept: an image embedded as data, or one
- * fetched over http(s) — never a script scheme, never anything else inline.
+ * fetched over http(s) — never a script scheme, never SVG, nothing else inline.
  */
 export function safeImageSrc(src: string): boolean {
-    const v = src.trim().toLowerCase();
+    const v = schemeView(src);
     return /^data:image\/(png|jpeg|jpg|gif|webp|bmp);base64,/.test(v) || /^https?:\/\//.test(v);
 }
 
+// The sanitiser below works on the string, not on a DOM, so it runs the same
+// in a browser, in Node and — as RichTextSanitizer.java — on the server: one
+// policy, three places, held together by src/test/resources/richtext/
+// sanitize-cases.json, which both test suites run. It is safe by
+// construction: the output is rebuilt from scratch — tags from the allowlist
+// with checked attributes, written by this code, and every other character
+// of the input as escaped text. Nothing of the input reaches a tag or an
+// attribute position unexamined, so a parser quirk cannot turn text into
+// markup.
+
+/** Elements removed with everything in them: their content is code, style, or not text the user meant. */
+const RAW_CONTENT = /<(script|style|head|title|template|noscript|iframe|object|embed|applet|svg|math|form|button|textarea|select|option|xmp|noembed|noframes|plaintext)(?![a-zA-Z0-9:-])[\s\S]*?(?:<\/\1[ \t\n\f\r]*>|(?![\s\S]))/gi;
+/** A tag, opening or closing, with its attributes. */
+const TAG = /<(\/?)([a-zA-Z][a-zA-Z0-9:-]*)((?:[ \t\n\f\r]+[^ \t\n\f\r"'>\/=]+(?:[ \t\n\f\r]*=[ \t\n\f\r]*(?:"[^"]*"|'[^']*'|[^ \t\n\f\r"'>]+))?)*)[ \t\n\f\r]*\/?>/g;
+/** One attribute inside a tag's attribute text. */
+const ATTR = /([^ \t\n\f\r"'>\/=]+)(?:[ \t\n\f\r]*=[ \t\n\f\r]*(?:"([^"]*)"|'([^']*)'|([^ \t\n\f\r"'>]+)))?/g;
+const VOID_TAGS = new Set(["br", "hr", "img"]);
+
+/** The named entities an attribute value is decoded from — enough to spell any scheme a browser would run. */
+const NAMED_ENTITIES: Record<string, string> = {
+    amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'", nbsp: "\u00a0",
+    colon: ":", period: ".", plus: "+", sol: "/", num: "#", excl: "!", quest: "?",
+    equals: "=", lpar: "(", rpar: ")", Tab: "\t", NewLine: "\n",
+};
+
 /**
- * Reduces HTML to what the toolbar itself can produce. Elements that run or
- * style are dropped with their content, unknown ones are unwrapped, and no
- * attribute survives but a safe `href` on a link. Parsed by the browser's own
- * inert parser, so nothing here executes on the way through.
+ * An attribute value with its character references resolved. What is
+ * checked is this decoded value, and what is written is this decoded value
+ * escaped afresh — so whatever a browser would have made of the original
+ * spelling, what it reads is exactly what was checked.
  */
-export function sanitizeHtml(html: string): string {
-    const doc = new DOMParser().parseFromString(`<!doctype html><body>${html}`, "text/html");
-    clean(doc.body);
-    return doc.body.innerHTML;
+export function decodeEntities(value: string): string {
+    return value.replace(/&(#[xX][0-9a-fA-F]{1,6}|#[0-9]{1,7}|[a-zA-Z][a-zA-Z0-9]{0,31});?/g, (all, ent: string) => {
+        if (ent[0] === "#") {
+            const cp = ent[1] === "x" || ent[1] === "X" ? parseInt(ent.slice(2), 16) : parseInt(ent.slice(1), 10);
+            return cp > 0 && cp <= 0x10ffff && !(cp >= 0xd800 && cp <= 0xdfff) ? String.fromCodePoint(cp) : "\ufffd";
+        }
+        return Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, ent) ? NAMED_ENTITIES[ent]! : all;
+    });
 }
 
-function clean(parent: Element): void {
-    for (const child of Array.from(parent.childNodes)) {
-        if (child.nodeType === Node.COMMENT_NODE) { child.remove(); continue; }
-        if (child.nodeType !== Node.ELEMENT_NODE) continue;
-        const el = child as Element;
-        const tag = el.tagName.toLowerCase();
-        if (droppedTag(tag)) { el.remove(); continue; }
-        clean(el);
-        if (!allowedTag(tag)) {
-            // Unwrap: the children take the element's place.
-            while (el.firstChild) parent.insertBefore(el.firstChild, el);
-            el.remove();
+function escapeAttr(value: string): string {
+    return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+/** Text between tags: `<` and `>` escaped, a stray `&` too; a well-formed entity is kept as the text it stands for. */
+function escapeText(text: string): string {
+    return text.replace(/&(?!(?:#[xX][0-9a-fA-F]{1,6}|#[0-9]{1,7}|[a-zA-Z][a-zA-Z0-9]{0,31});)/g, "&amp;")
+        .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/** The attributes an allowed tag keeps, rebuilt: ` name="value"`, checked and escaped. */
+function keptAttributes(tag: string, attrText: string): string | null {
+    let out = "";
+    const seen = new Set<string>();
+    let hasHref = false, hasSrc = false;
+    ATTR.lastIndex = 0;
+    for (let m = ATTR.exec(attrText); m; m = ATTR.exec(attrText)) {
+        const name = m[1]!.toLowerCase();
+        if (seen.has(name)) continue;            // a browser keeps the first; so does this
+        seen.add(name);
+        const value = decodeEntities(m[2] ?? m[3] ?? m[4] ?? "");
+        const keep = (tag === "a" && name === "href" && safeHref(value))
+            || (tag === "img" && name === "src" && safeImageSrc(value))
+            || (tag === "img" && name === "alt")
+            || (tag === "img" && (name === "width" || name === "height") && /^[0-9]{1,5}$/.test(value));
+        if (!keep) continue;
+        if (name === "href") hasHref = true;
+        if (name === "src") hasSrc = true;
+        out += ` ${name}="${escapeAttr(value)}"`;
+    }
+    // A link with nowhere to go is only its text; an image with no source is nothing.
+    if ((tag === "a" && !hasHref) || (tag === "img" && !hasSrc)) return null;
+    return out;
+}
+
+/**
+ * Reduces HTML to what the toolbar itself produces: paragraphs, line breaks,
+ * bold, italic, underline, lists, quotes, headings, code, links to http(s),
+ * mail or phone, and images embedded as data or fetched over http(s).
+ * Script, style and embedded documents go with their content, other tags are
+ * unwrapped (their text stays), and no attribute survives but a checked
+ * `href`, `src`, `alt`, `width` or `height`. Used on what is pasted, and on
+ * every value a RICHTEXT field renders.
+ */
+export function sanitizeRichText(html: string | null | undefined): string {
+    if (html == null || html === "") return "";
+    const input = String(html)
+        .replace(/<!--[\s\S]*?(?:-->|(?![\s\S]))/g, "")
+        .replace(/<[!?][\s\S]*?>/g, "")
+        .replace(RAW_CONTENT, "");
+    let out = "";
+    let last = 0;
+    const anchors: boolean[] = [];               // per open <a>: was it written?
+    TAG.lastIndex = 0;
+    for (let m = TAG.exec(input); m; m = TAG.exec(input)) {
+        out += escapeText(input.slice(last, m.index));
+        last = m.index + m[0].length;
+        const closing = m[1] === "/";
+        const tag = m[2]!.toLowerCase();
+        if (!allowedTag(tag)) continue;
+        if (closing) {
+            if (VOID_TAGS.has(tag)) continue;
+            if (tag === "a" && !anchors.pop()) continue;
+            out += `</${tag}>`;
             continue;
         }
-        for (const attr of Array.from(el.attributes)) {
-            const keep = (tag === "a" && attr.name === "href" && safeHref(attr.value))
-                || (tag === "img" && attr.name === "src" && safeImageSrc(attr.value))
-                || (tag === "img" && attr.name === "alt")
-                || (tag === "img" && (attr.name === "width" || attr.name === "height") && /^\d{1,5}$/.test(attr.value));
-            if (!keep) el.removeAttribute(attr.name);
-        }
-        // A link left with nowhere to go is only its text; an image with no
-        // source is nothing.
-        if (tag === "a" && !el.hasAttribute("href")) {
-            while (el.firstChild) parent.insertBefore(el.firstChild, el);
-            el.remove();
-        } else if (tag === "img" && !el.hasAttribute("src")) {
-            el.remove();
-        }
+        const attrs = keptAttributes(tag, m[3] ?? "");
+        if (tag === "a") anchors.push(attrs !== null);
+        if (attrs === null) continue;
+        out += `<${tag}${attrs}>`;
     }
+    return out + escapeText(input.slice(last));
 }
+
+/** Earlier name of {@link sanitizeRichText}, kept for callers of the paste hook. */
+export const sanitizeHtml = sanitizeRichText;
 
 /** Plain text as HTML: paragraphs for blank lines, breaks for the rest. */
 function textToHtml(text: string): string {
@@ -133,10 +218,22 @@ function textToHtml(text: string): string {
 /** The longest side an embedded image is scaled down to, in pixels. */
 export const MAX_IMAGE_SIDE = 1280;
 
+/** A file's own bytes as a `data:` URL. */
+function readAsDataUrl(file: File): Promise<string | null> {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : null);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(file);
+    });
+}
+
 /**
- * An image file as a `data:` URL, scaled to at most {@link MAX_IMAGE_SIDE}
- * on its longer side. PNG stays PNG (it may be transparent); anything else
- * becomes JPEG. Null when the browser cannot decode it.
+ * An image file as a `data:` URL. One that is already at most
+ * {@link MAX_IMAGE_SIDE} on its longer side goes in as it is — an animated
+ * GIF keeps its animation, a transparent one its transparency. A larger one
+ * is scaled down: a JPEG (or BMP) stays JPEG, anything that may be
+ * transparent becomes PNG. Null when the browser cannot decode it.
  */
 export async function imageToDataUrl(file: File): Promise<string | null> {
     const url = URL.createObjectURL(file);
@@ -147,6 +244,10 @@ export async function imageToDataUrl(file: File): Promise<string | null> {
             i.onerror = () => reject(new Error("not an image"));
             i.src = url;
         });
+        if (Math.max(img.naturalWidth, img.naturalHeight) <= MAX_IMAGE_SIDE) {
+            const original = await readAsDataUrl(file);
+            if (original && safeImageSrc(original)) return original;
+        }
         const scale = Math.min(1, MAX_IMAGE_SIDE / Math.max(img.naturalWidth, img.naturalHeight, 1));
         const canvas = document.createElement("canvas");
         canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
@@ -154,7 +255,8 @@ export async function imageToDataUrl(file: File): Promise<string | null> {
         const ctx = canvas.getContext("2d");
         if (!ctx) return null;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        return file.type === "image/png" ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.85);
+        const opaque = file.type === "image/jpeg" || file.type === "image/bmp";
+        return opaque ? canvas.toDataURL("image/jpeg", 0.85) : canvas.toDataURL("image/png");
     } catch {
         return null;
     } finally {
@@ -191,8 +293,9 @@ export function wireRichText(root: ParentNode = document): void {
         if (state) {
             if (state.served !== served) {
                 state.served = served;
-                if (editor.innerHTML !== served) editor.innerHTML = served;
-                input.value = served;
+                const clean = sanitizeRichText(served);   // the renderer cleaned it; this makes sure
+                if (editor.innerHTML !== clean) editor.innerHTML = clean;
+                input.value = clean;
             }
             return;
         }
@@ -236,7 +339,7 @@ function install(box: HTMLElement, editor: HTMLElement, input: HTMLInputElement)
         }
         const html = data.getData("text/html");
         const text = data.getData("text/plain");
-        const clean = html ? sanitizeHtml(html) : textToHtml(text);
+        const clean = html ? sanitizeRichText(html) : textToHtml(text);
         document.execCommand("insertHTML", false, clean);
         sync();
     });
@@ -263,6 +366,21 @@ function install(box: HTMLElement, editor: HTMLElement, input: HTMLInputElement)
 
 /** The smallest width an image can be dragged to, in pixels. */
 const MIN_IMAGE_WIDTH = 40;
+
+/**
+ * What re-places each field's image frame when the window resizes. One
+ * window listener serves them all, and a field whose box has left the page
+ * takes itself out — so a form re-rendered a hundred times does not leave a
+ * hundred listeners, each holding a detached editor, behind.
+ */
+const resizeHooks = new Set<() => void>();
+let resizeWired = false;
+function onWindowResize(hook: () => void): void {
+    resizeHooks.add(hook);
+    if (resizeWired || typeof window === "undefined") return;
+    resizeWired = true;
+    window.addEventListener("resize", () => resizeHooks.forEach(h => h()));
+}
 
 /**
  * A click on an image selects it and shows a frame with a handle at its
@@ -317,7 +435,11 @@ function installImageTools(box: HTMLElement, editor: HTMLElement, sync: () => vo
         // Not when the handle took the focus: that is a resize starting.
         setTimeout(() => { if (!dragging) hide(); }, 0);
     });
-    window.addEventListener("resize", () => { if (selected) place(); });
+    const reposition = (): void => {
+        if (!box.isConnected) { resizeHooks.delete(reposition); return; }
+        if (selected) place();
+    };
+    onWindowResize(reposition);
 
     let dragging = false;
     handle.addEventListener("mousedown", e => {

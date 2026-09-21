@@ -339,6 +339,12 @@ public final class SuiHandlebarsHelpers {
         hb.registerHelper("choices", (ctx, opts) ->
                 ctx instanceof ai.mindconnect.ui.model.UiField f ? choiceMaps(f) : java.util.List.of());
 
+        // {{{richtext value}}} / {{richtext value}} → a RICHTEXT value reduced to
+        // what the editor itself produces (RichTextSanitizer). A plain string:
+        // raw in triple braces, escaped in double. Twin of sanitizeRichText().
+        hb.registerHelper("richtext", (ctx, opts) ->
+                ai.mindconnect.ui.html.RichTextSanitizer.sanitize(ctx == null ? null : String.valueOf(ctx)));
+
         // {{#each (timeOptions this)}} → the times a TIME field offers, HH:mm,
         // every `step` seconds from min (or midnight) to max (or the end of
         // the day); empty unless the step is whole minutes of five or more.

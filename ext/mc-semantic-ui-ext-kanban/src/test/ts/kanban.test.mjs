@@ -42,6 +42,13 @@ describe("kanban renderer", () => {
         assert.match(ext.renderKanbanCard({ type: "kanban-card", id: "b", title: "B" }), /draggable="true"/);
     });
 
+    test("only colour syntax reaches the style attribute", () => {
+        const bad = ext.renderKanbanCard({ type: "kanban-card", id: "a", title: "A", color: "red;background:url(https://ev.il)" });
+        assert.doesNotMatch(bad, /style=|ev\.il/);
+        assert.match(ext.renderKanbanCard({ type: "kanban-card", id: "b", title: "B", color: "rgb(1, 2, 3)" }),
+            /style="--sui-kanban-accent:rgb\(1, 2, 3\)"/);
+    });
+
     test("the move trigger fills every placeholder and leaves the rest alone", () => {
         const t = ext.moveTrigger(
             { url: "/b/move?card={card}&from={from}&to={to}&index={index}", method: "POST", behavior: "APPLY_RESPONSE" },

@@ -1,5 +1,6 @@
 package ai.mindconnect.ui.ext.kanban;
 
+import ai.mindconnect.ui.html.CssColor;
 import ai.mindconnect.ui.model.UiNode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -43,6 +44,12 @@ public class UiKanbanLane extends UiNode {
     public String getCountLabel() {
         int n = cards == null ? 0 : cards.size();
         return limit == null ? String.valueOf(n) : n + "/" + limit;
+    }
+
+    /** {@link #color} if it is plain colour syntax, else null — what the templates write into the style attribute. */
+    @JsonIgnore
+    public String getAccentColor() {
+        return CssColor.orNull(color);
     }
 
     public UiKanbanLane card(UiKanbanCard card) {

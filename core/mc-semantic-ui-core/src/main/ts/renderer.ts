@@ -356,6 +356,16 @@ export class SuiRenderer {
     }
 
     /** Renders one list item. Exposed so list handlers can delegate. */
+    /**
+     * The node an id was last rendered (or seeded) from — what a MERGE starts
+     * from, and what a component that redraws itself reads, as the calendar
+     * does when it moves to another period. Undefined for an id this renderer
+     * has not seen.
+     */
+    modelOf(id: string): UiNode | undefined {
+        return this.models.get(id);
+    }
+
     renderItem(item: UiListItem): string {
         return this.itemHandler(item, this);
     }

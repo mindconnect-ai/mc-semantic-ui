@@ -156,7 +156,7 @@ bus.registerClientHandler("add-event", ctx => {
 | `start` | `String` | `yyyy-MM-dd` for an all-day event, `yyyy-MM-ddTHH:mm` for a timed one. |
 | `end` | `String` | Same form. Absent: one hour after the start, or the same day. |
 | `allDay` | `Boolean` | Forces all-day; absent, a start without a time means all-day. |
-| `color` | `String` | Accent colour. Any CSS colour. |
+| `color` | `String` | Accent colour — a hex value, a name, `rgb()`/`hsl()` or `var(--…)`; anything else is dropped. |
 | `onClick` … | `UiTrigger` | The node-level events every node carries. |
 
 A timed event lives on its start day; one that runs past midnight is cut
