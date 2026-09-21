@@ -222,7 +222,7 @@ returned.
 | `section`        | Tabbed container (each tab is a `section-entry`)       |
 | `section-entry`  | One tab + its panel body                               |
 | `form`           | `<form>` with fields, actions, links                   |
-| `field`          | One input (TEXT / SELECT / DATE / BOOLEAN / FILE / …)  |
+| `field`          | One input (TEXT / RICHTEXT / SELECT / DATE / TIME / BOOLEAN / FILE / …) |
 | `fieldgroup`     | Titled `<fieldset>` grouping related fields            |
 | `upload`         | Drag-and-drop file-upload drop zone                    |
 | `action`         | Button or link with `onClick` trigger                  |
@@ -232,9 +232,22 @@ returned.
 | `table`          | Tabular data with columns, rows, row-actions           |
 | `column`         | One table column (label + dataKey + optional template) |
 | `row`            | One table row (id + data map)                          |
-| `chart`          | Placeholder for chart addons                           |
+| `chart`          | A chart — drawn by the chart extension (see below)     |
 | `header`         | Page-level header (brand + extras + user widget)       |
 | `text`           | Bare text node (substitutable in cell templates)       |
+
+Extensions under `ext/` add node types the core cannot draw itself, each in
+its own module and registered the same way: `chart` (bar / line / area / pie /
+donut, SVG), `diagram` (shapes and edges), `markdown`, `json-viewer`,
+`kanban` with `kanban-lane` and `kanban-card` (a board whose cards are dragged
+between lanes; the drop fires a trigger with `{card}`, `{from}`, `{to}` and
+`{index}` filled in), and `calendar` with `calendar-event` (month, week and
+day views; moves between periods on its own, tells the server through
+`onNavigate` and `onSelect`). All of them render server-side too.
+
+Among the field types, `RICHTEXT` is formatted text: an HTML value edited in
+place with a small toolbar, pasted content reduced to plain formatting, images
+embedded as `data:` URLs, and submitted as a string like a `TEXTAREA`'s.
 
 Each node has an `id` that flows all the way through: it's the JSON id,
 the DOM `id="..."` on the wrapper element, the editor's selection

@@ -319,6 +319,13 @@ table in every screen uses it — including the ones your backend emits. The
 one `register()` call for a `diagram` node, backed by a custom element that
 paints SVG.
 
+So are the [kanban](./kanban-extension.md) and [calendar](./calendar-extension.md)
+extensions: a board and a calendar as node types, each with a server-side
+painter and a browser one held to the same bytes by a parity test, and a custom
+element (`<sui-kanban>`, `<sui-calendar>`) that adds the interaction — a drop
+that fires `onMove`, a click on a day that fires `onSelect` — through the
+ordinary trigger mechanism, with the runtime values filled into the trigger.
+
 <div class="sui-cta">
 
 ## Or skip the typing
