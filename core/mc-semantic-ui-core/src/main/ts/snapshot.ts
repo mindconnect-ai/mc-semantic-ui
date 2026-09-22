@@ -67,17 +67,34 @@ export interface SnapshotAction {
     disabledReason?: string;
 }
 
-/** One row of a list. */
+/** One row of a list, or of a table. */
 export interface SnapshotItem {
     id: string;
     label?: string;
     description?: string;
+    /** A table row's cells, by column id — what the row says on screen. */
+    cells?: Record<string, unknown>;
+    /** A table row's tick, when the table lets rows be picked. */
+    selected?: boolean;
     /** True when the row itself is clickable — {@code perform} takes its id. */
     clickable?: boolean;
     fields?: SnapshotField[];
     actions?: SnapshotAction[];
     children?: SnapshotNode[];
     truncated?: boolean;
+}
+
+/** A table column, as the header shows it. */
+export interface SnapshotColumn {
+    id: string;
+    label?: string;
+}
+
+/** Which page of a longer table (or list) is on screen. */
+export interface SnapshotPagination {
+    page: number;
+    size: number;
+    total: number;
 }
 
 /** One node of the outline. */
@@ -89,10 +106,14 @@ export interface SnapshotNode {
     text?: string;
     /** A drawer's {@code open}/{@code minimized}/{@code closed}, read from the DOM. */
     state?: string;
+    /** A table's columns, in the order the header shows them. */
+    columns?: SnapshotColumn[];
     items?: SnapshotItem[];
     fields?: SnapshotField[];
     actions?: SnapshotAction[];
     children?: SnapshotNode[];
+    /** Says the rows on screen are one page of more. */
+    pagination?: SnapshotPagination;
     /** True when this node's content was cut — by {@code depth} or {@code maxChars}. */
     truncated?: boolean;
 }
@@ -289,8 +310,81 @@ function outlineNode(node: Record<string, unknown>, depth: number, ctx: Ctx): Sn
         if (hasChildren(node)) { out.truncated = true; ctx.depthCut = true; }
         return out;
     }
+    // A table keeps its content in a shape of its own: cells in a data map
+    // under rows, headings in column nodes beside them. Walked generically it
+    // comes out as rows with nothing in them, so it gets its own pass — and
+    // fill() then skips the two keys this has already read.
+    if (node.type === "table") outlineTable(node, out, ctx);
     fill(node, out, depth, ctx);
     return out;
+}
+
+/** The keys {@link outlineTable} has already dealt with. */
+const TABLE_KEYS = new Set(["columns", "rows", "pagination"]);
+
+/**
+ * A table as a reader sees it: the column headings, then a row per line with
+ * its cells keyed by column — the value under the column's {@code dataKey}
+ * where it has one, otherwise under its id, which is what the renderer puts
+ * in the cell. The tick comes from the DOM, so a row the user has just
+ * checked reads as checked.
+ */
+function outlineTable(node: Record<string, unknown>, out: SnapshotNode, ctx: Ctx): void {
+    const columns = (Array.isArray(node.columns) ? node.columns : []).filter(isNode);
+    const cols = columns.map(c => ({
+        id: String(c.id ?? ""),
+        key: String(c.dataKey ?? c.id ?? ""),
+        label: typeof c.label === "string" ? c.label : undefined,
+    }));
+    if (cols.length > 0) {
+        const heads: SnapshotColumn[] = cols.map(c => c.label == null ? { id: c.id } : { id: c.id, label: c.label });
+        if (!ctx.budget.take(heads)) { out.truncated = true; return; }
+        out.columns = heads;
+    }
+    const picked = pickedRows(node);
+    for (const row of (Array.isArray(node.rows) ? node.rows : [])) {
+        if (!isNode(row)) continue;
+        const id = String(row.id ?? "");
+        const item: SnapshotItem = { id };
+        const data = (row.data ?? {}) as Record<string, unknown>;
+        // No columns declared: the row's own data is the best we can say.
+        const cells: Record<string, unknown> = {};
+        if (cols.length > 0) {
+            for (const c of cols) {
+                if (c.key in data) cells[c.id] = data[c.key];
+            }
+        } else {
+            Object.assign(cells, data);
+        }
+        if (Object.keys(cells).length > 0) item.cells = cells;
+        if (row.onClick) item.clickable = true;
+        const ticked = rowTicked(id, ctx);
+        if (ticked !== undefined) item.selected = ticked;
+        else if (picked !== null) item.selected = picked.has(id);
+        if (!ctx.budget.take(item)) { out.truncated = true; return; }
+        (out.items ??= []).push(item);
+    }
+    const page = node.pagination as Record<string, unknown> | undefined;
+    if (page && typeof page.page === "number") {
+        const shown = { page: page.page, size: Number(page.size ?? 0), total: Number(page.total ?? 0) };
+        if (ctx.budget.take(shown)) out.pagination = shown;
+        else out.truncated = true;
+    }
+}
+
+/** The rows the model says are picked, or null when the table has no selection. */
+function pickedRows(node: Record<string, unknown>): Set<string> | null {
+    const many = Array.isArray(node.selectedRowIds) ? node.selectedRowIds.map(String) : null;
+    const one = typeof node.selectedRowId === "string" ? [node.selectedRowId] : null;
+    if (!many && !one && !node.selectMode) return null;
+    return new Set([...(many ?? []), ...(one ?? [])]);
+}
+
+/** Whether the row's selection box is ticked on screen; undefined when it has none. */
+function rowTicked(id: string, ctx: Ctx): boolean | undefined {
+    const el = id ? ctx.dom.byId(id) : null;
+    const box = el?.querySelector?.<HTMLInputElement>(".sui-table-selection input");
+    return box ? !!box.checked : undefined;
 }
 
 /** The node's own words plus the state the DOM (not the model) decides. */
@@ -334,9 +428,10 @@ function fill(
     depth: number,
     ctx: Ctx,
 ): void {
+    const skip = node.type === "table" ? TABLE_KEYS : null;
     for (const [key, value] of Object.entries(node)) {
         // A field's trailing action is reported on the field itself.
-        if (key === "trailing") continue;
+        if (key === "trailing" || skip?.has(key)) continue;
         for (const child of Array.isArray(value) ? value : [value]) {
             if (isNode(child)) {
                 addNode(child, out, depth, ctx);

@@ -879,6 +879,19 @@ function agentTab() {
             { id: "ag-m1", label: "Techpresso", description: "Apple unveils…", onClick: toastTrigger("Opened Techpresso") },
             { id: "ag-m2", label: "Rechnung 1042", description: "Zahlung eingegangen", onClick: toastTrigger("Opened Rechnung 1042") },
         ] },
+        // A table, so the snapshot has one to describe: the columns, a row per
+        // line with its cells, and the tick read off the screen — tick a box
+        // and take a snapshot, it moves with you.
+        { type: "table", id: "ag-table", title: "Attachments", selectMode: "MULTI", selectedRowIds: ["ag-a1"],
+          columns: [
+            { type: "column", id: "file", label: "File" },
+            { type: "column", id: "size", label: "Size", dataKey: "bytes" },
+          ],
+          rows: [
+            { type: "row", id: "ag-a1", data: { file: "rechnung-1042.pdf", bytes: "84 kB" } },
+            { type: "row", id: "ag-a2", data: { file: "vertrag.docx", bytes: "31 kB" } },
+          ],
+          pagination: { page: 1, size: 20, total: 2 } },
     ], { gap: 12 });
 
     const java =

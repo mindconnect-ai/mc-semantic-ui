@@ -309,6 +309,49 @@ describe("snapshot", () => {
         assert.equal(node.fields[1].omitted, true);
     });
 
+    test("a table reports its columns, its cells and what is ticked", () => {
+        const tree = {
+            type: "table", id: "orders", title: "Orders",
+            columns: [
+                { type: "column", id: "customer", label: "Customer" },
+                { type: "column", id: "total", label: "Total", dataKey: "amount" },
+            ],
+            rows: [
+                { type: "row", id: "r1", data: { customer: "Ada Lovelace", amount: "42.00" } },
+                { type: "row", id: "r2", data: { customer: "Alan Turing", amount: "17.50" } },
+            ],
+            pagination: { page: 1, size: 20, total: 84 },
+            selectMode: "MULTI",
+            actions: [{ type: "action", id: "export", label: "Export CSV" }],
+        };
+        // r1 is ticked on screen, r2 is not.
+        const ticked = new El("tr", { id: "r1" }, [
+            new El("td", { class: "sui-table-selection" }, [
+                new globalThis.HTMLInputElement("input", { type: "checkbox", name: "orders__selection", value: "r1", checked: "" }),
+            ]),
+        ]);
+        const plain = new El("tr", { id: "r2" }, [
+            new El("td", { class: "sui-table-selection" }, [
+                new globalThis.HTMLInputElement("input", { type: "checkbox", name: "orders__selection", value: "r2" }),
+            ]),
+        ]);
+        const rows = { r1: ticked, r2: plain };
+        const dom = { byId: (id) => rows[id] ?? null, values: () => ({}) };
+
+        const { node } = buildSnapshot(tree, {}, dom, "b");
+        assert.deepEqual(node.columns, [
+            { id: "customer", label: "Customer" },
+            { id: "total", label: "Total" },
+        ]);
+        assert.deepEqual(node.items, [
+            { id: "r1", cells: { customer: "Ada Lovelace", total: "42.00" }, selected: true },
+            { id: "r2", cells: { customer: "Alan Turing", total: "17.50" }, selected: false },
+        ]);
+        // One page of many, and the button above the table.
+        assert.deepEqual(node.pagination, { page: 1, size: 20, total: 84 });
+        assert.deepEqual(node.actions, [{ id: "export", label: "Export CSV", enabled: true }]);
+    });
+
     test("nothing rendered yet is a reason, not a crash", () => {
         const shot = buildSnapshot(null, {}, { byId: () => null, values: () => ({}) }, "b");
         assert.equal(shot.node, null);

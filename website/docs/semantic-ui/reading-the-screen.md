@@ -73,6 +73,20 @@ triggers and layout hints are left out.
   "children": [] }
 ```
 
+A table says what it shows: its column headings, and a row per line with the
+cells keyed by column — the value under the column's `dataKey` where it has
+one. A row that can be ticked reports its tick, read from the screen, and a
+paginated table says which page this is.
+
+```json
+{ "id": "orders", "type": "table", "title": "Orders",
+  "columns": [ { "id": "customer", "label": "Customer" }, { "id": "total", "label": "Total" } ],
+  "items": [ { "id": "r1", "cells": { "customer": "Ada Lovelace", "total": "42.00" }, "selected": true },
+             { "id": "r2", "cells": { "customer": "Alan Turing", "total": "17.50" }, "selected": false } ],
+  "pagination": { "page": 1, "size": 20, "total": 84 },
+  "actions": [ { "id": "export", "label": "Export CSV", "enabled": true } ] }
+```
+
 What the shape is made of:
 
 - **Values come from the DOM, not from the model.** A field that was typed
