@@ -547,7 +547,13 @@ export class SuiEventBus {
      */
     snapshot(options: SnapshotOptions = {}): Snapshot {
         const dom: SnapshotDom = {
-            byId: (id) => document.getElementById(id),
+            // Inside this bus only, as perform is: were two buses to render
+            // the same id, the document would answer with whichever came
+            // first and this bus would describe the other one's screen.
+            byId: (id) => {
+                const el = document.getElementById(id);
+                return el && this.inScope(el) ? el : null;
+            },
             values: (element) => harvestNamedControls(element),
         };
         return buildSnapshot(this.renderer.tree?.() ?? null, options, dom, this.myId);
@@ -583,8 +589,15 @@ export class SuiEventBus {
         if (!el) {
             return this.performFailed("unknown-action", `no action "${command.action}" on this screen`, command.action, fields);
         }
-        if (el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true") {
-            const why = el.dataset.disabledReason || el.getAttribute("title") || "it is disabled";
+        // `.is-loading` is a guard too: a busy control is unclickable by CSS
+        // alone (pointer-events: none) and has no disabled attribute when it
+        // is a link. The snapshot already reports it as not enabled; firing it
+        // from here would re-send what the server is still working on.
+        const busy = el.classList?.contains?.("is-loading") === true;
+        if (busy || el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true") {
+            const why = busy
+                ? "it is busy"
+                : el.dataset.disabledReason || el.getAttribute("title") || "it is disabled";
             return this.performFailed("disabled", `"${command.action}" cannot be used right now: ${why}`, command.action, fields);
         }
         const question = el.dataset.confirm;
@@ -619,13 +632,24 @@ export class SuiEventBus {
      * label, which is the one indirection this has to know about.
      */
     private performTarget(id: string): HTMLElement | null {
-        const el = document.getElementById(id);
+        const byId = document.getElementById(id);
+        // Only what this bus drives: its own root and the dialogs above it,
+        // the same test a click has to pass. A page may carry two buses, and
+        // the other one's buttons are not this one's to press.
+        const el = byId && this.inScope(byId) ? byId : null;
         if (el && (el.hasAttribute("data-trigger") || el.hasAttribute("data-sui-on-click") || el.hasAttribute("data-href") || el.hasAttribute("data-action"))) {
             return el;
         }
         const label = el?.querySelector<HTMLElement>(".sui-list-item-label[data-trigger]");
         if (label) return label;
-        return document.querySelector<HTMLElement>(`[data-action="${cssEscape(id)}"]`) ?? el;
+        return this.queryInScope(`[data-action="${cssEscape(id)}"]`) ?? el;
+    }
+
+    /** The first element matching {@code selector} inside what this bus drives. */
+    private queryInScope(selector: string): HTMLElement | null {
+        return this.root.querySelector?.<HTMLElement>(selector)
+            ?? this.dialogListenerHost?.querySelector?.<HTMLElement>(selector)
+            ?? null;
     }
 
     /**
@@ -639,7 +663,8 @@ export class SuiEventBus {
      */
     private setFieldValue(id: string, value: unknown): boolean {
         const el = document.getElementById(id);
-        if (!el) return false;
+        // A field on another bus's screen is not this bus's to fill in.
+        if (!el || !this.inScope(el)) return false;
         // Rich text: the editable area is the field, and the hidden input the
         // form reads is filled by the editor's own input listener.
         const editor = el.classList?.contains("sui-richtext-editor")

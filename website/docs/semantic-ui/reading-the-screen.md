@@ -140,7 +140,7 @@ answer says why:
 |---|---|
 | `unknown-field` | No field with that id on the screen. Nothing was fired. |
 | `unknown-action` | No action with that id. |
-| `disabled` | It is there, but disabled — `message` carries what the screen says about it. |
+| `disabled` | It is there, but disabled or busy — `message` carries what the screen says about it. |
 | `no-trigger` | It is there and enabled, but nothing is wired to it. |
 | `cancelled` | It asked, and the answer was no. |
 
@@ -157,6 +157,11 @@ bus.setId("mail-window");    // rename it
 The id is also on the root element as `data-sui-bus`, and the module exports
 `suiBuses()` and `suiBus(id)` — so a page with two buses (an app and an
 embedded widget) can address them one at a time.
+
+Each bus stays on its own screen: `snapshot()` reads values only from the
+elements below its root (and the dialogs it opened), and `perform()` will not
+press a button that belongs to the other bus — it answers `unknown-action`,
+exactly as it would for an id that is nowhere on the page.
 
 ## Telling someone the screen changed
 
