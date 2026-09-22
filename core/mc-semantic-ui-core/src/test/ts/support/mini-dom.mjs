@@ -148,7 +148,13 @@ export function installControls() {
         set value(v) { this.attrs.value = String(v); }
     };
     globalThis.HTMLSelectElement = class extends El { };
-    globalThis.HTMLFormElement = class extends El { };
+    // As in a DOM: a form's named getter shadows its own properties, so a form
+    // holding <input name="name"> answers that element for `.name` instead of
+    // a string. Modelled here because code that duck-types a control by its
+    // `.name` gets it wrong in exactly this case.
+    globalThis.HTMLFormElement = class extends El {
+        get name() { return this.querySelector('[name="name"]') ?? this.attrs.name ?? ""; }
+    };
     // As in a DOM: the open property is the open attribute.
     globalThis.HTMLDetailsElement = class extends El {
         get open() { return "open" in this.attrs; }

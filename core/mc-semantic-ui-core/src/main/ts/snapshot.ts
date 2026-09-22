@@ -190,6 +190,12 @@ interface Ctx {
     dom: SnapshotDom;
     budget: Budget;
     mode: SnapshotMode;
+    /**
+     * True once {@code depth} has cut something. Deliberately not the budget's
+     * flag: a spent budget ends the whole walk, a depth limit ends one branch
+     * and the siblings beside it still belong in the answer.
+     */
+    depthCut: boolean;
 }
 
 /**
@@ -235,10 +241,10 @@ export function buildSnapshot(
     const depth = options.depth ?? DEFAULT_DEPTH;
     const build = (limit: number): Snapshot => {
         const budget = new Budget(limit);
-        const ctx: Ctx = { dom, budget, mode };
+        const ctx: Ctx = { dom, budget, mode, depthCut: false };
         const node = mode === "full" ? fullNode(start, depth, ctx) : outlineNode(start, depth, ctx);
         const shot: Snapshot = { busId, mode, node };
-        if (budget.cut) shot.truncated = true;
+        if (budget.cut || ctx.depthCut) shot.truncated = true;
         return shot;
     };
     // The budget counts entries, not the punctuation they end up nested in,
@@ -280,7 +286,7 @@ function outlineNode(node: Record<string, unknown>, depth: number, ctx: Ctx): Sn
     // Charged before the children are walked, so each node is counted once.
     if (!ctx.budget.take(out)) { out.truncated = true; return out; }
     if (depth <= 0) {
-        if (hasChildren(node)) { out.truncated = true; ctx.budget.cut = true; }
+        if (hasChildren(node)) { out.truncated = true; ctx.depthCut = true; }
         return out;
     }
     fill(node, out, depth, ctx);
@@ -393,7 +399,7 @@ function outlineItem(item: Record<string, unknown>, depth: number, ctx: Ctx): Sn
     if (item.onClick) out.clickable = true;
     if (!ctx.budget.take(out)) { out.truncated = true; return out; }
     if (depth <= 0) {
-        if (hasChildren(item)) { out.truncated = true; ctx.budget.cut = true; }
+        if (hasChildren(item)) { out.truncated = true; ctx.depthCut = true; }
         return out;
     }
     fill(item, out, depth, ctx);
@@ -463,32 +469,43 @@ function fullNode(node: Record<string, unknown>, depth: number, ctx: Ctx): Recor
     const secret = node.type === "field"
         && isSecretField(node as { id?: string; label?: string; fieldType?: string });
     for (const [key, value] of Object.entries(node)) {
+        // A spent budget ends the walk wherever it is standing.
+        if (ctx.budget.cut) { out.truncated = true; break; }
         if (secret && key === "value") { out.omitted = true; continue; }
         if (node.type === "field" && key === "value") {
-            out.value = liveValue(String(node.id ?? ""), value, ctx);
+            const live = liveValue(String(node.id ?? ""), value, ctx);
+            if (!ctx.budget.take([key, live])) { out.truncated = true; break; }
+            out.value = live;
             continue;
         }
         if (isNode(value)) {
-            if (depth <= 0) { out.truncated = true; ctx.budget.cut = true; continue; }
-            const child = fullNode(value, depth - 1, ctx);
-            if (!ctx.budget.take(child)) { out.truncated = true; break; }
-            out[key] = child;
+            if (depth <= 0) { out.truncated = true; ctx.depthCut = true; continue; }
+            // No charge here: the child bills its own content as it is built.
+            // Charging the finished subtree as well made every level pay again
+            // for everything below it, so a model well inside maxChars came
+            // back a fraction of its size.
+            out[key] = fullNode(value, depth - 1, ctx);
             continue;
         }
         if (Array.isArray(value) && value.some(v => isNode(v) || isItem(v))) {
-            if (depth <= 0) { out.truncated = true; ctx.budget.cut = true; continue; }
+            if (depth <= 0) { out.truncated = true; ctx.depthCut = true; continue; }
             const children: unknown[] = [];
             for (const entry of value) {
-                const child = (entry != null && typeof entry === "object")
-                    ? fullNode(entry as Record<string, unknown>, depth - 1, ctx)
-                    : entry;
-                if (!ctx.budget.take(child)) { out.truncated = true; break; }
-                children.push(child);
+                if (ctx.budget.cut) { out.truncated = true; break; }
+                if (entry != null && typeof entry === "object") {
+                    children.push(fullNode(entry as Record<string, unknown>, depth - 1, ctx));
+                } else if (ctx.budget.take(entry)) {
+                    children.push(entry);
+                } else {
+                    out.truncated = true;
+                    break;
+                }
             }
             out[key] = children;
             continue;
         }
-        if (!ctx.budget.take(value)) { out.truncated = true; break; }
+        // The key is on the wire too, so it is charged with its value.
+        if (!ctx.budget.take([key, value])) { out.truncated = true; break; }
         out[key] = value;
     }
     return out;

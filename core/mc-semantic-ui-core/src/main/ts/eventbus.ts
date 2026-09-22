@@ -2585,9 +2585,13 @@ function harvestNamedControls(root: HTMLElement): Record<string, unknown> {
         root.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
             "input[name], select[name], textarea[name]"));
     // A field that is its own control has nothing below it — a HIDDEN field is
-    // the input. Reading a form is unaffected: a form is never an input.
-    if ((root as { name?: string }).name) {
-        controls.unshift(root as unknown as HTMLInputElement);
+    // the input. Asked by type, never by whether the element has a name: a
+    // form's named getter answers the <input name="name"> it holds, so a form
+    // with a field called "name" would have looked like a control itself and
+    // put a key nobody asked for into every payload it sends.
+    if (root instanceof HTMLInputElement || root instanceof HTMLSelectElement
+        || root instanceof HTMLTextAreaElement) {
+        if (root.name) controls.unshift(root);
     }
     for (const ctrl of controls) {
         const name = ctrl.name;

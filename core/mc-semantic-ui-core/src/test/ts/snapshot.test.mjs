@@ -241,6 +241,46 @@ describe("snapshot", () => {
         assert.equal(shot.reason, "unknown-root");
     });
 
+    test("depth shortens the walk without dropping what stands beside it", () => {
+        // A shallow snapshot is how a reader keeps the answer small. It has to
+        // still be a picture of the whole screen: every sibling is there, only
+        // what hangs below them is cut.
+        const tree = {
+            type: "stack", id: "page", children: [
+                { type: "list", id: "a", title: "A", items: [{ id: "a1", label: "one" }] },
+                { type: "list", id: "b", title: "B", items: [{ id: "b1", label: "two" }] },
+                { type: "text", id: "c", text: "three" },
+            ],
+        };
+        const dom = { byId: () => null, values: () => ({}) };
+        const { node, truncated } = buildSnapshot(tree, { depth: 1 }, dom, "b");
+        assert.deepEqual(node.children.map(c => c.id), ["a", "b", "c"]);
+        assert.equal(node.children[0].items, undefined);
+        assert.equal(node.children[0].truncated, true);
+        assert.equal(node.children[1].truncated, true);
+        // Nothing hangs below the text, so nothing was cut from it.
+        assert.equal(node.children[2].truncated, undefined);
+        assert.equal(truncated, true);
+    });
+
+    test("full mode uses the budget it was given", () => {
+        // Every entry is charged once. A model that fits under maxChars comes
+        // back whole — it used to be charged again by each level above it and
+        // came back a third of its size, marked truncated.
+        const leaf = (i) => ({ type: "text", id: "t" + i, text: "Some ordinary label text " + i });
+        const level = (d, i) => d === 0 ? leaf(i) : {
+            type: "stack", id: `s${d}-${i}`, title: "Section " + i,
+            children: [level(d - 1, i * 3), level(d - 1, i * 3 + 1), level(d - 1, i * 3 + 2)],
+        };
+        const tree = level(4, 0);
+        const model = JSON.stringify(tree).length;
+        const dom = { byId: () => null, values: () => ({}) };
+        const shot = buildSnapshot(tree, { mode: "full" }, dom, "b");
+        assert.equal(shot.truncated, undefined, "a model of " + model + " chars fits in 20000");
+        assert.ok(JSON.stringify(shot).length > model,
+            `full snapshot was ${JSON.stringify(shot).length} chars for a ${model}-char model`);
+    });
+
     test("depth stops the walk and says where", () => {
         const { tree, dom } = screen();
         const { node, truncated } = buildSnapshot(tree, { depth: 1 }, dom, "b");

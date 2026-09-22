@@ -190,6 +190,36 @@ describe("perform says why not", () => {
     });
 });
 
+describe("what a form sends", () => {
+    test("a field called name does not smuggle the form into the payload", async () => {
+        // A form's named getter answers the <input name="name"> for `.name`, so
+        // code that asks an element whether it has a name to decide whether it
+        // is a control mistakes the form for one — and the payload grows a key
+        // nobody named.
+        const Form = globalThis.HTMLFormElement;
+        const s = screen();
+        const name = new Input("input", { id: "name__input", name: "name", type: "text", value: "Ada" });
+        const field = new El("div", { class: "sui-field", id: "name" }, [name]);
+        const send = new El("button", {
+            id: "save", "data-action": "save",
+            "data-trigger": JSON.stringify({ behavior: "INVOKE", handler: "record" }),
+        });
+        const form = new Form("form", { id: "profile", "data-sui": "form" }, [field, send]);
+        s.root.appendChild(form);
+        s.all.set("profile", form);
+        s.all.set("name", field);
+        s.all.set("save", send);
+
+        let payload = null;
+        s.bus.registerClientHandler("record", (ctx) => { payload = ctx.payload; });
+        await s.bus.perform({ action: "save" });
+        await settle();
+
+        assert.deepEqual(Object.keys(payload), ["name"]);
+        assert.equal(payload.name, "Ada");
+    });
+});
+
 describe("a bus says who it is", () => {
     test("by the root's id", () => {
         const s = screen();
