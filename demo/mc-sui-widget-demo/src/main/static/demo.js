@@ -1265,14 +1265,20 @@ function renderAgentConsole(node) {
     </div>`;
 }
 
-/** Click the console's buttons through to the bus, and show the answer. */
-function wireAgentConsole(bus, root) {
-    const panel = root.querySelector(".agent-console");
-    if (!panel) return;
-    const out = panel.querySelector(".agent-console-out code");
-    panel.addEventListener("click", async (e) => {
-        const btn = e.target.closest("[data-agent]");
+/**
+ * Click the console's buttons through to the bus, and show the answer.
+ *
+ * Delegated from the document, not from the panel: the panel is a rendered
+ * node like any other, and a listener bound to the element itself would be
+ * gone the moment anything re-drew it.
+ */
+function wireAgentConsole(bus) {
+    document.addEventListener("click", async (e) => {
+        const btn = e.target?.closest?.("[data-agent]");
         if (!btn) return;
+        const panel = btn.closest(".agent-console");
+        const out = panel?.querySelector(".agent-console-out code");
+        if (!out) return;
         const snapshot = btn.dataset.agent === "snapshot";
         const call = snapshot
             ? 'bus.snapshot({ root: "ag-screen", depth: 4 })'
@@ -1281,6 +1287,9 @@ function wireAgentConsole(bus, root) {
             ? bus.snapshot({ root: "ag-screen", depth: 4 })
             : await bus.perform({ fields: { "ag-q": "rechnung" }, action: "ag-search", confirmed: true });
         out.textContent = `// ${call}\n\n` + JSON.stringify(answer, null, 2);
+        // Also in the console: proof the button did something even when the
+        // panel is below the window's edge.
+        console.info(call, answer);
         // A snapshot changes nothing on the screen itself — without these two
         // the button looks dead to anyone whose window ends above the panel.
         showToast(snapshot ? "Snapshot taken — the JSON is in the panel below" : "perform() ran — see the screen and the panel");
@@ -1595,7 +1604,7 @@ async function boot() {
     // the enhancers on every render) — no wireTabOverflow()/wireMenuButtons() by
     // hand. Only the demo-specific bits below need explicit wiring.
     wireIconGallery(root);   // search + click-to-copy for the icon library
-    wireAgentConsole(bus, root);   // bus.snapshot() / bus.perform() panel
+    wireAgentConsole(bus);   // bus.snapshot() / bus.perform() panel
     wireCodePen(root);       // "Open in CodePen" buttons
     wireLiveProgress(renderer);   // animate the "live" progress bar + ring
     if (!embedded) wireViewportToggle();   // 📱 phone-frame preview button
