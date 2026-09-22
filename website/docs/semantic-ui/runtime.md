@@ -94,7 +94,14 @@ bus.start("/products");             // fetch a UiPage and mount it
 bus.navigate("/products/42");       // same, for one URL
 bus.applyPage(pageObject);          // apply a page you already have
 bus.applyPatch(patchObject);        // apply a patch you already have
+
+bus.snapshot({ root: "email-shell" });              // what is on the screen, as data
+bus.perform({ fields: { q: "x" }, action: "go" });  // fill in and press, from outside
 ```
+
+The last two are the read/write pair for anything that is not a pointer — a
+test, a support session, an agent. See
+[reading the screen](./reading-the-screen.md).
 
 Three settings matter early on:
 
@@ -159,4 +166,6 @@ and the HTTP message converter does the rest. See
 - **[Embed as a UI island](./ui-island.md)** — one renderer inside someone
   else's page.
 - **[Triggers & actions](./triggers.md)** — what the bus does with a trigger.
+- **[Reading the screen](./reading-the-screen.md)** — `snapshot()` and
+  `perform()`.
 - **[Rendering modes](./rendering-modes.md)** — SSR, SPA, and patches.

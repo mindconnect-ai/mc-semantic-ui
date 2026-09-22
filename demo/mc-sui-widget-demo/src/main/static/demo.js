@@ -853,6 +853,46 @@ UiDrawer.of("dr-filters", "Filters", filters).edge(UiDrawer.Edge.LEFT).scope(UiD
     ], { gap: 16 });
 }
 
+
+// ── Agent tab: the bus reads its own screen, and takes an order ─────────────
+// Everything here is the ordinary vocabulary — a form, a list, two buttons.
+// What is new is below it: `bus.snapshot()` says what this screen shows right
+// now (values out of the DOM, the token left out), and `bus.perform()` types
+// into a field and presses a button from the outside, down the same path a
+// click takes.
+function agentTab() {
+    const screenNode = stack("ag-screen", [
+        { type: "form", id: "ag-form", title: "Search mail",
+          fields: [
+            { type: "field", id: "ag-q", label: "Search", fieldType: "TEXT", editable: true, value: "", placeholder: "e.g. rechnung" },
+            { type: "field", id: "ag-folder", label: "Folder", fieldType: "SELECT", editable: true, value: "inbox",
+              options: [{ value: "inbox", label: "Inbox" }, { value: "archive", label: "Archive" }] },
+            { type: "field", id: "ag-token", label: "API token", fieldType: "PASSWORD", editable: true, value: "s3cret-do-not-read" },
+          ],
+          actions: [
+            { type: "action", id: "ag-search", label: "Search", style: "PRIMARY", icon: "search",
+              onClick: { behavior: "INVOKE", handler: "demo-agent-search" } },
+            { type: "action", id: "ag-delete", label: "Delete the ticked messages", style: "DANGER",
+              confirm: "Delete 3 messages?", onClick: toastTrigger("Deleted", "SUCCESS") },
+          ] },
+        { type: "list", id: "ag-list", title: "All inboxes", items: [
+            { id: "ag-m1", label: "Techpresso", description: "Apple unveils…", onClick: toastTrigger("Opened Techpresso") },
+            { id: "ag-m2", label: "Rechnung 1042", description: "Zahlung eingegangen", onClick: toastTrigger("Opened Rechnung 1042") },
+        ] },
+    ], { gap: 12 });
+
+    const java =
+`// The browser side, in the page that hosts the bus:
+const shot = bus.snapshot({ root: "ag-screen", depth: 4 });
+await bus.perform({ fields: { "ag-q": "rechnung" }, action: "ag-search", confirmed: true });`;
+
+    return stack("tab-agent", [
+        text("ag-intro", "The bus keeps a copy of the tree it drew and applies every patch to it, so it can say what is on the screen — and it can be driven from outside: fill fields in, press something, through the same path a click takes. Type into Search below and take a snapshot: what you typed is in it. The API token is not — a password, a file or anything that reads like a token comes back as omitted."),
+        specimen("sp-agent-screen", "A screen — and what the bus says about it", screenNode, java),
+        { type: "agent-console", id: "ag-console" },
+    ], { gap: 16 });
+}
+
 function feedbackTab() {
     // Spinners: three sizes + one labelled. Each is a plain UiSpinner node.
     const spinners = {
@@ -1199,6 +1239,7 @@ function buildPage() {
                 { type: "section-entry", id: "sec-kanban", title: "Kanban", icon: "kanban", content: kanbanTab() },
                 { type: "section-entry", id: "sec-calendar", title: "Calendar", icon: "calendar", content: calendarTab() },
                 { type: "section-entry", id: "sec-drawer", title: "Drawer", icon: "panel-bottom", content: drawerTab() },
+                { type: "section-entry", id: "sec-agent", title: "Agent", icon: "sparkles", content: agentTab() },
                 { type: "section-entry", id: "sec-feedback", title: "Feedback", icon: "loading", content: feedbackTab() },
                 { type: "section-entry", id: "sec-icons",  title: "Icons",           icon: "star", content: iconsTab() },
             ],
@@ -1209,6 +1250,34 @@ function buildPage() {
 // ── Custom node renderer: a syntax-neutral code block ───────────────────────
 function renderCode(node) {
     return `<pre class="demo-code" id="${escapeHtml(node.id)}"><code>${escapeHtml(node.code)}</code></pre>`;
+}
+
+// ── Custom node renderer: the agent console ────────────────────────────────
+// Two buttons and a panel: one asks the bus what is on the screen, the other
+// tells it to do something. Wired in wireAgentConsole() — it needs the bus.
+function renderAgentConsole(node) {
+    return `<div class="agent-console" id="${escapeHtml(node.id)}">
+        <div class="agent-console-bar">
+            <button type="button" class="sui-btn sui-btn--secondary" data-agent="snapshot">${renderIcon("info")} What is on this screen?</button>
+            <button type="button" class="sui-btn sui-btn--primary" data-agent="perform">${renderIcon("send")} Type “rechnung”, press Search</button>
+        </div>
+        <pre class="demo-code agent-console-out"><code>Press one — what the bus answers lands here.</code></pre>
+    </div>`;
+}
+
+/** Click the console's buttons through to the bus, and show the answer. */
+function wireAgentConsole(bus, root) {
+    const panel = root.querySelector(".agent-console");
+    if (!panel) return;
+    const out = panel.querySelector(".agent-console-out code");
+    panel.addEventListener("click", async (e) => {
+        const btn = e.target.closest("[data-agent]");
+        if (!btn) return;
+        const answer = btn.dataset.agent === "snapshot"
+            ? bus.snapshot({ root: "ag-screen", depth: 4 })
+            : await bus.perform({ fields: { "ag-q": "rechnung" }, action: "ag-search", confirmed: true });
+        out.textContent = JSON.stringify(answer, null, 2);
+    });
 }
 
 // ── Custom node renderer: "Open in CodePen" button ──────────────────────────
@@ -1449,6 +1518,7 @@ async function boot() {
     renderer.register("code", renderCode);                // custom code-block node
     renderer.register("codepen", renderCodePen);          // "Open in CodePen" button
     renderer.register("icon-gallery", renderIconGallery); // searchable icon grid
+    renderer.register("agent-console", renderAgentConsole); // snapshot / perform panel
 
     const bus = new SuiEventBus(renderer, root);
     // The extensions — chart, diagram, kanban, calendar — from sui/assets.js,
@@ -1476,6 +1546,15 @@ async function boot() {
         const what = ctx.sourceElement?.textContent?.trim() || "AI";
         return { patches: [], toasts: [{ level: "INFO", durationMs: 3500,
             message: `${what}: would send ${Object.keys(p).length} fields — Name “${p["f-name"] ?? ""}”` }] };
+    });
+    // The Agent tab's Search: whatever the field says — typed by hand or put
+    // there by bus.perform() — comes back as the list's new title.
+    bus.registerClientHandler("demo-agent-search", (ctx) => {
+        const q = String((ctx.payload || {})["ag-q"] || "").trim();
+        return {
+            patches: [{ op: "MERGE", targetId: "ag-list", attributes: { title: q ? `Results for “${q}”` : "All inboxes" } }],
+            toasts: [{ level: "INFO", message: q ? `Searched for “${q}”` : "Searched for everything", durationMs: 2200 }],
+        };
     });
     // Forget added: drops the stored events and takes them out of the calendars.
     bus.registerClientHandler("demo-forget-events", () => {
@@ -1508,6 +1587,7 @@ async function boot() {
     // the enhancers on every render) — no wireTabOverflow()/wireMenuButtons() by
     // hand. Only the demo-specific bits below need explicit wiring.
     wireIconGallery(root);   // search + click-to-copy for the icon library
+    wireAgentConsole(bus, root);   // bus.snapshot() / bus.perform() panel
     wireCodePen(root);       // "Open in CodePen" buttons
     wireLiveProgress(renderer);   // animate the "live" progress bar + ring
     if (!embedded) wireViewportToggle();   // 📱 phone-frame preview button

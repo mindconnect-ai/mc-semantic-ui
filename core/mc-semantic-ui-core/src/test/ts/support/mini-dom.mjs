@@ -43,8 +43,28 @@ export class El {
     removeAttribute(n) { delete this.attrs[n]; }
     hasAttribute(n) { return n in this.attrs; }
     appendChild(c) { c.parentElement = this; this.children.push(c); return c; }
+    remove() {
+        const p = this.parentElement;
+        if (!p) return;
+        p.children = p.children.filter(c => c !== this);
+        this.parentElement = null;
+    }
     addEventListener(type, fn) { (this.listeners[type] ??= []).push(fn); }
     removeEventListener() { }
+    /** Calls the listeners on this element and, for a bubbling event, on its ancestors. */
+    dispatchEvent(event) {
+        if (event.target == null) event.target = this;
+        for (let e = this; e; e = e.parentElement) {
+            for (const fn of [...(e.listeners[event.type] ?? [])]) fn(event);
+            if (!event.bubbles) break;
+        }
+        return !event.defaultPrevented;
+    }
+    /** Not a parser: the markup is remembered, which is all the renderer's morph needs here. */
+    get innerHTML() { return this._html ?? ""; }
+    set innerHTML(v) { this._html = String(v); }
+    get outerHTML() { return this._outerHtml ?? ""; }
+    set outerHTML(v) { this._outerHtml = String(v); }
     contains(el) { for (let e = el; e; e = e.parentElement) if (e === this) return true; return false; }
     closest(sel) { for (let e = this; e; e = e.parentElement) if (e.matches(sel)) return e; return null; }
     matches(sel) { return sel.split(",").some(s => matchComplex(this, s.trim())); }
@@ -102,15 +122,30 @@ function matchCompound(el, compound) {
 export function installControls() {
     globalThis.HTMLElement = El;
     globalThis.Element = El;
+    globalThis.Event = class {
+        constructor(type, init = {}) {
+            this.type = type;
+            this.bubbles = !!init.bubbles;
+            this.target = null;
+            this.defaultPrevented = false;
+        }
+        preventDefault() { this.defaultPrevented = true; }
+    };
+    globalThis.CustomEvent = class extends globalThis.Event {
+        constructor(type, init = {}) { super(type, init); this.detail = init.detail ?? null; }
+    };
     globalThis.HTMLInputElement = class extends El {
         get name() { return this.attrs.name; }
         get type() { return this.attrs.type ?? "text"; }
         get value() { return this.attrs.value ?? ""; }
+        set value(v) { this.attrs.value = String(v); }
         get checked() { return "checked" in this.attrs; }
+        set checked(v) { if (v) this.attrs.checked = ""; else delete this.attrs.checked; }
     };
     globalThis.HTMLTextAreaElement = class extends El {
         get name() { return this.attrs.name; }
         get value() { return this.attrs.value ?? ""; }
+        set value(v) { this.attrs.value = String(v); }
     };
     globalThis.HTMLSelectElement = class extends El { };
     globalThis.HTMLFormElement = class extends El { };

@@ -23,6 +23,25 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- **The event bus can say what is on the screen, and be driven from outside.**
+  The renderer now keeps the tree it drew and applies every patch to it, so
+  `bus.snapshot({ root, depth, mode, maxChars })` can describe the page
+  without parsing the DOM back into a model: an outline of titles, rows,
+  fields with their *current* values and what can be pressed — or
+  `mode: "full"` for the nodes as rendered. Values are read from the DOM, so a
+  field that was typed into reads back what it says now; a password, a file
+  or anything whose name reads like a token comes back as `omitted`, and
+  `depth`/`maxChars` are kept with the cut marked `truncated`.
+  `bus.perform({ fields, action, confirmed })` fills fields in and fires an
+  action down the same path a click takes — same payload, same patch, same
+  toast — and says why not when it does not (`unknown-action`, `disabled`,
+  `no-trigger`, `cancelled`). An action with a `confirm` still asks unless the
+  command says `confirmed: true`. `bus.id()` (also `data-sui-bus` on the root,
+  plus `suiBuses()` / `suiBus(id)`) tells two buses on one page apart, and
+  every change fires `sui-tree-changed` on the document. Nothing about
+  transport is in the bus: an application wires the two methods to its own
+  channel. The docs page is *Reading the screen*.
+
 - **A menu in a form's button bar.** `UiAction.menu("ai", "AI", items…)`
   (a `UiActionMenu`, type `action-menu`) goes where a button goes and keeps
   the order it was added in, so a bar reads `Send · Attach · ✨ AI ▾ · Check`

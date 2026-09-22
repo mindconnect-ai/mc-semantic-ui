@@ -11,8 +11,14 @@ import { snapTimeValue } from "./renderers/field.js";
 import { t } from "./i18n.js";
 import { seatAfterToggle } from "./renderers/choices.js";
 import { withCsrf, type CsrfOptions } from "./csrf.js";
+import { sanitizeRichText } from "./renderers/richtext.js";
+import { buildSnapshot, type Snapshot, type SnapshotOptions, type SnapshotDom } from "./snapshot.js";
 
 export { withCsrf, findCsrfToken, needsCsrfToken, type CsrfOptions, type CsrfToken } from "./csrf.js";
+export {
+    type Snapshot, type SnapshotOptions, type SnapshotMode, type SnapshotNode,
+    type SnapshotField, type SnapshotAction, type SnapshotItem,
+} from "./snapshot.js";
 
 /**
  * Context handed to every {@link BehaviorHandler}. Captures the trigger
@@ -244,6 +250,55 @@ export type LoadingPolicy = "auto" | "manual" | ((ctx: BehaviorContext) => boole
  *       updates can be turned off via {@link #setHistoryEnabled}.</li>
  * </ul>
  */
+/**
+ * What {@link SuiEventBus#perform} is asked to do: fill some fields in, then
+ * press something. Both halves are optional — fields alone type without
+ * pressing, an action alone presses without typing.
+ */
+export interface PerformCommand {
+    /** Field id → the value to put in, as a user typing would. */
+    fields?: Record<string, unknown>;
+    /** The id of what to press: an action, a menu entry, a clickable row. */
+    action?: string;
+    /**
+     * Answers the action's {@code confirm} question with yes. Without it an
+     * action that asks still asks, in the browser, exactly as a click does —
+     * the bus is not in a position to know whether the user agreed somewhere
+     * else, so it does not guess.
+     */
+    confirmed?: boolean;
+}
+
+/** Why a {@link PerformCommand} did not fire. */
+export type PerformFailure =
+    /** No field with that id on the screen. */
+    | "unknown-field"
+    /** No action with that id on the screen. */
+    | "unknown-action"
+    /** The control is on the screen but disabled. */
+    | "disabled"
+    /** The control is there and enabled, but nothing is wired to it. */
+    | "no-trigger"
+    /** The action asked, and the answer was no. */
+    | "cancelled";
+
+/** What {@link SuiEventBus#perform} answers. */
+export interface PerformResult {
+    /** True when everything asked for happened. */
+    ok: boolean;
+    /** True when the action fired. False for a fields-only command, and for every failure. */
+    triggered: boolean;
+    /** Which bus answered. */
+    busId: string;
+    /** The action that was asked for, when one was. */
+    action?: string;
+    /** The fields that were filled in, in the order they were given. */
+    fields?: string[];
+    reason?: PerformFailure;
+    /** A sentence a human (or an agent) can read. */
+    message?: string;
+}
+
 export class SuiEventBus {
 
     private readonly renderer: SuiRenderer;
@@ -277,6 +332,8 @@ export class SuiEventBus {
     private csrfOptions: CsrfOptions | false = {};
     private fetcher: typeof fetch = withCsrf(this.rawFetcher, this.csrfOptions);
     private loadingPolicy: LoadingPolicy = "auto";
+    /** How this bus names itself; see {@link #id}. */
+    private myId: string;
     private historyEnabled = true;
     private popstateInstalled = false;
     /** Pre-bound {@link #navigate} so callers can pass it as a function. */
@@ -301,6 +358,12 @@ export class SuiEventBus {
         // exactly the elements inScope() accepts, and out of reach of theme
         // switchers that overwrite the document's class attribute.
         root.setAttribute?.("data-sui-live", "");
+        // A page may carry two buses (an app and an embedded widget). Both
+        // answer a snapshot, so both have to be addressable — by the root's
+        // own id where it has one, otherwise by a number.
+        this.myId = root.id || `sui-bus-${++busCounter}`;
+        root.setAttribute?.("data-sui-bus", this.myId);
+        liveBuses.set(this.myId, this);
         // A patch SSE event is so universal that we wire it as a built-in
         // stream handler; apps can override by registering another handler
         // under the same name.
@@ -443,6 +506,178 @@ export class SuiEventBus {
     setLoadingPolicy(policy: LoadingPolicy): this {
         this.loadingPolicy = policy;
         return this;
+    }
+
+    // ── Reading the screen, and acting on it ──────────────────────────────
+
+    /**
+     * What this bus calls itself — the root element's id when it has one,
+     * otherwise {@code sui-bus-N}. Also written on the root as
+     * {@code data-sui-bus}, so a page with two buses can tell which one
+     * answered. See {@link suiBus} to find a bus by that name.
+     */
+    id(): string {
+        return this.myId;
+    }
+
+    /** Renames the bus. The root's {@code data-sui-bus} follows. */
+    setId(id: string): this {
+        liveBuses.delete(this.myId);
+        this.myId = id;
+        this.root.setAttribute?.("data-sui-bus", id);
+        liveBuses.set(id, this);
+        return this;
+    }
+
+    /**
+     * What is on the screen right now, as data — the tree the renderer drew,
+     * with every value read back out of the DOM.
+     *
+     * <p>Two shapes: {@code "outline"} (the default) lists only what someone
+     * acting on this screen needs — titles, rows, fields with their current
+     * values, and what can be pressed; {@code "full"} returns the nodes as
+     * they were rendered, for debugging. {@code root} narrows it to one
+     * subtree, {@code depth} and {@code maxChars} keep a large screen from
+     * producing a large answer — whatever they cut is marked
+     * {@code truncated}.
+     *
+     * <p>Secrets are left out of both shapes: a password or file field, and
+     * any field whose name reads like a token, says {@code omitted: true}
+     * instead of a value.
+     */
+    snapshot(options: SnapshotOptions = {}): Snapshot {
+        const dom: SnapshotDom = {
+            byId: (id) => document.getElementById(id),
+            values: (element) => harvestNamedControls(element),
+        };
+        return buildSnapshot(this.renderer.tree?.() ?? null, options, dom, this.myId);
+    }
+
+    /**
+     * Does from the outside what a click does: fills the named fields in (as
+     * typing does, {@code input} and {@code change} events included, so a
+     * rich-text editor and an {@code onChange} trigger both notice), then
+     * fires the action — through the very same path a real click takes, so
+     * the request, the busy state, the patch and the toast are the same.
+     *
+     * <p>An action that asks a question still asks it, unless the command
+     * says {@code confirmed: true} — the agreement was obtained somewhere
+     * else and the bus is told so rather than guessing.
+     *
+     * <p>Nothing is fired unless everything asked for is there: an unknown
+     * field, an unknown or disabled action, or an action with nothing wired
+     * to it comes back as a reason, having changed nothing that was not
+     * asked for.
+     */
+    async perform(command: PerformCommand): Promise<PerformResult> {
+        const fields: string[] = [];
+        for (const [id, value] of Object.entries(command.fields ?? {})) {
+            if (!this.setFieldValue(id, value)) {
+                return this.performFailed("unknown-field", `no field "${id}" on this screen`, command.action, fields);
+            }
+            fields.push(id);
+        }
+        if (!command.action) return { ok: true, triggered: false, busId: this.myId, fields };
+
+        const el = this.performTarget(command.action);
+        if (!el) {
+            return this.performFailed("unknown-action", `no action "${command.action}" on this screen`, command.action, fields);
+        }
+        if (el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true") {
+            const why = el.dataset.disabledReason || el.getAttribute("title") || "it is disabled";
+            return this.performFailed("disabled", `"${command.action}" cannot be used right now: ${why}`, command.action, fields);
+        }
+        const question = el.dataset.confirm;
+        if (question && !command.confirmed && !window.confirm(question)) {
+            return this.performFailed("cancelled", question, command.action, fields);
+        }
+        const trigger = this.parseTrigger(el) ?? this.ssrFormTrigger(el) ?? this.parseTriggerAttr(el, "data-sui-on-click");
+        if (!trigger) {
+            if (el.dataset.href) {
+                await this.navigateFrom(el, el.dataset.href);
+                return { ok: true, triggered: true, busId: this.myId, action: command.action, fields };
+            }
+            return this.performFailed("no-trigger", `"${command.action}" has nothing wired to it`, command.action, fields);
+        }
+        // Exactly what the click path infers, and only there: a button sends
+        // its form, and so does an entry of a menu standing in a button bar.
+        if (el.hasAttribute("data-action") || el.closest(".sui-form-footer .sui-menu-button--action")) {
+            this.inferImplicitPayload(trigger, el);
+        }
+        await this.dispatch(trigger, el);
+        return { ok: true, triggered: true, busId: this.myId, action: command.action, fields };
+    }
+
+    private performFailed(reason: PerformFailure, message: string, action: string | undefined, fields: string[]): PerformResult {
+        return { ok: false, triggered: false, busId: this.myId, action, fields, reason, message };
+    }
+
+    /**
+     * The element an action id names. An action, a menu entry and a node with
+     * an {@code onClick} all carry their id themselves; a clickable list row
+     * carries it on the {@code <li>} while the trigger sits on the row's
+     * label, which is the one indirection this has to know about.
+     */
+    private performTarget(id: string): HTMLElement | null {
+        const el = document.getElementById(id);
+        if (el && (el.hasAttribute("data-trigger") || el.hasAttribute("data-sui-on-click") || el.hasAttribute("data-href") || el.hasAttribute("data-action"))) {
+            return el;
+        }
+        const label = el?.querySelector<HTMLElement>(".sui-list-item-label[data-trigger]");
+        if (label) return label;
+        return document.querySelector<HTMLElement>(`[data-action="${cssEscape(id)}"]`) ?? el;
+    }
+
+    /**
+     * Puts a value into a field as typing would: the control gets it, and
+     * {@code input} plus {@code change} go out so everything listening — the
+     * rich-text editor's hidden input, a field's {@code onChange} trigger, a
+     * form that submits on change — sees what a user would have caused.
+     *
+     * @return false when the screen has no such field, which stops
+     *         {@link #perform} before it fires anything
+     */
+    private setFieldValue(id: string, value: unknown): boolean {
+        const el = document.getElementById(id);
+        if (!el) return false;
+        // Rich text: the editable area is the field, and the hidden input the
+        // form reads is filled by the editor's own input listener.
+        const editor = el.classList?.contains("sui-richtext-editor")
+            ? el
+            : el.querySelector?.<HTMLElement>(".sui-richtext-editor");
+        if (editor) {
+            editor.innerHTML = sanitizeRichText(value == null ? "" : String(value));
+            this.fireOn(editor, "input");
+            this.fireOn(editor, "change");
+            return true;
+        }
+        const controls = this.controlsNamed(el, id);
+        if (controls.length === 0) return false;
+        for (const control of controls) writeControl(control, value);
+        for (const control of controls) {
+            this.fireOn(control, "input");
+            this.fireOn(control, "change");
+        }
+        return true;
+    }
+
+    /** The controls a field id submits under — the element itself, or the named ones inside it. */
+    private controlsNamed(el: HTMLElement, id: string): Array<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> {
+        const named = (c: Element): c is HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement =>
+            (c as { name?: string }).name === id;
+        if (named(el)) return [el];
+        const inside = el.querySelectorAll?.<HTMLElement>("input[name], select[name], textarea[name]") ?? [];
+        return Array.from(inside).filter(named);
+    }
+
+    /** Sends a DOM event from an element, where the environment has them. */
+    private fireOn(el: HTMLElement, type: string): void {
+        try {
+            if (typeof Event !== "function" || typeof el.dispatchEvent !== "function") return;
+            el.dispatchEvent(new Event(type, { bubbles: true }));
+        } catch (err) {
+            console.warn("SuiEventBus: could not fire", type, err);
+        }
     }
 
     // ── Navigation (built-in router) ──────────────────────────────────────
@@ -2186,6 +2421,45 @@ function isAbort(err: unknown): boolean {
     return typeof err === "object" && err !== null && (err as { name?: string }).name === "AbortError";
 }
 
+/** Buses alive on this page, by {@link SuiEventBus#id}. */
+const liveBuses = new Map<string, SuiEventBus>();
+let busCounter = 0;
+
+/** Every bus on this page, in the order they were created. */
+export function suiBuses(): SuiEventBus[] {
+    return Array.from(liveBuses.values());
+}
+
+/** The bus with this id, or undefined. */
+export function suiBus(id: string): SuiEventBus | undefined {
+    return liveBuses.get(id);
+}
+
+/**
+ * Writes a value into one control, the way the control expects it: a
+ * checkbox is ticked, a radio or a multi-select option is chosen when the
+ * value names it, everything else takes the text.
+ */
+function writeControl(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement, value: unknown): void {
+    const wanted = Array.isArray(value) ? value.map(String) : null;
+    if (control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")) {
+        // A group shares one name: the value says which of them are on. A lone
+        // checkbox has no value of its own, so it follows the truthiness.
+        const isGroupMember = control.value !== "" && control.value !== "on";
+        control.checked = wanted ? wanted.includes(control.value)
+            : isGroupMember ? String(value) === control.value
+            : !!value;
+        return;
+    }
+    if (control instanceof HTMLSelectElement && control.multiple) {
+        for (const option of Array.from(control.options)) {
+            option.selected = wanted ? wanted.includes(option.value) : option.value === String(value ?? "");
+        }
+        return;
+    }
+    control.value = value == null ? "" : String(value);
+}
+
 function cssEscape(value: string): string {
     return value.replace(/(["\\])/g, "\\$1");
 }
@@ -2310,6 +2584,11 @@ function harvestNamedControls(root: HTMLElement): Record<string, unknown> {
     const controls = Array.from(
         root.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
             "input[name], select[name], textarea[name]"));
+    // A field that is its own control has nothing below it — a HIDDEN field is
+    // the input. Reading a form is unaffected: a form is never an input.
+    if ((root as { name?: string }).name) {
+        controls.unshift(root as unknown as HTMLInputElement);
+    }
     for (const ctrl of controls) {
         const name = ctrl.name;
         if (!name || name === "_method") continue;
