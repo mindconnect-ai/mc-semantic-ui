@@ -1273,10 +1273,18 @@ function wireAgentConsole(bus, root) {
     panel.addEventListener("click", async (e) => {
         const btn = e.target.closest("[data-agent]");
         if (!btn) return;
-        const answer = btn.dataset.agent === "snapshot"
+        const snapshot = btn.dataset.agent === "snapshot";
+        const call = snapshot
+            ? 'bus.snapshot({ root: "ag-screen", depth: 4 })'
+            : 'bus.perform({ fields: { "ag-q": "rechnung" }, action: "ag-search", confirmed: true })';
+        const answer = snapshot
             ? bus.snapshot({ root: "ag-screen", depth: 4 })
             : await bus.perform({ fields: { "ag-q": "rechnung" }, action: "ag-search", confirmed: true });
-        out.textContent = JSON.stringify(answer, null, 2);
+        out.textContent = `// ${call}\n\n` + JSON.stringify(answer, null, 2);
+        // A snapshot changes nothing on the screen itself — without these two
+        // the button looks dead to anyone whose window ends above the panel.
+        showToast(snapshot ? "Snapshot taken — the JSON is in the panel below" : "perform() ran — see the screen and the panel");
+        panel.querySelector(".agent-console-out").scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
 }
 
