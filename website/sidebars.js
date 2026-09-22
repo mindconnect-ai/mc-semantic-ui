@@ -20,6 +20,7 @@ const sidebars = {
             'semantic-ui/triggers',
             'semantic-ui/triggers-cookbook',
             'semantic-ui/patches',
+            {type: 'doc', id: 'semantic-ui/reading-the-screen', label: 'Reading the screen'},
             'semantic-ui/forms',
             'semantic-ui/responsive',
             'semantic-ui/overflow',
