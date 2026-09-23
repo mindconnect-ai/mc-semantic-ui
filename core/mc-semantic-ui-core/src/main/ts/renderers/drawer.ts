@@ -166,23 +166,40 @@ function onKeydown(e: KeyboardEvent): void {
     change(drawer, "minimized", true);
 }
 
-/** Dragging the grip on the inner edge sets the size; the stylesheet keeps it within min/max. */
+/**
+ * Dragging the grip on the inner edge sets the size; the stylesheet keeps it
+ * within min/max.
+ *
+ * <p>Measured as a movement, not as a position: the size it started at plus
+ * how far the pointer has come, along the axis the edge grows in. The earlier
+ * reading — the distance from the window's edge, or from the container's —
+ * assumed the drawer was flush against that edge. An overlay drawer is; one
+ * in {@code PUSH} mode is a box in the layout, and anything standing beside
+ * it moves its edge somewhere else entirely, so the first small drag made it
+ * jump by however far those two edges were apart.
+ */
 function onPointerDown(e: PointerEvent): void {
     const grip = (e.target as HTMLElement | null)?.closest?.<HTMLElement>("[data-sui-drawer='resize']");
     const drawer = grip?.closest<HTMLElement>(".sui-drawer");
     if (!grip || !drawer) return;
     e.preventDefault();
     const edge = edgeOf(drawer);
-    const area = drawer.classList.contains("sui-drawer--container") && drawer.parentElement
-        ? drawer.parentElement.getBoundingClientRect()
-        : { top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight };
+    // What carries the size: the whole element when it takes room in the
+    // layout, the panel when it floats above it.
+    const sized = drawer.classList.contains("sui-drawer--push")
+        ? drawer
+        : drawer.querySelector<HTMLElement>(".sui-drawer-panel") ?? drawer;
+    const box = sized.getBoundingClientRect();
+    const startSize = edge === "top" || edge === "bottom" ? box.height : box.width;
+    const startX = e.clientX;
+    const startY = e.clientY;
     drawer.classList.add("is-resizing");
     const move = (ev: PointerEvent): void => {
-        const px = edge === "bottom" ? area.bottom - ev.clientY
-            : edge === "top" ? ev.clientY - area.top
-            : edge === "left" ? ev.clientX - area.left
-            : area.right - ev.clientX;
-        drawer.style.setProperty("--sui-drawer-size", `${Math.max(0, Math.round(px))}px`);
+        const grown = edge === "bottom" ? startY - ev.clientY
+            : edge === "top" ? ev.clientY - startY
+            : edge === "left" ? ev.clientX - startX
+            : startX - ev.clientX;
+        drawer.style.setProperty("--sui-drawer-size", `${Math.max(0, Math.round(startSize + grown))}px`);
     };
     const up = (): void => {
         drawer.classList.remove("is-resizing");

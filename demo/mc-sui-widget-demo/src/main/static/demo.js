@@ -836,7 +836,7 @@ UiDrawer.of("dr-filters", "Filters", filters).edge(UiDrawer.Edge.LEFT).scope(UiD
     const push = {
         type: "stack", id: "dr-push", direction: "HORIZONTAL", cssClass: "demo-push-row", children: [
             text("dr-push-txt", "The content. The drawer on the right takes room beside it (mode PUSH) — minimize it and this text gets the width back."),
-            { type: "drawer", id: "dr-side", title: "Details", icon: "panel-right", edge: "RIGHT", mode: "PUSH", size: "280px",
+            { type: "drawer", id: "dr-side", title: "Details", icon: "panel-right", edge: "RIGHT", mode: "PUSH", size: "280px", resizable: true,
               content: text("dr-side-t", "Order 1042 · 3 items · paid") },
         ],
     };

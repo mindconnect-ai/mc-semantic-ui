@@ -777,7 +777,11 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-drawer--left   .sui-drawer-resize { right: -3px; top: 0; bottom: 0; width: 6px; cursor: ew-resize; }
 .sui-drawer--right  .sui-drawer-resize { left: -3px; top: 0; bottom: 0; width: 6px; cursor: ew-resize; }
 .sui-drawer-resize:hover, .sui-drawer.is-resizing .sui-drawer-resize { background: var(--sui-color-primary); opacity: .35; }
-.sui-drawer.is-resizing .sui-drawer-panel { transition: none; user-select: none; }
+/* While the grip is held: no animation anywhere on the drawer. The panel is
+   the animated part of an overlay drawer, the element itself of a PUSH one —
+   without the second the box eases toward every drag step and trails the
+   pointer, which reads as the drawer moving on its own. */
+.sui-drawer.is-resizing, .sui-drawer.is-resizing .sui-drawer-panel { transition: none; user-select: none; }
 
 /* PUSH: a flex item beside the content, which moves over as it opens. */
 /* align-self: stretch — it spans the row (or column) it stands in, whatever
@@ -791,7 +795,12 @@ a.sui-tree-label:hover { text-decoration: underline; }
 }
 .sui-drawer--push .sui-drawer-panel { inset: 0; width: auto; height: auto; min-width: 0; max-width: none; min-height: 0; max-height: none; box-shadow: none; border-radius: 0; }
 .sui-drawer--push.sui-drawer--minimized .sui-drawer-panel { transform: none; }
-.sui-drawer--push .sui-drawer-handle { position: static; border-radius: var(--sui-radius-md); border: 1px solid var(--sui-color-border-strong); box-shadow: none; }
+/* A PUSH handle stands in the layout instead of floating over it, so it is
+   the drawer's whole box: every side framed, and none of the room an overlay
+   handle keeps clear around itself. That max-width — 32px less than the space
+   it sits in — would otherwise make the box 32px wider than the handle, which
+   reads as a button drifting away from the edge, and clip the title with it. */
+.sui-drawer--push .sui-drawer-handle { position: static; max-width: none; border-radius: var(--sui-radius-md); border: 1px solid var(--sui-color-border-strong); box-shadow: none; }
 
 /* Narrow screens: a LEFT or RIGHT drawer comes up from the bottom. */
 @media (max-width: 640px) {
