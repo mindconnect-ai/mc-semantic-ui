@@ -34,6 +34,13 @@ so a hybrid page can be read from the first paint.
 renderer.tree();   // the page as it stands, patches included — or null
 ```
 
+The tree handed to `mount()` is kept, not copied, and the patches write into
+it. Mount a page your code is done with — one built per render, or a response
+just parsed — rather than a literal you intend to mount again. When a patch
+names a node the copy does not have (a server-rendered page with no
+`sui-model`, say), the console says so once: the screen changed and the copy
+did not, so a snapshot would show the old node.
+
 ## `bus.snapshot(options)` — what is on the screen
 
 ```js
@@ -71,6 +78,20 @@ triggers and layout hints are left out.
   "actions": [ { "id": "delete-picked", "label": "Delete the ticked messages",
                  "style": "DANGER", "confirm": "Delete 3 messages?", "enabled": true } ],
   "children": [] }
+```
+
+A table says what it shows: its column headings, and a row per line with the
+cells keyed by column — the value under the column's `dataKey` where it has
+one. A row that can be ticked reports its tick, read from the screen, and a
+paginated table says which page this is.
+
+```json
+{ "id": "orders", "type": "table", "title": "Orders",
+  "columns": [ { "id": "customer", "label": "Customer" }, { "id": "total", "label": "Total" } ],
+  "items": [ { "id": "r1", "cells": { "customer": "Ada Lovelace", "total": "42.00" }, "selected": true },
+             { "id": "r2", "cells": { "customer": "Alan Turing", "total": "17.50" }, "selected": false } ],
+  "pagination": { "page": 1, "size": 20, "total": 84 },
+  "actions": [ { "id": "export", "label": "Export CSV", "enabled": true } ] }
 ```
 
 What the shape is made of:
@@ -126,12 +147,36 @@ answer says why:
 |---|---|
 | `unknown-field` | No field with that id on the screen. Nothing was fired. |
 | `unknown-action` | No action with that id. |
-| `disabled` | It is there, but disabled — `message` carries what the screen says about it. |
+| `disabled` | It is there, but disabled or busy — `message` carries what the screen says about it. |
 | `no-trigger` | It is there and enabled, but nothing is wired to it. |
 | `cancelled` | It asked, and the answer was no. |
 
 A command with `fields` and no `action` just fills them in
 (`{ ok: true, triggered: false }`).
+
+## Nothing is wired
+
+Both methods are just methods. There is no listener, no endpoint, no stream
+subscription that calls them: a server reaches them only through a bridge the
+application builds. That is deliberate, and it is the place to decide who may
+do what — the library has no switch, because a switch would suggest the
+methods are reachable without one.
+
+What to weigh when you build that bridge:
+
+- **A snapshot collects what has not been submitted.** Values the user has
+  typed and not sent are in it. Secrets are left out (see above), but the rest
+  is the screen as it stands.
+- **`confirmed: true` skips the question.** Send it only where the agreement
+  was actually obtained, from a person, for that action. Without it the
+  browser asks, which is the safe default.
+- **A `DANGER` action is marked as one**, and so is an action with a
+  `confirm` — the snapshot reports both, so a bridge can treat them
+  differently from the rest without knowing the application.
+- **Two things are on whatever you wire.** `suiBuses()` / `suiBus(id)` find
+  every bus on the page, and `sui-tree-changed` fires on the document (with
+  the changed node's id and the operation, no content). Neither gives a
+  same-origin script anything it could not already do to the DOM.
 
 ## Which bus answered
 
@@ -143,6 +188,11 @@ bus.setId("mail-window");    // rename it
 The id is also on the root element as `data-sui-bus`, and the module exports
 `suiBuses()` and `suiBus(id)` — so a page with two buses (an app and an
 embedded widget) can address them one at a time.
+
+Each bus stays on its own screen: `snapshot()` reads values only from the
+elements below its root (and the dialogs it opened), and `perform()` will not
+press a button that belongs to the other bus — it answers `unknown-action`,
+exactly as it would for an id that is nowhere on the page.
 
 ## Telling someone the screen changed
 

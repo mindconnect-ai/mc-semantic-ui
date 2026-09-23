@@ -547,10 +547,18 @@ export class SuiEventBus {
      */
     snapshot(options: SnapshotOptions = {}): Snapshot {
         const dom: SnapshotDom = {
-            byId: (id) => document.getElementById(id),
+            // Inside this bus only, as perform is: were two buses to render
+            // the same id, the document would answer with whichever came
+            // first and this bus would describe the other one's screen.
+            byId: (id) => {
+                const el = document.getElementById(id);
+                return el && this.inScope(el) ? el : null;
+            },
             values: (element) => harvestNamedControls(element),
         };
-        return buildSnapshot(this.renderer.tree?.() ?? null, options, dom, this.myId);
+        return buildSnapshot(
+            this.renderer.tree?.() ?? null, options, dom, this.myId,
+            (id) => this.renderer.nodeById?.(id) as Record<string, unknown> | undefined);
     }
 
     /**
@@ -583,8 +591,15 @@ export class SuiEventBus {
         if (!el) {
             return this.performFailed("unknown-action", `no action "${command.action}" on this screen`, command.action, fields);
         }
-        if (el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true") {
-            const why = el.dataset.disabledReason || el.getAttribute("title") || "it is disabled";
+        // `.is-loading` is a guard too: a busy control is unclickable by CSS
+        // alone (pointer-events: none) and has no disabled attribute when it
+        // is a link. The snapshot already reports it as not enabled; firing it
+        // from here would re-send what the server is still working on.
+        const busy = el.classList?.contains?.("is-loading") === true;
+        if (busy || el.hasAttribute("disabled") || el.getAttribute("aria-disabled") === "true") {
+            const why = busy
+                ? "it is busy"
+                : el.dataset.disabledReason || el.getAttribute("title") || "it is disabled";
             return this.performFailed("disabled", `"${command.action}" cannot be used right now: ${why}`, command.action, fields);
         }
         const question = el.dataset.confirm;
@@ -619,13 +634,24 @@ export class SuiEventBus {
      * label, which is the one indirection this has to know about.
      */
     private performTarget(id: string): HTMLElement | null {
-        const el = document.getElementById(id);
+        const byId = document.getElementById(id);
+        // Only what this bus drives: its own root and the dialogs above it,
+        // the same test a click has to pass. A page may carry two buses, and
+        // the other one's buttons are not this one's to press.
+        const el = byId && this.inScope(byId) ? byId : null;
         if (el && (el.hasAttribute("data-trigger") || el.hasAttribute("data-sui-on-click") || el.hasAttribute("data-href") || el.hasAttribute("data-action"))) {
             return el;
         }
         const label = el?.querySelector<HTMLElement>(".sui-list-item-label[data-trigger]");
         if (label) return label;
-        return document.querySelector<HTMLElement>(`[data-action="${cssEscape(id)}"]`) ?? el;
+        return this.queryInScope(`[data-action="${cssEscape(id)}"]`) ?? el;
+    }
+
+    /** The first element matching {@code selector} inside what this bus drives. */
+    private queryInScope(selector: string): HTMLElement | null {
+        return this.root.querySelector?.<HTMLElement>(selector)
+            ?? this.dialogListenerHost?.querySelector?.<HTMLElement>(selector)
+            ?? null;
     }
 
     /**
@@ -639,7 +665,8 @@ export class SuiEventBus {
      */
     private setFieldValue(id: string, value: unknown): boolean {
         const el = document.getElementById(id);
-        if (!el) return false;
+        // A field on another bus's screen is not this bus's to fill in.
+        if (!el || !this.inScope(el)) return false;
         // Rich text: the editable area is the field, and the hidden input the
         // form reads is filled by the editor's own input listener.
         const editor = el.classList?.contains("sui-richtext-editor")
@@ -653,8 +680,18 @@ export class SuiEventBus {
         }
         const controls = this.controlsNamed(el, id);
         if (controls.length === 0) return false;
-        for (const control of controls) writeControl(control, value);
+        // Only what actually moved reports itself, and only the way a browser
+        // would: a radio that lost the dot stays silent, the one that gained
+        // it speaks. Firing on every control of a group made a field's
+        // onChange run once per option, and a field set to the value it
+        // already had submitted a form nobody had touched.
+        const moved: Array<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> = [];
         for (const control of controls) {
+            const before = controlState(control);
+            writeControl(control, value);
+            if (controlState(control) !== before && speaks(control)) moved.push(control);
+        }
+        for (const control of moved) {
             this.fireOn(control, "input");
             this.fireOn(control, "change");
         }
@@ -2435,6 +2472,26 @@ export function suiBus(id: string): SuiEventBus | undefined {
     return liveBuses.get(id);
 }
 
+/** What a control says right now, as one comparable value. */
+function controlState(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): string {
+    if (control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")) {
+        return control.checked ? "on" : "off";
+    }
+    if (control instanceof HTMLSelectElement && control.multiple) {
+        return Array.from(control.selectedOptions, o => o.value).join("\u0000");
+    }
+    return String(control.value ?? "");
+}
+
+/**
+ * Whether a control that just changed reports it. A radio only ever reports
+ * becoming the chosen one — the browser fires nothing on the one that lost
+ * the dot, and neither do we.
+ */
+function speaks(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): boolean {
+    return !(control instanceof HTMLInputElement && control.type === "radio" && !control.checked);
+}
+
 /**
  * Writes a value into one control, the way the control expects it: a
  * checkbox is ticked, a radio or a multi-select option is chosen when the
@@ -2585,9 +2642,13 @@ function harvestNamedControls(root: HTMLElement): Record<string, unknown> {
         root.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
             "input[name], select[name], textarea[name]"));
     // A field that is its own control has nothing below it — a HIDDEN field is
-    // the input. Reading a form is unaffected: a form is never an input.
-    if ((root as { name?: string }).name) {
-        controls.unshift(root as unknown as HTMLInputElement);
+    // the input. Asked by type, never by whether the element has a name: a
+    // form's named getter answers the <input name="name"> it holds, so a form
+    // with a field called "name" would have looked like a control itself and
+    // put a key nobody asked for into every payload it sends.
+    if (root instanceof HTMLInputElement || root instanceof HTMLSelectElement
+        || root instanceof HTMLTextAreaElement) {
+        if (root.name) controls.unshift(root);
     }
     for (const ctrl of controls) {
         const name = ctrl.name;

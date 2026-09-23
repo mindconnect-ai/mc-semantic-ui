@@ -67,17 +67,34 @@ export interface SnapshotAction {
     disabledReason?: string;
 }
 
-/** One row of a list. */
+/** One row of a list, or of a table. */
 export interface SnapshotItem {
     id: string;
     label?: string;
     description?: string;
+    /** A table row's cells, by column id — what the row says on screen. */
+    cells?: Record<string, unknown>;
+    /** A table row's tick, when the table lets rows be picked. */
+    selected?: boolean;
     /** True when the row itself is clickable — {@code perform} takes its id. */
     clickable?: boolean;
     fields?: SnapshotField[];
     actions?: SnapshotAction[];
     children?: SnapshotNode[];
     truncated?: boolean;
+}
+
+/** A table column, as the header shows it. */
+export interface SnapshotColumn {
+    id: string;
+    label?: string;
+}
+
+/** Which page of a longer table (or list) is on screen. */
+export interface SnapshotPagination {
+    page: number;
+    size: number;
+    total: number;
 }
 
 /** One node of the outline. */
@@ -89,10 +106,14 @@ export interface SnapshotNode {
     text?: string;
     /** A drawer's {@code open}/{@code minimized}/{@code closed}, read from the DOM. */
     state?: string;
+    /** A table's columns, in the order the header shows them. */
+    columns?: SnapshotColumn[];
     items?: SnapshotItem[];
     fields?: SnapshotField[];
     actions?: SnapshotAction[];
     children?: SnapshotNode[];
+    /** Says the rows on screen are one page of more. */
+    pagination?: SnapshotPagination;
     /** True when this node's content was cut — by {@code depth} or {@code maxChars}. */
     truncated?: boolean;
 }
@@ -106,8 +127,11 @@ export interface Snapshot {
     node: SnapshotNode | Record<string, unknown> | null;
     /** True when anything was left out to stay inside {@code maxChars} or {@code depth}. */
     truncated?: boolean;
-    /** Why {@link #node} is null: no page rendered yet, or no such root. */
-    reason?: "no-tree" | "unknown-root";
+    /**
+     * Why {@link #node} is null: nothing rendered yet, no such root, or a
+     * {@code maxChars} too small to hold even the root node.
+     */
+    reason?: "no-tree" | "unknown-root" | "too-small";
 }
 
 /** The bits of the DOM the snapshot needs. Injected, so this module stays testable. */
@@ -190,6 +214,12 @@ interface Ctx {
     dom: SnapshotDom;
     budget: Budget;
     mode: SnapshotMode;
+    /**
+     * True once {@code depth} has cut something. Deliberately not the budget's
+     * flag: a spent budget ends the whole walk, a depth limit ends one branch
+     * and the siblings beside it still belong in the answer.
+     */
+    depthCut: boolean;
 }
 
 /**
@@ -197,11 +227,15 @@ interface Ctx {
  * {@code type} is a node, wherever it hangs — so a plugin's own node shape is
  * found like a built-in one.
  */
-export function findNode(tree: unknown, id: string): Record<string, unknown> | null {
-    if (tree == null || typeof tree !== "object") return null;
+export function findNode(tree: unknown, id: string, seen: Set<unknown> = new Set()): Record<string, unknown> | null {
+    // A node that points back at an ancestor is not a tree any more, and an
+    // application is free to build one (a row keeping a reference to its
+    // table). Without this the walk would recurse until the stack gave out.
+    if (tree == null || typeof tree !== "object" || seen.has(tree)) return null;
+    seen.add(tree);
     if (Array.isArray(tree)) {
         for (const entry of tree) {
-            const hit = findNode(entry, id);
+            const hit = findNode(entry, id, seen);
             if (hit) return hit;
         }
         return null;
@@ -210,7 +244,7 @@ export function findNode(tree: unknown, id: string): Record<string, unknown> | n
     if (record.id === id && typeof record.type === "string") return record;
     for (const value of Object.values(record)) {
         if (value != null && typeof value === "object") {
-            const hit = findNode(value, id);
+            const hit = findNode(value, id, seen);
             if (hit) return hit;
         }
     }
@@ -226,19 +260,28 @@ export function buildSnapshot(
     options: SnapshotOptions,
     dom: SnapshotDom,
     busId: string,
+    /**
+     * How {@code options.root} is looked up. The renderer keeps an index of
+     * every id it holds and answers in one step; without one, the tree is
+     * walked. Either way the node must be in {@code tree} — a node the page
+     * has dropped is not on the screen, and is not described here.
+     */
+    resolve?: (id: string) => Record<string, unknown> | null | undefined,
 ): Snapshot {
     const mode: SnapshotMode = options.mode ?? "outline";
     if (!tree) return { busId, mode, node: null, reason: "no-tree" };
-    const start = options.root ? findNode(tree, options.root) : (tree as Record<string, unknown>);
+    const start = options.root
+        ? (resolve?.(options.root) ?? findNode(tree, options.root))
+        : (tree as Record<string, unknown>);
     if (!start) return { busId, mode, node: null, reason: "unknown-root" };
     const maxChars = options.maxChars ?? DEFAULT_MAX_CHARS;
     const depth = options.depth ?? DEFAULT_DEPTH;
     const build = (limit: number): Snapshot => {
         const budget = new Budget(limit);
-        const ctx: Ctx = { dom, budget, mode };
+        const ctx: Ctx = { dom, budget, mode, depthCut: false };
         const node = mode === "full" ? fullNode(start, depth, ctx) : outlineNode(start, depth, ctx);
         const shot: Snapshot = { busId, mode, node };
-        if (budget.cut) shot.truncated = true;
+        if (budget.cut || ctx.depthCut) shot.truncated = true;
         return shot;
     };
     // The budget counts entries, not the punctuation they end up nested in,
@@ -252,7 +295,9 @@ export function buildSnapshot(
         if (limit <= 0) break;
         result = build(limit);
     }
-    if (sizeOf(result) > maxChars) return { busId, mode, node: null, truncated: true };
+    // Still over after three tries: the ceiling is smaller than the smallest
+    // answer there is. Say that, rather than let it read as an empty screen.
+    if (sizeOf(result) > maxChars) return { busId, mode, node: null, truncated: true, reason: "too-small" };
     return result;
 }
 
@@ -280,11 +325,84 @@ function outlineNode(node: Record<string, unknown>, depth: number, ctx: Ctx): Sn
     // Charged before the children are walked, so each node is counted once.
     if (!ctx.budget.take(out)) { out.truncated = true; return out; }
     if (depth <= 0) {
-        if (hasChildren(node)) { out.truncated = true; ctx.budget.cut = true; }
+        if (hasChildren(node)) { out.truncated = true; ctx.depthCut = true; }
         return out;
     }
+    // A table keeps its content in a shape of its own: cells in a data map
+    // under rows, headings in column nodes beside them. Walked generically it
+    // comes out as rows with nothing in them, so it gets its own pass — and
+    // fill() then skips the two keys this has already read.
+    if (node.type === "table") outlineTable(node, out, ctx);
     fill(node, out, depth, ctx);
     return out;
+}
+
+/** The keys {@link outlineTable} has already dealt with. */
+const TABLE_KEYS = new Set(["columns", "rows", "pagination"]);
+
+/**
+ * A table as a reader sees it: the column headings, then a row per line with
+ * its cells keyed by column — the value under the column's {@code dataKey}
+ * where it has one, otherwise under its id, which is what the renderer puts
+ * in the cell. The tick comes from the DOM, so a row the user has just
+ * checked reads as checked.
+ */
+function outlineTable(node: Record<string, unknown>, out: SnapshotNode, ctx: Ctx): void {
+    const columns = (Array.isArray(node.columns) ? node.columns : []).filter(isNode);
+    const cols = columns.map(c => ({
+        id: String(c.id ?? ""),
+        key: String(c.dataKey ?? c.id ?? ""),
+        label: typeof c.label === "string" ? c.label : undefined,
+    }));
+    if (cols.length > 0) {
+        const heads: SnapshotColumn[] = cols.map(c => c.label == null ? { id: c.id } : { id: c.id, label: c.label });
+        if (!ctx.budget.take(heads)) { out.truncated = true; return; }
+        out.columns = heads;
+    }
+    const picked = pickedRows(node);
+    for (const row of (Array.isArray(node.rows) ? node.rows : [])) {
+        if (!isNode(row)) continue;
+        const id = String(row.id ?? "");
+        const item: SnapshotItem = { id };
+        const data = (row.data ?? {}) as Record<string, unknown>;
+        // No columns declared: the row's own data is the best we can say.
+        const cells: Record<string, unknown> = {};
+        if (cols.length > 0) {
+            for (const c of cols) {
+                if (c.key in data) cells[c.id] = data[c.key];
+            }
+        } else {
+            Object.assign(cells, data);
+        }
+        if (Object.keys(cells).length > 0) item.cells = cells;
+        if (row.onClick) item.clickable = true;
+        const ticked = rowTicked(id, ctx);
+        if (ticked !== undefined) item.selected = ticked;
+        else if (picked !== null) item.selected = picked.has(id);
+        if (!ctx.budget.take(item)) { out.truncated = true; return; }
+        (out.items ??= []).push(item);
+    }
+    const page = node.pagination as Record<string, unknown> | undefined;
+    if (page && typeof page.page === "number") {
+        const shown = { page: page.page, size: Number(page.size ?? 0), total: Number(page.total ?? 0) };
+        if (ctx.budget.take(shown)) out.pagination = shown;
+        else out.truncated = true;
+    }
+}
+
+/** The rows the model says are picked, or null when the table has no selection. */
+function pickedRows(node: Record<string, unknown>): Set<string> | null {
+    const many = Array.isArray(node.selectedRowIds) ? node.selectedRowIds.map(String) : null;
+    const one = typeof node.selectedRowId === "string" ? [node.selectedRowId] : null;
+    if (!many && !one && !node.selectMode) return null;
+    return new Set([...(many ?? []), ...(one ?? [])]);
+}
+
+/** Whether the row's selection box is ticked on screen; undefined when it has none. */
+function rowTicked(id: string, ctx: Ctx): boolean | undefined {
+    const el = id ? ctx.dom.byId(id) : null;
+    const box = el?.querySelector?.<HTMLInputElement>(".sui-table-selection input");
+    return box ? !!box.checked : undefined;
 }
 
 /** The node's own words plus the state the DOM (not the model) decides. */
@@ -328,9 +446,10 @@ function fill(
     depth: number,
     ctx: Ctx,
 ): void {
+    const skip = node.type === "table" ? TABLE_KEYS : null;
     for (const [key, value] of Object.entries(node)) {
         // A field's trailing action is reported on the field itself.
-        if (key === "trailing") continue;
+        if (key === "trailing" || skip?.has(key)) continue;
         for (const child of Array.isArray(value) ? value : [value]) {
             if (isNode(child)) {
                 addNode(child, out, depth, ctx);
@@ -393,7 +512,7 @@ function outlineItem(item: Record<string, unknown>, depth: number, ctx: Ctx): Sn
     if (item.onClick) out.clickable = true;
     if (!ctx.budget.take(out)) { out.truncated = true; return out; }
     if (depth <= 0) {
-        if (hasChildren(item)) { out.truncated = true; ctx.budget.cut = true; }
+        if (hasChildren(item)) { out.truncated = true; ctx.depthCut = true; }
         return out;
     }
     fill(item, out, depth, ctx);
@@ -463,32 +582,43 @@ function fullNode(node: Record<string, unknown>, depth: number, ctx: Ctx): Recor
     const secret = node.type === "field"
         && isSecretField(node as { id?: string; label?: string; fieldType?: string });
     for (const [key, value] of Object.entries(node)) {
+        // A spent budget ends the walk wherever it is standing.
+        if (ctx.budget.cut) { out.truncated = true; break; }
         if (secret && key === "value") { out.omitted = true; continue; }
         if (node.type === "field" && key === "value") {
-            out.value = liveValue(String(node.id ?? ""), value, ctx);
+            const live = liveValue(String(node.id ?? ""), value, ctx);
+            if (!ctx.budget.take([key, live])) { out.truncated = true; break; }
+            out.value = live;
             continue;
         }
         if (isNode(value)) {
-            if (depth <= 0) { out.truncated = true; ctx.budget.cut = true; continue; }
-            const child = fullNode(value, depth - 1, ctx);
-            if (!ctx.budget.take(child)) { out.truncated = true; break; }
-            out[key] = child;
+            if (depth <= 0) { out.truncated = true; ctx.depthCut = true; continue; }
+            // No charge here: the child bills its own content as it is built.
+            // Charging the finished subtree as well made every level pay again
+            // for everything below it, so a model well inside maxChars came
+            // back a fraction of its size.
+            out[key] = fullNode(value, depth - 1, ctx);
             continue;
         }
         if (Array.isArray(value) && value.some(v => isNode(v) || isItem(v))) {
-            if (depth <= 0) { out.truncated = true; ctx.budget.cut = true; continue; }
+            if (depth <= 0) { out.truncated = true; ctx.depthCut = true; continue; }
             const children: unknown[] = [];
             for (const entry of value) {
-                const child = (entry != null && typeof entry === "object")
-                    ? fullNode(entry as Record<string, unknown>, depth - 1, ctx)
-                    : entry;
-                if (!ctx.budget.take(child)) { out.truncated = true; break; }
-                children.push(child);
+                if (ctx.budget.cut) { out.truncated = true; break; }
+                if (entry != null && typeof entry === "object") {
+                    children.push(fullNode(entry as Record<string, unknown>, depth - 1, ctx));
+                } else if (ctx.budget.take(entry)) {
+                    children.push(entry);
+                } else {
+                    out.truncated = true;
+                    break;
+                }
             }
             out[key] = children;
             continue;
         }
-        if (!ctx.budget.take(value)) { out.truncated = true; break; }
+        // The key is on the wire too, so it is charged with its value.
+        if (!ctx.budget.take([key, value])) { out.truncated = true; break; }
         out[key] = value;
     }
     return out;

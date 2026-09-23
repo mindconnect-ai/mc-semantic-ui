@@ -143,6 +143,87 @@ describe("the renderer's copy of the tree", () => {
         assert.equal(inCopy.id, "orders");
         assert.deepEqual(inCopy.rows[0].data, { status: "paid" });
     });
+
+    test("a patch the copy cannot place says so, once", () => {
+        const said = [];
+        const warn = console.warn;
+        console.warn = (...args) => said.push(args.join(" "));
+        try {
+            const stray = new El("div", { id: "stray" });
+            root.appendChild(stray);
+            elements.set("stray", stray);
+            renderer.applyPatch({ patches: [{ op: "REPLACE", targetId: "stray", node: { type: "text", id: "stray", text: "hi" } }] });
+            renderer.applyPatch({ patches: [{ op: "REPLACE", targetId: "stray", node: { type: "text", id: "stray", text: "again" } }] });
+        } finally {
+            console.warn = warn;
+        }
+        assert.equal(said.length, 1, said.join(" | "));
+        assert.match(said[0], /stray/);
+        assert.match(said[0], /tree copy/);
+    });
+
+    test("the index answers for what is on the screen, and only that", () => {
+        // A node the page has dropped must not be findable any more — neither
+        // it nor its children. That is the failure an index invites: a REMOVE
+        // takes a whole subtree off the screen, and the entries for the
+        // children inside it still verify, because the detached subtree is
+        // intact in itself.
+        const card = {
+            type: "stack", id: "card", children: [
+                { type: "text", id: "card-line", text: "inside the card" },
+            ],
+        };
+        const host = new El("div", { id: "card" });
+        root.appendChild(host);
+        elements.set("card", host);
+        renderer.applyPatch({ patches: [{ op: "APPEND", targetId: "inbox", node: card }] });
+        assert.equal(renderer.nodeById("card-line").text, "inside the card");
+
+        renderer.applyPatch({ patches: [{ op: "REMOVE", targetId: "card" }] });
+        assert.equal(renderer.nodeById("card"), undefined);
+        assert.equal(renderer.nodeById("card-line"), undefined);
+    });
+
+    test("a replaced subtree takes its children out of the index", () => {
+        const before = {
+            type: "stack", id: "panel", children: [{ type: "text", id: "panel-old", text: "old" }],
+        };
+        const host = new El("div", { id: "panel" });
+        root.appendChild(host);
+        elements.set("panel", host);
+        renderer.applyPatch({ patches: [{ op: "APPEND", targetId: "inbox", node: before }] });
+        assert.ok(renderer.nodeById("panel-old"));
+
+        renderer.applyPatch({
+            patches: [{
+                op: "REPLACE", targetId: "panel",
+                node: { type: "stack", id: "panel", children: [{ type: "text", id: "panel-new", text: "new" }] },
+            }],
+        });
+        assert.equal(renderer.nodeById("panel-old"), undefined);
+        assert.equal(renderer.nodeById("panel-new").text, "new");
+    });
+
+    test("an id that moves is found again, not remembered wrongly", () => {
+        // The lookup keeps where it last found an id. A REPLACE leaves that
+        // place good; a REMOVE and a fresh APPEND elsewhere must not.
+        renderer.applyPatch({
+            patches: [{ op: "REPLACE", targetId: "compose", node: { type: "form", id: "compose", title: "First" } }],
+        });
+        assert.equal(renderer.tree().children[1].title, "First");
+        renderer.applyPatch({ patches: [{ op: "REMOVE", targetId: "compose" }] });
+        renderer.applyPatch({
+            patches: [{
+                op: "APPEND", targetId: "inbox",
+                node: { type: "form", id: "compose", title: "Second" },
+            }],
+        });
+        renderer.applyPatch({
+            patches: [{ op: "MERGE", targetId: "compose", attributes: { title: "Third" } }],
+        });
+        const moved = renderer.tree().children[0].items.find(i => i.id === "compose");
+        assert.equal(moved.title, "Third");
+    });
 });
 
 // ── What the snapshot says ──────────────────────────────────────────────────
@@ -241,6 +322,46 @@ describe("snapshot", () => {
         assert.equal(shot.reason, "unknown-root");
     });
 
+    test("depth shortens the walk without dropping what stands beside it", () => {
+        // A shallow snapshot is how a reader keeps the answer small. It has to
+        // still be a picture of the whole screen: every sibling is there, only
+        // what hangs below them is cut.
+        const tree = {
+            type: "stack", id: "page", children: [
+                { type: "list", id: "a", title: "A", items: [{ id: "a1", label: "one" }] },
+                { type: "list", id: "b", title: "B", items: [{ id: "b1", label: "two" }] },
+                { type: "text", id: "c", text: "three" },
+            ],
+        };
+        const dom = { byId: () => null, values: () => ({}) };
+        const { node, truncated } = buildSnapshot(tree, { depth: 1 }, dom, "b");
+        assert.deepEqual(node.children.map(c => c.id), ["a", "b", "c"]);
+        assert.equal(node.children[0].items, undefined);
+        assert.equal(node.children[0].truncated, true);
+        assert.equal(node.children[1].truncated, true);
+        // Nothing hangs below the text, so nothing was cut from it.
+        assert.equal(node.children[2].truncated, undefined);
+        assert.equal(truncated, true);
+    });
+
+    test("full mode uses the budget it was given", () => {
+        // Every entry is charged once. A model that fits under maxChars comes
+        // back whole — it used to be charged again by each level above it and
+        // came back a third of its size, marked truncated.
+        const leaf = (i) => ({ type: "text", id: "t" + i, text: "Some ordinary label text " + i });
+        const level = (d, i) => d === 0 ? leaf(i) : {
+            type: "stack", id: `s${d}-${i}`, title: "Section " + i,
+            children: [level(d - 1, i * 3), level(d - 1, i * 3 + 1), level(d - 1, i * 3 + 2)],
+        };
+        const tree = level(4, 0);
+        const model = JSON.stringify(tree).length;
+        const dom = { byId: () => null, values: () => ({}) };
+        const shot = buildSnapshot(tree, { mode: "full" }, dom, "b");
+        assert.equal(shot.truncated, undefined, "a model of " + model + " chars fits in 20000");
+        assert.ok(JSON.stringify(shot).length > model,
+            `full snapshot was ${JSON.stringify(shot).length} chars for a ${model}-char model`);
+    });
+
     test("depth stops the walk and says where", () => {
         const { tree, dom } = screen();
         const { node, truncated } = buildSnapshot(tree, { depth: 1 }, dom, "b");
@@ -267,6 +388,66 @@ describe("snapshot", () => {
         assert.equal(node.fields[0].value, "rechnung");
         assert.equal(node.fields[1].value, undefined);
         assert.equal(node.fields[1].omitted, true);
+    });
+
+    test("a table reports its columns, its cells and what is ticked", () => {
+        const tree = {
+            type: "table", id: "orders", title: "Orders",
+            columns: [
+                { type: "column", id: "customer", label: "Customer" },
+                { type: "column", id: "total", label: "Total", dataKey: "amount" },
+            ],
+            rows: [
+                { type: "row", id: "r1", data: { customer: "Ada Lovelace", amount: "42.00" } },
+                { type: "row", id: "r2", data: { customer: "Alan Turing", amount: "17.50" } },
+            ],
+            pagination: { page: 1, size: 20, total: 84 },
+            selectMode: "MULTI",
+            actions: [{ type: "action", id: "export", label: "Export CSV" }],
+        };
+        // r1 is ticked on screen, r2 is not.
+        const ticked = new El("tr", { id: "r1" }, [
+            new El("td", { class: "sui-table-selection" }, [
+                new globalThis.HTMLInputElement("input", { type: "checkbox", name: "orders__selection", value: "r1", checked: "" }),
+            ]),
+        ]);
+        const plain = new El("tr", { id: "r2" }, [
+            new El("td", { class: "sui-table-selection" }, [
+                new globalThis.HTMLInputElement("input", { type: "checkbox", name: "orders__selection", value: "r2" }),
+            ]),
+        ]);
+        const rows = { r1: ticked, r2: plain };
+        const dom = { byId: (id) => rows[id] ?? null, values: () => ({}) };
+
+        const { node } = buildSnapshot(tree, {}, dom, "b");
+        assert.deepEqual(node.columns, [
+            { id: "customer", label: "Customer" },
+            { id: "total", label: "Total" },
+        ]);
+        assert.deepEqual(node.items, [
+            { id: "r1", cells: { customer: "Ada Lovelace", total: "42.00" }, selected: true },
+            { id: "r2", cells: { customer: "Alan Turing", total: "17.50" }, selected: false },
+        ]);
+        // One page of many, and the button above the table.
+        assert.deepEqual(node.pagination, { page: 1, size: 20, total: 84 });
+        assert.deepEqual(node.actions, [{ id: "export", label: "Export CSV", enabled: true }]);
+    });
+
+    test("a ceiling smaller than the smallest answer says which", () => {
+        const { tree, dom } = screen();
+        const shot = buildSnapshot(tree, { maxChars: 40 }, dom, "b");
+        assert.equal(shot.node, null);
+        assert.equal(shot.truncated, true);
+        assert.equal(shot.reason, "too-small");
+    });
+
+    test("a tree that points back at itself does not take the walk with it", () => {
+        const table = { type: "table", id: "orders", rows: [] };
+        const row = { type: "row", id: "r1", data: { total: "42.00" }, table };
+        table.rows.push(row);   // the row knows its table, the table its rows
+        const dom = { byId: () => null, values: () => ({}) };
+        const shot = buildSnapshot({ type: "stack", id: "page", children: [table] }, { root: "r1" }, dom, "b");
+        assert.equal(shot.node.id, "r1");
     });
 
     test("nothing rendered yet is a reason, not a crash", () => {

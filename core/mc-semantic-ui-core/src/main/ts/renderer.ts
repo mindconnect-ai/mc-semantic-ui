@@ -147,6 +147,22 @@ export class SuiRenderer {
      * on the screen without the DOM having to be parsed back into a model.
      */
     private treeRoot: UiNode | null = null;
+    /**
+     * Every id in {@link #treeRoot}, with the object or array that holds it —
+     * the index behind {@link #nodeById} and every patch's lookup.
+     *
+     * <p>Filled when a tree is mounted and kept up as patches change it: the
+     * subtree a patch brings is indexed, the subtree it takes away is dropped,
+     * both walks proportional to what changed rather than to the page.
+     *
+     * <p>Every read still checks its entry — the place has to hold a node with
+     * that id — and falls back to a walk when it does not. So a miss costs
+     * time, never a wrong answer: the failure mode of an index is that it says
+     * something confidently and is wrong, and this one cannot.
+     */
+    private readonly located = new Map<string, { parent: Record<string, unknown> | unknown[]; key: string | number }>();
+    /** Patch targets already reported as missing from the copy; warned once each. */
+    private readonly warnedAdrift = new Set<string>();
     /** Reads the values the user has put into the controls under an element; see {@link #setInputReader}. */
     private inputReader: InputReader | null = null;
     private loadingDepth = 0;
@@ -340,10 +356,17 @@ export class SuiRenderer {
      * when they have matching {@code id}s, which preserves focus, scroll
      * position and CSS animation state on the unchanged subtree. Throws
      * when no host has been provided.
+     *
+     * <p>The node is kept, not copied: it becomes {@link #tree}, and later
+     * patches write into it (an APPEND pushes into one of its arrays, a
+     * REMOVE deletes from one). Hand over a tree the caller is done with —
+     * a page built per render, or a response just parsed — not a literal that
+     * is going to be mounted a second time.
      */
     mount(node: { type: string } | null | undefined): this {
         // A new page: whatever the old one's ids meant, they do not mean it
         // any more. The render below refills this for the tree it draws.
+        this.warnedAdrift.clear();
         this.models.clear();
         if (!this.rootElement) {
             throw new Error("SuiRenderer.mount(): no host element attached");
@@ -351,6 +374,7 @@ export class SuiRenderer {
         const html = this.render(node);
         const host = this.rootElement;
         this.treeRoot = (node ?? null) as UiNode | null;
+        if (this.treeRoot) this.indexTree();
         this.withViewTransition(() => this.morph(host, html, "innerHTML"));
         this.treeChanged(this.treeRoot?.id, "MOUNT");
         return this;
@@ -402,7 +426,7 @@ export class SuiRenderer {
         // The page the server drew is also the tree on the screen — without
         // this a snapshot of a server-rendered page would have nothing to
         // describe until the first client render.
-        if (!this.treeRoot && node) this.treeRoot = node as UiNode;
+        if (!this.treeRoot && node) { this.treeRoot = node as UiNode; this.indexTree(); }
         return this;
     }
 
@@ -456,6 +480,59 @@ export class SuiRenderer {
      * and no list of "which property holds children" has to be maintained.
      */
     private locate(id: string): { parent: Record<string, unknown> | unknown[]; key: string | number } | null {
+        const cached = this.located.get(id);
+        if (cached && isNodeWithId(heldAt(cached), id)) return cached;
+        const found = this.walkFor(id);
+        if (found) this.located.set(id, found); else this.located.delete(id);
+        return found;
+    }
+
+    /**
+     * The node with this id as it stands in the copy, or undefined. O(1)
+     * through the index, with the same verified fallback as {@link #locate} —
+     * what {@code SuiEventBus#snapshot} resolves its {@code root} with.
+     *
+     * <p>Unlike {@link #modelOf} this answers only for what is on the screen:
+     * a node the page has since dropped is gone from here, where the model
+     * index still holds the descendants of anything removed.
+     */
+    nodeById(id: string): UiNode | undefined {
+        if (this.treeRoot && (this.treeRoot as { id?: string }).id === id) return this.treeRoot;
+        const at = this.locate(id);
+        return at ? (heldAt(at) as UiNode) : undefined;
+    }
+
+    /** Records every node of a subtree, with the place that holds it. */
+    private indexSubtree(node: unknown, parent: Record<string, unknown> | unknown[], key: string | number): void {
+        if (!isNodeLike(node)) return;
+        const id = (node as { id?: unknown }).id;
+        if (typeof id === "string" && id) this.located.set(id, { parent, key });
+        for (const [childKey, value] of Object.entries(node as Record<string, unknown>)) {
+            if (Array.isArray(value)) {
+                value.forEach((entry, i) => this.indexSubtree(entry, value, i));
+            } else if (isNodeLike(value)) {
+                this.indexSubtree(value, node as Record<string, unknown>, childKey);
+            }
+        }
+    }
+
+    /** Forgets every id of a subtree — what a patch took off the screen. */
+    private dropFromIndex(node: unknown): void {
+        if (!isNodeLike(node)) return;
+        const id = (node as { id?: unknown }).id;
+        // Only the entry that still points at this very node: a REPLACE has
+        // already registered the new node under the same id.
+        if (typeof id === "string" && id && heldAt(this.located.get(id) ?? { parent: {}, key: "" }) === node) {
+            this.located.delete(id);
+        }
+        for (const value of Object.values(node as Record<string, unknown>)) {
+            if (Array.isArray(value)) value.forEach(entry => this.dropFromIndex(entry));
+            else if (isNodeLike(value)) this.dropFromIndex(value);
+        }
+    }
+
+    /** The full walk {@link #locate} falls back to. */
+    private walkFor(id: string): { parent: Record<string, unknown> | unknown[]; key: string | number } | null {
         const seen = new Set<unknown>();
         const walk = (value: unknown): { parent: Record<string, unknown> | unknown[]; key: string | number } | null => {
             if (value == null || typeof value !== "object" || seen.has(value)) return null;
@@ -480,16 +557,24 @@ export class SuiRenderer {
     }
 
     /** The subtree a patch targets, swapped for the node the patch brought. */
-    private replaceInTree(id: string, node: UiNode | null | undefined): void {
-        if (!node) return;
+    private replaceInTree(id: string, node: UiNode | null | undefined): boolean {
+        if (!node) return true;
         if (this.treeRoot && (this.treeRoot as { id?: string }).id === id) {
+            const old = this.treeRoot;
             this.treeRoot = node;
-            return;
+            this.indexTree();
+            if (old !== node) this.dropFromIndex(old);
+            return true;
         }
         const at = this.locate(id);
-        if (!at) return;
+        if (!at) return false;
+        const old = heldAt(at);
         if (Array.isArray(at.parent)) at.parent[at.key as number] = node;
         else at.parent[at.key as string] = node;
+        this.indexSubtree(node, at.parent, at.key);
+        // After the new subtree is in: an id it re-uses keeps its fresh entry.
+        if (old !== node) this.dropFromIndex(old);
+        return true;
     }
 
     /**
@@ -498,41 +583,81 @@ export class SuiRenderer {
      * first array of children the target has, and a fresh {@code children}
      * when it has none yet (which is what the DOM just did to it).
      */
-    private appendInTree(id: string, node: UiNode | null | undefined): void {
-        if (!node) return;
+    private appendInTree(id: string, node: UiNode | null | undefined): boolean {
+        if (!node) return true;
         const target = this.nodeInTree(id);
-        if (!target) return;
+        if (!target) return false;
         if ((node as { type?: string }).type === "list" && Array.isArray(target.items)) {
             const items = (node as unknown as { items?: unknown[] }).items ?? [];
-            (target.items as unknown[]).push(...items);
-            return;
+            const into = target.items as unknown[];
+            for (const item of items) this.indexSubtree(item, into, into.push(item) - 1);
+            return true;
         }
         for (const key of ["children", "items", "nodes", "entries", "content"]) {
-            if (Array.isArray(target[key])) { (target[key] as unknown[]).push(node); return; }
+            const into = target[key];
+            if (Array.isArray(into)) {
+                this.indexSubtree(node, into, into.push(node) - 1);
+                return true;
+            }
         }
         target.children = [node];
+        this.indexSubtree(node, target.children as unknown[], 0);
+        return true;
     }
 
     /** CLEAR emptied the element; the copy drops the target's children too. */
-    private clearInTree(id: string): void {
+    private clearInTree(id: string): boolean {
         const target = this.nodeInTree(id);
-        if (!target) return;
+        if (!target) return false;
         for (const [key, value] of Object.entries(target)) {
             if (Array.isArray(value) && value.some(v => isNodeLike(v))) target[key] = [];
             else if (isNodeLike(value)) delete target[key];
         }
+        return true;
     }
 
     /** The removed node, gone from the copy as it is gone from the screen. */
-    private removeFromTree(id: string): void {
+    private removeFromTree(id: string): boolean {
         if (this.treeRoot && (this.treeRoot as { id?: string }).id === id) {
+            const gone = this.treeRoot;
             this.treeRoot = null;
-            return;
+            this.dropFromIndex(gone);
+            return true;
         }
         const at = this.locate(id);
-        if (!at) return;
-        if (Array.isArray(at.parent)) at.parent.splice(at.key as number, 1);
-        else delete at.parent[at.key as string];
+        if (!at) return false;
+        const gone = heldAt(at);
+        if (Array.isArray(at.parent)) {
+            at.parent.splice(at.key as number, 1);
+            // Everything after the removed entry has moved up one place.
+            this.reindexArray(at.parent);
+        } else {
+            delete at.parent[at.key as string];
+        }
+        // The whole subtree left the screen, not just the node the patch named:
+        // its children's ids are not on the page any more either, and an index
+        // that still answered for them would describe something invisible.
+        this.dropFromIndex(gone);
+        return true;
+    }
+
+    /** Re-points the entries of an array whose entries have shifted. */
+    private reindexArray(list: unknown[]): void {
+        list.forEach((entry, i) => this.indexSubtree(entry, list, i));
+    }
+
+    /** Indexes the whole tree — after a mount, or a replaced root. */
+    private indexTree(): void {
+        this.located.clear();
+        const root = this.treeRoot as unknown as Record<string, unknown> | null;
+        if (!root) return;
+        const id = typeof root.id === "string" ? root.id : "";
+        // The root has no holder; its children are indexed against it.
+        for (const [key, value] of Object.entries(root)) {
+            if (Array.isArray(value)) value.forEach((entry, i) => this.indexSubtree(entry, value, i));
+            else if (isNodeLike(value)) this.indexSubtree(value, root, key);
+        }
+        if (id) this.located.delete(id);
     }
 
     /** The node itself, as it sits in the copy. */
@@ -555,6 +680,21 @@ export class SuiRenderer {
      * <p>Best-effort: a renderer used for strings has no document, and a test
      * stand-in may have no CustomEvent — neither is a reason to fail a render.
      */
+    /**
+     * Says once, on the console, that a patch changed the screen but not the
+     * copy of the tree — the two now disagree, and a snapshot will show the
+     * old node. Quiet about the cases where that is normal: before anything
+     * was mounted, and for a target outside the renderer's root, which is
+     * where the dialog host lives and its dialogs are not part of the page.
+     */
+    private noteAdrift(op: UiPatchOperation, target: HTMLElement): void {
+        if (!this.treeRoot || this.warnedAdrift.has(op.targetId)) return;
+        if (this.rootElement && !this.rootElement.contains?.(target)) return;
+        this.warnedAdrift.add(op.targetId);
+        console.warn(`SuiRenderer: ${op.op} on "${op.targetId}" changed the page but not the tree copy `
+            + "— the node is not in it, so a snapshot will not show this change");
+    }
+
     private treeChanged(id: string | undefined, op: string): void {
         try {
             if (typeof document === "undefined" || typeof CustomEvent !== "function") return;
@@ -640,7 +780,7 @@ export class SuiRenderer {
                     this.morph(target, this.render(node), isSlot ? "innerHTML" : "outerHTML");
                 });
                 if (isSlot) this.withViewTransition(swap); else swap();
-                this.replaceInTree(op.targetId, node as UiNode);
+                if (!this.replaceInTree(op.targetId, node as UiNode)) this.noteAdrift(op, target);
                 this.treeChanged(op.targetId, op.op);
                 break;
             }
@@ -673,7 +813,7 @@ export class SuiRenderer {
                 // measured around the mutation, and an entering element must
                 // not be mid-animation while that measurement happens.
                 this.animateEnter(added);
-                this.appendInTree(op.targetId, op.node as UiNode);
+                if (!this.appendInTree(op.targetId, op.node as UiNode)) this.noteAdrift(op, target);
                 this.treeChanged(op.targetId, op.op);
                 break;
             }
@@ -687,13 +827,13 @@ export class SuiRenderer {
                     const isSlot = target.hasAttribute("data-sui-slot");
                     this.morph(target, this.render(merged), isSlot ? "innerHTML" : "outerHTML");
                 });
-                this.replaceInTree(op.targetId, merged);
+                if (!this.replaceInTree(op.targetId, merged)) this.noteAdrift(op, target);
                 this.treeChanged(op.targetId, op.op);
                 break;
             }
             case "CLEAR":
                 this.morph(target, "", "innerHTML");
-                this.clearInTree(op.targetId);
+                if (!this.clearInTree(op.targetId)) this.noteAdrift(op, target);
                 this.treeChanged(op.targetId, op.op);
                 break;
             case "REMOVE": {
@@ -706,7 +846,7 @@ export class SuiRenderer {
                 // merge against it should say so rather than resurrect a
                 // model for something no longer on the page.
                 this.models.delete(op.targetId);
-                this.removeFromTree(op.targetId);
+                if (!this.removeFromTree(op.targetId)) this.noteAdrift(op, target);
                 this.treeChanged(op.targetId, op.op);
                 break;
             }
@@ -1510,6 +1650,11 @@ function canScrollVertically(el: HTMLElement): boolean {
 function isNodeLike(value: unknown): value is Record<string, unknown> {
     return value != null && typeof value === "object" && !Array.isArray(value)
         && typeof (value as { type?: unknown }).type === "string";
+}
+
+/** What a located entry currently holds. */
+function heldAt(at: { parent: Record<string, unknown> | unknown[]; key: string | number }): unknown {
+    return Array.isArray(at.parent) ? at.parent[at.key as number] : at.parent[at.key as string];
 }
 
 /** Whether a value is the node with this id. */

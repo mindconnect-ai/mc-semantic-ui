@@ -33,6 +33,20 @@ function screen() {
     ]);
     const body = new El("div", { class: "sui-field", id: "body" }, [richtext]);
 
+    // A field with an onChange trigger, and a radio group whose options share
+    // one name — the two shapes that used to over-report a change.
+    const note = new Input("input", {
+        id: "note__input", name: "note", type: "text", value: "hello",
+        "data-change-trigger": trigger("/note", "POST"),
+    });
+    const noteField = new El("div", { class: "sui-field", id: "note" }, [note]);
+    const radios = ["open", "done", "all"].map(v => new Input("input", {
+        id: `status__opt-${v}`, name: "status", type: "radio", value: v,
+        "data-sui-type": "SELECT", "data-change-trigger": trigger("/status", "POST"),
+        ...(v === "open" ? { checked: "" } : {}),
+    }));
+    const statusField = new El("div", { class: "sui-choice-group", id: "status" }, radios);
+
     const search = new El("button", {
         id: "search", "data-action": "search", "data-trigger": trigger("/search", "GET"),
     });
@@ -45,13 +59,29 @@ function screen() {
         "data-trigger": trigger("/nothing", "POST"),
     });
     const dead = new El("button", { id: "dead", "data-action": "dead" });
-    const footer = new El("div", { class: "sui-form-footer" }, [search, remove, off, dead]);
+    // Busy: the spinner class, no disabled attribute — what a LINK-appearance
+    // action looks like while its request is in flight.
+    const busy = new El("button", {
+        id: "busy", class: "sui-link is-loading", "data-action": "busy",
+        "data-trigger": trigger("/slow", "POST"),
+    });
+    const footer = new El("div", { class: "sui-form-footer" }, [search, remove, off, dead, busy]);
 
-    const form = new El("form", { id: "search-form", "data-sui": "form" }, [field, body, footer]);
+    const form = new El("form", { id: "search-form", "data-sui": "form" }, [field, body, noteField, statusField, footer]);
     const root = new El("div", { id: "root" }, [form]);
+
+    // A second bus's screen, beside this one's and not inside it.
+    const otherInput = new Input("input", { id: "far__input", name: "far", type: "text", value: "" });
+    const otherField = new El("div", { class: "sui-field", id: "far" }, [otherInput]);
+    const otherButton = new El("button", {
+        id: "far-save", "data-action": "far-save", "data-trigger": trigger("/far/save", "POST"),
+    });
+    const outside = new El("div", { id: "other-root" }, [otherField, otherButton]);
+    const page = new El("body", {}, [root, outside]);
+
     const all = new Map();
     const index = (el) => { if (el.id) all.set(el.id, el); el.children.forEach(index); };
-    index(root);
+    index(page);
 
     const requests = [];
     /** What window.confirm was asked, and what it answers. */
@@ -64,11 +94,11 @@ function screen() {
         getComputedStyle: () => ({ position: "static" }),
     };
     globalThis.document = {
-        body: root,
+        body: page,
         getElementById: (id) => all.get(id) ?? null,
         createElement: (t) => new El(t),
-        querySelectorAll: (s) => root.querySelectorAll(s),
-        querySelector: (s) => root.querySelector(s),
+        querySelectorAll: (s) => page.querySelectorAll(s),
+        querySelector: (s) => page.querySelector(s),
         addEventListener() { }, removeEventListener() { }, dispatchEvent() { return true; },
     };
     globalThis.requestAnimationFrame = (fn) => { fn(); return 0; };
@@ -86,7 +116,7 @@ function screen() {
             json: async () => ({ patches: [] }), text: async () => "{}",
         };
     });
-    return { bus, root, input, editor, hidden, search, requests, confirm, all };
+    return { bus, root, input, otherInput, editor, hidden, search, note, radios, requests, confirm, all };
 }
 
 const settle = () => new Promise(r => setTimeout(r, 10));
@@ -108,7 +138,8 @@ describe("perform does what a click does", () => {
         assert.deepEqual(result.fields, ["q"]);
         assert.equal(clicked.requests.length, 1);
         assert.deepEqual(performed.requests, clicked.requests);
-        assert.match(performed.requests[0].url, /\/search\?q=rechnung$/);
+        // The whole form rides along, the same way for both paths.
+        assert.equal(performed.requests[0].url, "/search?q=rechnung&note=hello&status=open");
     });
 
     test("a field that is typed into is the field the form sends", async () => {
@@ -187,6 +218,89 @@ describe("perform says why not", () => {
         assert.equal(result.reason, "unknown-field");
         assert.equal(result.triggered, false);
         assert.deepEqual(s.requests, []);
+    });
+});
+
+describe("perform reports a change like a browser does", () => {
+    test("a value that did not move fires nothing", async () => {
+        const s = screen();
+        const result = await s.bus.perform({ fields: { note: "hello" } });
+        await settle();
+        assert.equal(result.ok, true);
+        assert.deepEqual(s.requests, []);
+    });
+
+    test("a value that moved fires once", async () => {
+        const s = screen();
+        await s.bus.perform({ fields: { note: "written" } });
+        await settle();
+        assert.deepEqual(s.requests.map(r => r.url), ["/note"]);
+    });
+
+    test("a radio group speaks once, through the option that was chosen", async () => {
+        const s = screen();
+        await s.bus.perform({ fields: { status: "done" } });
+        await settle();
+        assert.deepEqual(s.requests.map(r => r.url), ["/status"]);
+        assert.deepEqual(s.radios.map(r => r.checked), [false, true, false]);
+    });
+});
+
+describe("perform stays inside its own bus", () => {
+    test("an action on another bus's screen is not this bus's to press", async () => {
+        const s = screen();
+        const result = await s.bus.perform({ action: "far-save" });
+        await settle();
+        assert.equal(result.reason, "unknown-action");
+        assert.deepEqual(s.requests, []);
+    });
+
+    test("a field on another bus's screen is not filled in", async () => {
+        const s = screen();
+        const result = await s.bus.perform({ fields: { far: "typed" }, action: "search" });
+        await settle();
+        assert.equal(result.reason, "unknown-field");
+        assert.equal(s.otherInput.value, "");
+        assert.deepEqual(s.requests, []);
+    });
+
+    test("a busy action is left alone, as the snapshot says it is", async () => {
+        const s = screen();
+        const result = await s.bus.perform({ action: "busy" });
+        await settle();
+        assert.equal(result.reason, "disabled");
+        assert.match(result.message, /busy/);
+        assert.deepEqual(s.requests, []);
+    });
+});
+
+describe("what a form sends", () => {
+    test("a field called name does not smuggle the form into the payload", async () => {
+        // A form's named getter answers the <input name="name"> for `.name`, so
+        // code that asks an element whether it has a name to decide whether it
+        // is a control mistakes the form for one — and the payload grows a key
+        // nobody named.
+        const Form = globalThis.HTMLFormElement;
+        const s = screen();
+        const name = new Input("input", { id: "name__input", name: "name", type: "text", value: "Ada" });
+        const field = new El("div", { class: "sui-field", id: "name" }, [name]);
+        const send = new El("button", {
+            id: "save", "data-action": "save",
+            "data-trigger": JSON.stringify({ behavior: "INVOKE", handler: "record" }),
+        });
+        const form = new Form("form", { id: "profile", "data-sui": "form" }, [field, send]);
+        s.root.appendChild(form);
+        s.all.set("profile", form);
+        s.all.set("name", field);
+        s.all.set("save", send);
+
+        let payload = null;
+        s.bus.registerClientHandler("record", (ctx) => { payload = ctx.payload; });
+        await s.bus.perform({ action: "save" });
+        await settle();
+
+        assert.deepEqual(Object.keys(payload), ["name"]);
+        assert.equal(payload.name, "Ada");
     });
 });
 
