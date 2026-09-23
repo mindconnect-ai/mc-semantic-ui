@@ -130,6 +130,7 @@
         <sui.ext.chart.assets>${project.basedir}/../../ext/mc-semantic-ui-ext-chart/target/classes/META-INF/resources/sui-ext</sui.ext.chart.assets>
         <sui.ext.kanban.assets>${project.basedir}/../../ext/mc-semantic-ui-ext-kanban/target/classes/META-INF/resources/sui-ext</sui.ext.kanban.assets>
         <sui.ext.calendar.assets>${project.basedir}/../../ext/mc-semantic-ui-ext-calendar/target/classes/META-INF/resources/sui-ext</sui.ext.calendar.assets>
+        <sui.ext.markdown.assets>${project.basedir}/../../ext/mc-semantic-ui-ext-markdown/target/classes/META-INF/resources/sui-ext</sui.ext.markdown.assets>
     </properties>
 
     <dependencyManagement>

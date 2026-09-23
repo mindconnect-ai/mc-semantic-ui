@@ -892,6 +892,12 @@ function agentTab() {
             { type: "row", id: "ag-a2", data: { file: "vertrag.docx", bytes: "31 kB" } },
           ],
           pagination: { page: 1, size: 20, total: 2 } },
+        // Two nodes that are not core types. The markdown one comes from an
+        // extension that registers how it describes itself; the sticky note
+        // is this demo's own type, painted but undescribed — the snapshot
+        // below shows the difference, and the third button closes it.
+        { type: "markdown", id: "ag-md", content: "**Drei offene Rechnungen**, zusammen 1.240 € — die älteste seit 21 Tagen." },
+        { type: "sticky-note", id: "ag-note", label: "Notiz", body: "Mahnung erst nach Rücksprache." },
     ], { gap: 12 });
 
     const java =
@@ -901,6 +907,7 @@ await bus.perform({ fields: { "ag-q": "rechnung" }, action: "ag-search", confirm
 
     return stack("tab-agent", [
         text("ag-intro", "The bus keeps a copy of the tree it drew and applies every patch to it, so it can say what is on the screen — and it can be driven from outside: fill fields in, press something, through the same path a click takes. Type into Search below and take a snapshot: what you typed is in it. The API token is not — a password, a file or anything that reads like a token comes back as omitted."),
+        text("ag-intro-2", "The last two cards are not core types. Markdown comes from an extension that registers how it describes itself, so its text is in the snapshot. The sticky note is this demo's own type with a painter and nothing else: the general rules find its label, but its words sit in a field called body and nothing could guess that. The third button gives it a description — one call — and the next snapshot carries them."),
         specimen("sp-agent-screen", "A screen — and what the bus says about it", screenNode, java),
         { type: "agent-console", id: "ag-console" },
     ], { gap: 16 });
@@ -1265,6 +1272,17 @@ function renderCode(node) {
     return `<pre class="demo-code" id="${escapeHtml(node.id)}"><code>${escapeHtml(node.code)}</code></pre>`;
 }
 
+// ── Custom node renderer: a sticky note (painted, not described) ───────────
+// A node type this demo adds, exactly as an extension would: a painter, and
+// — until the Agent tab's third button runs — nothing that tells a snapshot
+// what it holds.
+function renderStickyNote(node) {
+    return `<div class="demo-sticky" id="${escapeHtml(node.id)}">
+        <strong>${escapeHtml(node.label ?? "")}</strong>
+        <span>${escapeHtml(node.body ?? "")}</span>
+    </div>`;
+}
+
 // ── Custom node renderer: the agent console ────────────────────────────────
 // Two buttons and a panel: one asks the bus what is on the screen, the other
 // tells it to do something. Wired in wireAgentConsole() — it needs the bus.
@@ -1273,6 +1291,7 @@ function renderAgentConsole(node) {
         <div class="agent-console-bar">
             <button type="button" class="sui-btn sui-btn--secondary" data-agent="snapshot">${renderIcon("info")} What is on this screen?</button>
             <button type="button" class="sui-btn sui-btn--primary" data-agent="perform">${renderIcon("send")} Type “rechnung”, press Search</button>
+            <button type="button" class="sui-btn sui-btn--secondary" data-agent="describe">${renderIcon("edit")} Teach the sticky note to describe itself</button>
         </div>
         <pre class="demo-code agent-console-out"><code>Press one — what the bus answers lands here.</code></pre>
     </div>`;
@@ -1285,17 +1304,27 @@ function renderAgentConsole(node) {
  * node like any other, and a listener bound to the element itself would be
  * gone the moment anything re-drew it.
  */
-function wireAgentConsole(bus) {
+function wireAgentConsole(bus, renderer) {
     document.addEventListener("click", async (e) => {
         const btn = e.target?.closest?.("[data-agent]");
         if (!btn) return;
         const panel = btn.closest(".agent-console");
         const out = panel?.querySelector(".agent-console-out code");
         if (!out) return;
-        const snapshot = btn.dataset.agent === "snapshot";
-        const call = snapshot
-            ? 'bus.snapshot({ root: "ag-screen", depth: 4 })'
-            : 'bus.perform({ fields: { "ag-q": "rechnung" }, action: "ag-search", confirmed: true })';
+        const what = btn.dataset.agent;
+        // The third button registers, at this moment, how the demo's own node
+        // type describes itself — the same one call an extension makes beside
+        // its painter. The snapshot right after it carries the note's words.
+        if (what === "describe") {
+            renderer.registerOutline("sticky-note", node => ({ label: node.label, text: node.body }));
+            btn.disabled = true;
+        }
+        const snapshot = what !== "perform";
+        const call = what === "describe"
+            ? 'renderer.registerOutline("sticky-note", n => ({ label: n.label, text: n.body }));\n// …und derselbe Schnappschuss noch einmal:\nbus.snapshot({ root: "ag-screen", depth: 4 })'
+            : snapshot
+                ? 'bus.snapshot({ root: "ag-screen", depth: 4 })'
+                : 'bus.perform({ fields: { "ag-q": "rechnung" }, action: "ag-search", confirmed: true })';
         const answer = snapshot
             ? bus.snapshot({ root: "ag-screen", depth: 4 })
             : await bus.perform({ fields: { "ag-q": "rechnung" }, action: "ag-search", confirmed: true });
@@ -1305,7 +1334,9 @@ function wireAgentConsole(bus) {
         console.info(call, answer);
         // A snapshot changes nothing on the screen itself — without these two
         // the button looks dead to anyone whose window ends above the panel.
-        showToast(snapshot ? "Snapshot taken — the JSON is in the panel below" : "perform() ran — see the screen and the panel");
+        showToast(what === "describe" ? "The sticky note describes itself now — look for its text below"
+            : snapshot ? "Snapshot taken — the JSON is in the panel below"
+            : "perform() ran — see the screen and the panel");
         panel.querySelector(".agent-console-out").scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
 }
@@ -1549,6 +1580,7 @@ async function boot() {
     renderer.register("codepen", renderCodePen);          // "Open in CodePen" button
     renderer.register("icon-gallery", renderIconGallery); // searchable icon grid
     renderer.register("agent-console", renderAgentConsole); // snapshot / perform panel
+    renderer.register("sticky-note", renderStickyNote);     // painted, described on demand
 
     const bus = new SuiEventBus(renderer, root);
     // The extensions — chart, diagram, kanban, calendar — from sui/assets.js,
@@ -1617,7 +1649,7 @@ async function boot() {
     // the enhancers on every render) — no wireTabOverflow()/wireMenuButtons() by
     // hand. Only the demo-specific bits below need explicit wiring.
     wireIconGallery(root);   // search + click-to-copy for the icon library
-    wireAgentConsole(bus);   // bus.snapshot() / bus.perform() panel
+    wireAgentConsole(bus, renderer);   // bus.snapshot() / bus.perform() panel
     wireCodePen(root);       // "Open in CodePen" buttons
     wireLiveProgress(renderer);   // animate the "live" progress bar + ring
     if (!embedded) wireViewportToggle();   // 📱 phone-frame preview button
