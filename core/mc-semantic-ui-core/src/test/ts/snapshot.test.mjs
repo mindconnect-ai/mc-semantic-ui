@@ -162,6 +162,48 @@ describe("the renderer's copy of the tree", () => {
         assert.match(said[0], /tree copy/);
     });
 
+    test("the index answers for what is on the screen, and only that", () => {
+        // A node the page has dropped must not be findable any more — neither
+        // it nor its children. That is the failure an index invites: a REMOVE
+        // takes a whole subtree off the screen, and the entries for the
+        // children inside it still verify, because the detached subtree is
+        // intact in itself.
+        const card = {
+            type: "stack", id: "card", children: [
+                { type: "text", id: "card-line", text: "inside the card" },
+            ],
+        };
+        const host = new El("div", { id: "card" });
+        root.appendChild(host);
+        elements.set("card", host);
+        renderer.applyPatch({ patches: [{ op: "APPEND", targetId: "inbox", node: card }] });
+        assert.equal(renderer.nodeById("card-line").text, "inside the card");
+
+        renderer.applyPatch({ patches: [{ op: "REMOVE", targetId: "card" }] });
+        assert.equal(renderer.nodeById("card"), undefined);
+        assert.equal(renderer.nodeById("card-line"), undefined);
+    });
+
+    test("a replaced subtree takes its children out of the index", () => {
+        const before = {
+            type: "stack", id: "panel", children: [{ type: "text", id: "panel-old", text: "old" }],
+        };
+        const host = new El("div", { id: "panel" });
+        root.appendChild(host);
+        elements.set("panel", host);
+        renderer.applyPatch({ patches: [{ op: "APPEND", targetId: "inbox", node: before }] });
+        assert.ok(renderer.nodeById("panel-old"));
+
+        renderer.applyPatch({
+            patches: [{
+                op: "REPLACE", targetId: "panel",
+                node: { type: "stack", id: "panel", children: [{ type: "text", id: "panel-new", text: "new" }] },
+            }],
+        });
+        assert.equal(renderer.nodeById("panel-old"), undefined);
+        assert.equal(renderer.nodeById("panel-new").text, "new");
+    });
+
     test("an id that moves is found again, not remembered wrongly", () => {
         // The lookup keeps where it last found an id. A REPLACE leaves that
         // place good; a REMOVE and a fresh APPEND elsewhere must not.

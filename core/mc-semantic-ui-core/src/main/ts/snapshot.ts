@@ -260,10 +260,19 @@ export function buildSnapshot(
     options: SnapshotOptions,
     dom: SnapshotDom,
     busId: string,
+    /**
+     * How {@code options.root} is looked up. The renderer keeps an index of
+     * every id it holds and answers in one step; without one, the tree is
+     * walked. Either way the node must be in {@code tree} — a node the page
+     * has dropped is not on the screen, and is not described here.
+     */
+    resolve?: (id: string) => Record<string, unknown> | null | undefined,
 ): Snapshot {
     const mode: SnapshotMode = options.mode ?? "outline";
     if (!tree) return { busId, mode, node: null, reason: "no-tree" };
-    const start = options.root ? findNode(tree, options.root) : (tree as Record<string, unknown>);
+    const start = options.root
+        ? (resolve?.(options.root) ?? findNode(tree, options.root))
+        : (tree as Record<string, unknown>);
     if (!start) return { busId, mode, node: null, reason: "unknown-root" };
     const maxChars = options.maxChars ?? DEFAULT_MAX_CHARS;
     const depth = options.depth ?? DEFAULT_DEPTH;

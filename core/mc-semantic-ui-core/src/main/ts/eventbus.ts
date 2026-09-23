@@ -556,7 +556,9 @@ export class SuiEventBus {
             },
             values: (element) => harvestNamedControls(element),
         };
-        return buildSnapshot(this.renderer.tree?.() ?? null, options, dom, this.myId);
+        return buildSnapshot(
+            this.renderer.tree?.() ?? null, options, dom, this.myId,
+            (id) => this.renderer.nodeById?.(id) as Record<string, unknown> | undefined);
     }
 
     /**
