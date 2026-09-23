@@ -140,7 +140,12 @@ describe("the user's controls", () => {
     before(() => {
         installControls();
         listeners = {};
-        globalThis.document = { addEventListener: (t, fn) => { (listeners[t] ??= []).push(fn); }, querySelectorAll: () => [] };
+        globalThis.document = {
+            addEventListener: (t, fn) => { (listeners[t] ??= []).push(fn); },
+            // A drag adds pointermove/pointerup and takes them away again.
+            removeEventListener: (t, fn) => { listeners[t] = (listeners[t] ?? []).filter(f => f !== fn); },
+            querySelectorAll: () => [],
+        };
         globalThis.window = { innerWidth: 1000, innerHeight: 800 };
         drawerJs.wireDrawers((drawer, state, closed) => changes.push([drawer.id, state, closed]));
     });
@@ -163,6 +168,60 @@ describe("the user's controls", () => {
         for (const fn of listeners[type] ?? []) fn(event);
         return event;
     };
+
+    /** A grip on the drawer, and a size for whatever carries it. */
+    const withGrip = (edge, mode, box) => {
+        const grip = new El("div", { class: "sui-drawer-resize", "data-sui-drawer": "resize" });
+        parts.panel.appendChild(grip);
+        parts.el.className = `sui-drawer sui-drawer--${edge} sui-drawer--open sui-drawer--viewport sui-drawer--${mode} sui-drawer--resizable`;
+        const sized = mode === "push" ? parts.el : parts.panel;
+        sized.getBoundingClientRect = () => ({ ...box, top: 0, left: 0, right: box.width, bottom: box.height });
+        return grip;
+    };
+    const size = () => parts.el.style.getPropertyValue("--sui-drawer-size");
+
+    test("the grip resizes by how far the pointer came, not by where it is", () => {
+        // The drawer is 260 wide; the pointer travels 60px away from its edge.
+        const grip = withGrip("right", "overlay", { width: 260, height: 300 });
+        fire("pointerdown", grip, { clientX: 900, clientY: 400 });
+        fire("pointermove", grip, { clientX: 840, clientY: 400 });
+        assert.equal(size(), "320px");
+        // And back the other way, past where it started: narrower.
+        fire("pointermove", grip, { clientX: 960, clientY: 400 });
+        assert.equal(size(), "200px");
+        fire("pointerup", grip, { clientX: 960, clientY: 400 });
+    });
+
+    test("a drawer that takes room in the layout measures from its own box", () => {
+        // PUSH: the element is the box, and it is nowhere near the window's
+        // edge — a neighbour stands between them. The window's width must not
+        // enter into it, which is what the old reading did: it measured the
+        // distance from the window's edge and jumped by however far the two
+        // edges were apart.
+        globalThis.window = { innerWidth: 4000, innerHeight: 3000 };
+        const grip = withGrip("right", "push", { width: 280, height: 300 });
+        fire("pointerdown", grip, { clientX: 700, clientY: 500 });
+        fire("pointermove", grip, { clientX: 640, clientY: 500 });
+        assert.equal(size(), "340px");
+        fire("pointerup", grip, { clientX: 640, clientY: 500 });
+        globalThis.window = { innerWidth: 1000, innerHeight: 800 };
+    });
+
+    test("every edge grows away from itself", () => {
+        for (const [edge, from, to, expected] of [
+            ["bottom", { clientX: 0, clientY: 500 }, { clientX: 0, clientY: 420 }, "380px"],
+            ["top", { clientX: 0, clientY: 500 }, { clientX: 0, clientY: 580 }, "380px"],
+            ["left", { clientX: 500, clientY: 0 }, { clientX: 580, clientY: 0 }, "340px"],
+            ["right", { clientX: 500, clientY: 0 }, { clientX: 420, clientY: 0 }, "340px"],
+        ]) {
+            parts = drawerElement("open");
+            const grip = withGrip(edge, "overlay", { width: 260, height: 300 });
+            fire("pointerdown", grip, from);
+            fire("pointermove", grip, to);
+            assert.equal(size(), expected, `${edge}: dragging away from the edge must grow it`);
+            fire("pointerup", grip, to);
+        }
+    });
 
     test("the handle opens it, minimize and close do what they say, each reported once", () => {
         fire("click", parts.handle);
