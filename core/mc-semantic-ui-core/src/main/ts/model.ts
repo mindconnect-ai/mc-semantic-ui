@@ -918,6 +918,7 @@ export type UiNode =
     | UiField
     | UiDialog
     | UiDrawer
+    | UiDrawerGroup
     | UiUpload;
 
 /**
@@ -971,6 +972,34 @@ export interface UiDrawer extends UiNodeBase {
     onClose?: UiTrigger;
     /** `{state}` in its URL becomes OPEN, MINIMIZED or CLOSED. */
     onStateChange?: UiTrigger;
+}
+
+/**
+ * Several drawers at one edge, and how they get on with each other (mirrors
+ * UiDrawerGroup.java). `SHARE`: the open ones divide the edge between them,
+ * side by side. `STACK`: they lie on top of each other; `active` is in front,
+ * the others peek with their header bars, a click on a bar brings it forward.
+ * The group owns edge, scope, mode and the strip's size; a drawer inside
+ * ignores its own.
+ */
+export interface UiDrawerGroup extends UiNodeBase {
+    type: "drawer-group";
+    drawers?: UiDrawer[];
+    /** Default `"RIGHT"`. */
+    edge?: "TOP" | "BOTTOM" | "LEFT" | "RIGHT";
+    scope?: "VIEWPORT" | "CONTAINER";
+    mode?: "OVERLAY" | "PUSH";
+    /** Default `"SHARE"`. */
+    arrange?: "SHARE" | "STACK";
+    /** The strip's extent along the edge's axis — a CSS length. */
+    size?: string;
+    minSize?: string;
+    maxSize?: string;
+    resizable?: boolean;
+    /** STACK: the id of the drawer in front; absent means "as it is". */
+    active?: string;
+    /** `{id}` in its URL becomes the id of the drawer brought to the front. */
+    onActiveChange?: UiTrigger;
 }
 
 // ── Page wrapper (mirrors UiPage.java) ──────────────────────────────────────

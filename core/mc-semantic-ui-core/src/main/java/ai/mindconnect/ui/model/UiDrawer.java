@@ -36,7 +36,10 @@ import lombok.ToString;
  * bottom instead.
  *
  * <p>Several drawers may be open at once, at different edges; minimized
- * handles at the same edge line up side by side.
+ * handles at the same edge line up side by side. At one edge of one area
+ * one drawer is open at a time: when the user opens a second, the first goes
+ * to its handle rather than lying hidden under the new one. Two that should
+ * be open together belong in a {@link UiDrawerGroup}.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

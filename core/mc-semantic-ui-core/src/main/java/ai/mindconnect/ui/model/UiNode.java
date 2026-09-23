@@ -50,6 +50,7 @@ import java.util.Map;
     @JsonSubTypes.Type(value = UiLink.class,      name = "link"),
     @JsonSubTypes.Type(value = UiDialog.class,    name = "dialog"),
     @JsonSubTypes.Type(value = UiDrawer.class,    name = "drawer"),
+    @JsonSubTypes.Type(value = UiDrawerGroup.class, name = "drawer-group"),
     @JsonSubTypes.Type(value = UiPage.class,      name = "page"),
 })
 @JsonInclude(JsonInclude.Include.NON_NULL)

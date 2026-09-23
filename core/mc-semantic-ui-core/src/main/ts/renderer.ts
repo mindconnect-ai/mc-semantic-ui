@@ -2,7 +2,7 @@ import type {
     UiNode, UiField, UiAction, UiActionMenu, UiLink, UiListItem, UiTrigger, Pagination,
     UiForm, UiDetail, UiTable, UiTableColumn, UiTableRow,
     UiList, UiTree, UiTreeNode, UiMenu, UiMenuItem, UiMenuButton, UiSection, UiSectionEntry, UiStack, UiScrollPane, UiIFrame, UiAppShell, UiHeader,
-    UiText, UiIcon, UiSpinner, UiProgress, UiUpload, UiFieldGroup, UiDialog, UiDrawer, UiPatch, UiPatchOperation,
+    UiText, UiIcon, UiSpinner, UiProgress, UiUpload, UiFieldGroup, UiDialog, UiDrawer, UiDrawerGroup, UiPatch, UiPatchOperation,
 } from "./model.js";
 
 // Per-type render functions live under {@code ./renderers/}. They're
@@ -30,6 +30,7 @@ import { renderField, outlineField } from "./renderers/field.js";
 import { renderFieldGroup }   from "./renderers/fieldgroup.js";
 import { renderDialog }       from "./renderers/dialog.js";
 import { renderDrawer, keepDrawerStates, outlineDrawer } from "./renderers/drawer.js";
+import { renderDrawerGroup, outlineDrawerGroup } from "./renderers/drawer-group.js";
 import { renderUpload }       from "./renderers/upload.js";
 import { renderIconNode, addIconSprite } from "./renderers/icon.js";
 import { renderSpinner }      from "./renderers/spinner.js";
@@ -1507,6 +1508,7 @@ export function installDefaultHandlers(renderer: SuiRenderer): SuiRenderer {
         .register<UiFieldGroup>("fieldgroup",    renderFieldGroup)
         .register<UiDialog>("dialog",            renderDialog)
         .register<UiDrawer>("drawer",          renderDrawer)
+        .register<UiDrawerGroup>("drawer-group", renderDrawerGroup)
         .register<UiUpload>("upload",            renderUpload)
         .register<UiIcon>("icon",                renderIconNode)
         .register<UiSpinner>("spinner",          renderSpinner)
@@ -1521,7 +1523,8 @@ export function installDefaultHandlers(renderer: SuiRenderer): SuiRenderer {
         .registerOutline<UiMenuItem>("menu-item",     outlineMenuItem)
         .registerOutline<UiList>("list",              outlineList)
         .registerOutline<UiTable>("table",            outlineTable)
-        .registerOutline<UiDrawer>("drawer",          outlineDrawer);
+        .registerOutline<UiDrawer>("drawer",          outlineDrawer)
+        .registerOutline<UiDrawerGroup>("drawer-group", outlineDrawerGroup);
 }
 
 /** Convenience: a fresh renderer pre-loaded with the default handlers. */

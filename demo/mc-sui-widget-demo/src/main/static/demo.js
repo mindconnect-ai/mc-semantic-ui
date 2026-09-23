@@ -845,11 +845,56 @@ UiDrawer.of("dr-filters", "Filters", filters).edge(UiDrawer.Edge.LEFT).scope(UiD
     UiDrawer.of("dr-side", "Details", details).edge(UiDrawer.Edge.RIGHT).mode(UiDrawer.Mode.PUSH).size("280px"))
   .direction(UiStack.Direction.HORIZONTAL);`;
 
+    // A group: two drawers at one edge, and the rule for how they get on.
+    // SHARE divides the strip between the open ones; minimize one and the
+    // other takes its room.
+    const shared = {
+        type: "stack", id: "dg-share-box", cssClass: "demo-drawer-box", children: [
+            text("dg-share-txt", "Two drawers at the bottom, in a group with SHARE: each takes half the strip. Minimize the chat and the files get the whole width; the strip's grip resizes both at once."),
+            { type: "drawer-group", id: "dg-share", edge: "BOTTOM", scope: "CONTAINER", arrange: "SHARE", size: "60%", minSize: "120px", resizable: true,
+              drawers: [
+                { type: "drawer", id: "dg-chat", title: "Chat", icon: "sparkles",
+                  content: text("dg-chat-t", "Assistant: the invoice from Ada is three weeks overdue.") },
+                { type: "drawer", id: "dg-files", title: "Files", icon: "paperclip", badge: "2",
+                  content: text("dg-files-t", "rechnung-1042.pdf · vertrag.docx") },
+              ] },
+        ],
+    };
+    const sharedJava =
+`UiDrawerGroup.of("dock", chat, files)
+    .edge(UiDrawer.Edge.BOTTOM).scope(UiDrawer.Scope.CONTAINER)
+    .share().size("60%").minSize("120px").resizable();`;
+
+    // STACK: they lie on top of each other; the front one shows, the others
+    // are their header bars, and a click on a bar brings it forward.
+    const stacked = {
+        type: "stack", id: "dg-stack-box", cssClass: "demo-drawer-box", children: [
+            text("dg-stack-txt", "Three drawers in a group with STACK: the one in front shows its content, the others peek with their header bar — click a bar to switch. The group reports the switch through onActiveChange."),
+            { type: "drawer-group", id: "dg-stack", edge: "BOTTOM", scope: "CONTAINER", arrange: "STACK", size: "65%", active: "dg-notes",
+              onActiveChange: { behavior: "INVOKE", handler: "demo-stack-front" },
+              drawers: [
+                { type: "drawer", id: "dg-log", title: "Log", icon: "list",
+                  content: text("dg-log-t", "12:01 saved · 12:02 synced · 12:04 3 new mails") },
+                { type: "drawer", id: "dg-notes", title: "Notes", icon: "edit",
+                  content: text("dg-notes-t", "Call Ada about the overdue invoice before Friday.") },
+                { type: "drawer", id: "dg-tasks", title: "Tasks", icon: "check", badge: "4",
+                  content: text("dg-tasks-t", "Send reminder · Update contract · Book room · Reply to Alan") },
+              ] },
+        ],
+    };
+    const stackedJava =
+`UiDrawerGroup.of("dock", log, notes, tasks)
+    .edge(UiDrawer.Edge.BOTTOM).scope(UiDrawer.Scope.CONTAINER)
+    .stack().active("notes").size("65%")
+    .onActiveChange(UiTrigger.api("POST", "/dock/front/{id}"));`;
+
     return stack("tab-drawer", [
         text("dr-intro", "A drawer slides in from an edge and minimizes to a handle. Open, minimized and closed switch in the browser alone — the content is never redrawn, so what you type survives. Scope CONTAINER keeps it inside its box; VIEWPORT pins it to the window. Try the grip at the chat's top edge to resize it."),
         specimen("sp-drawer-chat", "In a container — the AI chat of a mail composer", composer, composerJava),
         specimen("sp-drawer-many", "Several at once — handles line up", many, manyJava),
         specimen("sp-drawer-push", "PUSH — beside the content", push, pushJava),
+        specimen("sp-drawer-share", "A group — two drawers share one edge", shared, sharedJava),
+        specimen("sp-drawer-stack", "A group — stacked, the front one shows", stacked, stackedJava),
     ], { gap: 16 });
 }
 
@@ -1617,6 +1662,11 @@ async function boot() {
             patches: [{ op: "MERGE", targetId: "ag-list", attributes: { title: q ? `Results for “${q}”` : "All inboxes" } }],
             toasts: [{ level: "INFO", message: q ? `Searched for “${q}”` : "Searched for everything", durationMs: 2200 }],
         };
+    });
+    // The stacked drawer group: which drawer the user brought to the front.
+    bus.registerClientHandler("demo-stack-front", (ctx) => {
+        const front = ctx.sourceElement?.getAttribute("data-active") ?? "?";
+        return { patches: [], toasts: [{ level: "INFO", message: `onActiveChange: “${front}” is in front`, durationMs: 2200 }] };
     });
     // Forget added: drops the stored events and takes them out of the calendars.
     bus.registerClientHandler("demo-forget-events", () => {

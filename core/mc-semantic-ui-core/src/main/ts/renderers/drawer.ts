@@ -52,6 +52,9 @@ export type DrawerState = "open" | "minimized" | "closed";
 /** Told about every change the user makes, to fire `onStateChange` / `onClose`. */
 export type DrawerListener = (drawer: HTMLElement, state: DrawerState, closedByUser: boolean) => void;
 
+/** Told when the user brings another drawer of a STACK group to the front. */
+export type StackListener = (group: HTMLElement, drawer: HTMLElement) => void;
+
 /**
  * Moves a drawer to {@code state} — a class swap, nothing redrawn — and, with
  * {@code focus}, takes the focus along: into the panel when it opens, back to
@@ -98,6 +101,7 @@ function firstFocusable(panel: HTMLElement | null): HTMLElement | null {
  */
 export function layoutDrawerHandles(scope: ParentNode | null = typeof document !== "undefined" ? document : null): void {
     if (!scope || typeof scope.querySelectorAll !== "function") return;
+    layoutStacks(scope);
     // Per container (null: the window), per edge: the room taken so far.
     const taken = new Map<Element | null, Map<string, number>>();
     for (const drawer of Array.from(scope.querySelectorAll<HTMLElement>(".sui-drawer--minimized.sui-drawer--overlay"))) {
@@ -113,13 +117,69 @@ export function layoutDrawerHandles(scope: ParentNode | null = typeof document !
     }
 }
 
+/**
+ * The other open overlay drawers at the same edge of the same area as
+ * {@code drawer} — the container it is in, or the window — and not in a
+ * group, which has its own rule for its members.
+ */
+function othersOpenAtEdge(drawer: HTMLElement): HTMLElement[] {
+    const parent = drawer.parentElement;
+    if (!parent || parent.classList.contains("sui-drawer-group")) return [];
+    if (!drawer.classList.contains("sui-drawer--overlay")) return [];
+    const edge = edgeOf(drawer);
+    const inContainer = drawer.classList.contains("sui-drawer--container");
+    const scope: ParentNode | null = inContainer ? parent : (typeof document !== "undefined" ? document : null);
+    if (!scope || typeof scope.querySelectorAll !== "function") return [];
+    return Array.from(scope.querySelectorAll<HTMLElement>(".sui-drawer--open.sui-drawer--overlay")).filter(d =>
+        d !== drawer && edgeOf(d) === edge
+        && d.classList.contains("sui-drawer--container") === inContainer
+        && (!inContainer || d.parentElement === parent)
+        && !d.parentElement?.classList.contains("sui-drawer-group"));
+}
+
 /** The edge a drawer element slides in from, read off its class. */
 function edgeOf(drawer: HTMLElement): string {
-    return drawer.getAttribute("class")?.match(/sui-drawer--(top|bottom|left|right)\b/)?.[1] ?? "right";
+    return drawer.getAttribute("class")?.match(/sui-drawer(?:-group)?--(top|bottom|left|right)\b/)?.[1] ?? "right";
+}
+
+/**
+ * In every STACK group, marks the drawer in front: the one {@code data-active}
+ * names when it is open, otherwise the first open one. Runs with the handle
+ * layout, so a minimize or a patch that changes what is open settles it.
+ */
+function layoutStacks(scope: ParentNode): void {
+    for (const group of Array.from(scope.querySelectorAll<HTMLElement>(".sui-drawer-group--stack"))) {
+        const all = Array.from(group.querySelectorAll<HTMLElement>(":scope > .sui-drawer"));
+        const open = all.filter(d => d.classList.contains("sui-drawer--open"));
+        const wanted = group.getAttribute("data-active");
+        const front = open.find(d => d.id === wanted) ?? open[0] ?? null;
+        // Every drawer, not only the open ones: a drawer minimized from the
+        // front must lose the mark, or reopening it would find it "already in
+        // front" and bring nothing forward.
+        for (const d of all) d.classList.toggle("sui-drawer--front", d === front);
+        if (front && front.id !== wanted) group.setAttribute("data-active", front.id);
+    }
+}
+
+/**
+ * Brings a drawer of a STACK group to the front — a class swap, nothing
+ * redrawn — and tells the group's {@code onActiveChange}. Returns whether
+ * anything changed.
+ */
+export function stackFront(drawer: HTMLElement): boolean {
+    const group = drawer.parentElement;
+    if (!group?.classList.contains("sui-drawer-group--stack")) return false;
+    if (drawer.classList.contains("sui-drawer--front")) return false;
+    for (const d of Array.from(group.querySelectorAll<HTMLElement>(":scope > .sui-drawer"))) {
+        d.classList.toggle("sui-drawer--front", d === drawer);
+    }
+    group.setAttribute("data-active", drawer.id);
+    return true;
 }
 
 let wired = false;
 let listener: DrawerListener | null = null;
+let stackListener: StackListener | null = null;
 
 /**
  * Wires every drawer on the page, once: the handle opens, the header's
@@ -128,8 +188,9 @@ let listener: DrawerListener | null = null;
  * are covered by the same delegated listeners. {@code onChange} hears of
  * every change the user makes.
  */
-export function wireDrawers(onChange?: DrawerListener): void {
+export function wireDrawers(onChange?: DrawerListener, onFront?: StackListener): void {
     if (onChange) listener = onChange;
+    if (onFront) stackListener = onFront;
     if (typeof document === "undefined") return;
     if (!wired) {
         wired = true;
@@ -141,13 +202,41 @@ export function wireDrawers(onChange?: DrawerListener): void {
 }
 
 function change(drawer: HTMLElement, state: DrawerState, focus: boolean, closedByUser = false): void {
-    if (setDrawerState(drawer, state, focus)) listener?.(drawer, state, closedByUser);
+    if (!setDrawerState(drawer, state, focus)) return;
+    listener?.(drawer, state, closedByUser);
+    // One open drawer per edge of an area: the one opened now lies over any
+    // other open there, whose own handle is hidden while it is open — so it
+    // could neither be seen nor brought back. It goes to its handle instead.
+    // Two that should be open together belong in a group, which lays them
+    // out; a PUSH drawer takes room of its own and covers nothing.
+    if (state === "open") {
+        for (const other of othersOpenAtEdge(drawer)) change(other, "minimized", false);
+    }
+    // A drawer opened from its handle in a stack is the one the user wants to
+    // see; one minimized from the front leaves the next open one in front.
+    const group = drawer.parentElement;
+    if (group?.classList.contains("sui-drawer-group--stack")) {
+        if (state === "open" && stackFront(drawer)) stackListener?.(group, drawer);
+        else layoutStacks(group.parentElement ?? group);
+    }
 }
 
 function onClick(e: MouseEvent): void {
-    const control = (e.target as HTMLElement | null)?.closest?.<HTMLElement>("[data-sui-drawer]");
+    const target = e.target as HTMLElement | null;
+    const control = target?.closest?.<HTMLElement>("[data-sui-drawer]");
     const drawer = control?.closest<HTMLElement>(".sui-drawer");
-    if (!control || !drawer) return;
+    if (!control || !drawer) {
+        // The header bar of a stacked drawer that is not in front: pressing
+        // it brings the drawer forward. Its buttons still do their own thing.
+        const header = target?.closest?.<HTMLElement>(".sui-drawer-header");
+        const stacked = header?.closest<HTMLElement>(".sui-drawer");
+        const inStack = stacked?.parentElement?.classList.contains("sui-drawer-group--stack");
+        if (inStack && stacked && stacked.classList.contains("sui-drawer--open") && stackFront(stacked)) {
+            e.preventDefault();
+            stackListener?.(stacked.parentElement as HTMLElement, stacked);
+        }
+        return;
+    }
     switch (control.getAttribute("data-sui-drawer")) {
         case "open":     e.preventDefault(); change(drawer, "open", true); break;
         case "minimize": e.preventDefault(); change(drawer, "minimized", true); break;
@@ -180,13 +269,15 @@ function onKeydown(e: KeyboardEvent): void {
  */
 function onPointerDown(e: PointerEvent): void {
     const grip = (e.target as HTMLElement | null)?.closest?.<HTMLElement>("[data-sui-drawer='resize']");
-    const drawer = grip?.closest<HTMLElement>(".sui-drawer");
+    // The grip belongs to the nearest drawer or group; a group's own grip is
+    // its direct child, a drawer's sits inside the drawer's panel.
+    const drawer = grip?.closest<HTMLElement>(".sui-drawer, .sui-drawer-group");
     if (!grip || !drawer) return;
     e.preventDefault();
     const edge = edgeOf(drawer);
     // What carries the size: the whole element when it takes room in the
-    // layout, the panel when it floats above it.
-    const sized = drawer.classList.contains("sui-drawer--push")
+    // layout or is a group's strip, the panel when it floats above it.
+    const sized = drawer.classList.contains("sui-drawer--push") || drawer.classList.contains("sui-drawer-group")
         ? drawer
         : drawer.querySelector<HTMLElement>(".sui-drawer-panel") ?? drawer;
     const box = sized.getBoundingClientRect();
@@ -231,6 +322,12 @@ export function keepDrawerStates<N>(node: N, lookup: (id: string) => HTMLElement
             if (live === "open" || live === "minimized" || live === "closed") {
                 return { ...result, state: live.toUpperCase() };
             }
+        }
+        // The same for who is in front of a stack: the user's choice stands
+        // until the server names another.
+        if (result.type === "drawer-group" && result.active == null && typeof result.id === "string") {
+            const live = lookup(result.id)?.getAttribute("data-active");
+            if (live) return { ...result, active: live };
         }
         return result;
     };

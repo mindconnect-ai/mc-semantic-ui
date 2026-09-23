@@ -829,6 +829,75 @@ a.sui-tree-label:hover { text-decoration: underline; }
     }
     .sui-drawer--left .sui-drawer-resize, .sui-drawer--right .sui-drawer-resize { display: none; }
 }
+/* ── Drawer group (UiDrawerGroup) ──────────────────────────────────────────
+   Several drawers at one edge. The group is the element at the edge — it
+   spans its area like a lone drawer would, with the strip's size along the
+   edge's axis — and the drawers inside are laid out by these rules instead
+   of their own: they stop being pinned to the edge themselves and become
+   items of the strip. --share divides the strip between the open ones,
+   --stack piles them up with the front one showing. */
+.sui-drawer-group {
+    --sui-drawer-size: 40%; --sui-drawer-min: 0px; --sui-drawer-max: 100%;
+    --sui-drawer-offset: 0px; --sui-drawer-duration: var(--sui-duration-base, .22s);
+    z-index: 60; pointer-events: none; display: flex; box-sizing: border-box;
+}
+.sui-drawer-group--viewport  { position: fixed; }
+.sui-drawer-group--container { position: absolute; z-index: 2; }
+.sui-drawer-group--bottom { left: 0; right: 0; bottom: 0; height: var(--sui-drawer-size); min-height: var(--sui-drawer-min); max-height: var(--sui-drawer-max); flex-direction: row; }
+.sui-drawer-group--top    { left: 0; right: 0; top: 0;    height: var(--sui-drawer-size); min-height: var(--sui-drawer-min); max-height: var(--sui-drawer-max); flex-direction: row; }
+.sui-drawer-group--left   { top: 0; bottom: 0; left: 0;   width: var(--sui-drawer-size);  min-width: var(--sui-drawer-min);  max-width: var(--sui-drawer-max);  flex-direction: column; }
+.sui-drawer-group--right  { top: 0; bottom: 0; right: 0;  width: var(--sui-drawer-size);  min-width: var(--sui-drawer-min);  max-width: var(--sui-drawer-max);  flex-direction: column; }
+/* Nothing open: the strip must not take the room — a group of handles is
+   only its handles, with the content visible through where the strip was. */
+.sui-drawer-group:not(:has(> .sui-drawer--open)) { pointer-events: none; }
+.sui-drawer-group--push { position: relative; inset: auto; flex: none; align-self: stretch; transition: width var(--sui-drawer-duration) ease, height var(--sui-drawer-duration) ease; }
+.sui-drawer-group--push:not(:has(> .sui-drawer--open)) { width: auto; height: auto; min-width: 0; min-height: 0; }
+
+/* A drawer in a group is an item of the strip, not a thing at the edge. */
+.sui-drawer-group > .sui-drawer { position: relative; inset: auto; z-index: auto; min-width: 0; min-height: 0; pointer-events: none; }
+.sui-drawer-group > .sui-drawer--open { flex: 1 1 0; }
+.sui-drawer-group > .sui-drawer--minimized { position: static; flex: none; }
+.sui-drawer-group > .sui-drawer > .sui-drawer-panel {
+    inset: 0; width: auto; height: auto; min-width: 0; max-width: none; min-height: 0; max-height: none;
+    transform: none; visibility: visible; transition: none;
+}
+.sui-drawer-group > .sui-drawer--minimized > .sui-drawer-panel { visibility: hidden; }
+/* Neighbours in a strip are told apart by a rule between them, not by each
+   one's own shadow — one shadow for the strip. */
+.sui-drawer-group--share > .sui-drawer--open + .sui-drawer--open > .sui-drawer-panel { border-left-width: 1px; }
+.sui-drawer-group--left.sui-drawer-group--share > .sui-drawer--open + .sui-drawer--open > .sui-drawer-panel,
+.sui-drawer-group--right.sui-drawer-group--share > .sui-drawer--open + .sui-drawer--open > .sui-drawer-panel { border-left-width: 0; border-top-width: 1px; }
+.sui-drawer-group--bottom > .sui-drawer > .sui-drawer-panel { border-radius: 0; border-top-width: 1px; }
+.sui-drawer-group--top    > .sui-drawer > .sui-drawer-panel { border-radius: 0; border-bottom-width: 1px; }
+.sui-drawer-group--left   > .sui-drawer > .sui-drawer-panel { border-right-width: 1px; }
+.sui-drawer-group--right  > .sui-drawer > .sui-drawer-panel { border-left-width: 1px; }
+.sui-drawer-group--bottom > .sui-drawer:first-child > .sui-drawer-panel { border-top-left-radius: var(--sui-radius-lg); }
+.sui-drawer-group--bottom > .sui-drawer:last-child  > .sui-drawer-panel { border-top-right-radius: var(--sui-radius-lg); }
+
+/* The minimized handles stay at the edge of the area, as they do outside a
+   group; the group is their positioned parent, and they line up along it.
+   Above the open panels — the group is a stacking context, and a panel that
+   comes later in the strip would otherwise paint over a handle that comes
+   before it, which is the one thing a handle must never let happen. */
+.sui-drawer-group > .sui-drawer--minimized > .sui-drawer-handle { position: absolute; pointer-events: auto; z-index: 1; }
+.sui-drawer-group--push > .sui-drawer--minimized > .sui-drawer-handle { position: static; max-width: none; border-radius: var(--sui-radius-md); border: 1px solid var(--sui-color-border-strong); box-shadow: none; }
+
+/* STACK: one column whatever the edge — the front drawer fills it, the others
+   are their header bars above it, pressable to bring them forward. */
+.sui-drawer-group--stack { flex-direction: column; }
+.sui-drawer-group--stack > .sui-drawer--open { flex: none; order: 0; }
+.sui-drawer-group--stack > .sui-drawer--open.sui-drawer--front { flex: 1 1 0; order: 1; }
+.sui-drawer-group--stack > .sui-drawer--open:not(.sui-drawer--front) > .sui-drawer-panel { position: relative; inset: auto; }
+.sui-drawer-group--stack > .sui-drawer--open:not(.sui-drawer--front) > .sui-drawer-panel > .sui-drawer-body,
+.sui-drawer-group--stack > .sui-drawer--open:not(.sui-drawer--front) > .sui-drawer-panel > .sui-drawer-resize { display: none; }
+.sui-drawer-group--stack > .sui-drawer--open:not(.sui-drawer--front) > .sui-drawer-panel > .sui-drawer-header { cursor: pointer; }
+.sui-drawer-group--stack > .sui-drawer--open:not(.sui-drawer--front) > .sui-drawer-panel > .sui-drawer-header:hover { background: var(--sui-color-border-soft); }
+.sui-drawer-group--stack > .sui-drawer--open:not(.sui-drawer--front) > .sui-drawer-panel { border-bottom-width: 1px; }
+
+/* The strip's own grip, on its inner edge. */
+.sui-drawer-group > .sui-drawer-resize { pointer-events: auto; }
+.sui-drawer-group.is-resizing { transition: none; user-select: none; }
+
 @media (prefers-reduced-motion: reduce) {
     .sui-drawer, .sui-drawer-panel, .sui-drawer--minimized .sui-drawer-panel { transition: none; }
     .sui-drawer--minimized .sui-drawer-handle { animation: none; }

@@ -23,6 +23,21 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- **`UiDrawerGroup`: two drawers at one edge, and how they get on.** Left to
+  themselves, two open drawers at the same edge lie over one another. A group
+  says what happens instead — `share()`: the open ones divide the edge, side
+  by side, and one minimized gives its room to the others; `stack()`: they lie
+  on top of each other, the front one (`active`) shows its content, the others
+  peek with their header bars and a click on a bar brings that drawer forward,
+  reported through `onActiveChange` with `{id}` in the URL. The group owns
+  edge, scope, mode and the strip's size (`size`, `minSize`, `maxSize`,
+  `resizable`); a drawer inside keeps its title, icon, badge, content and
+  state. Browser only for now — the server-side template and the JavaFX
+  painter are still to come.
+  Outside a group, a drawer the user opens at an edge where another is
+  open sends that one to its handle: it would otherwise lie under the new
+  one with its own handle hidden, unreachable.
+
 - **A node type says how it appears in a snapshot.**
   `renderer.registerOutline(type, handler)` sits next to the painter for the
   same type: the handler reports the node's words, its rows, which of its
