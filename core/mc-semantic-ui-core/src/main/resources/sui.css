@@ -802,13 +802,24 @@ a.sui-tree-label:hover { text-decoration: underline; }
    reads as a button drifting away from the edge, and clip the title with it. */
 .sui-drawer--push .sui-drawer-handle { position: static; max-width: none; border-radius: var(--sui-radius-md); border: 1px solid var(--sui-color-border-strong); box-shadow: none; }
 
-/* Narrow screens: a LEFT or RIGHT drawer comes up from the bottom. */
+/* Narrow screens: a LEFT or RIGHT drawer comes up from the bottom. Its size
+   was a width and means nothing as a height, so the sheet has a size of its
+   own — stated on the panel, not through --sui-drawer-size: that variable
+   sits on the element as an inline style when the server named a size, and
+   an inline value outranks anything a stylesheet says. */
 @media (max-width: 640px) {
-    .sui-drawer--left, .sui-drawer--right { --sui-drawer-size: 70%; --sui-drawer-min: 0px; --sui-drawer-max: 90%; }
-    .sui-drawer--left.sui-drawer--push, .sui-drawer--right.sui-drawer--push { position: fixed; inset: 0; width: auto; height: auto; min-width: 0; max-width: none; pointer-events: none; }
+    .sui-drawer--left.sui-drawer--push, .sui-drawer--right.sui-drawer--push { position: fixed; inset: 0; pointer-events: none; }
+    /* Three classes, after the open-PUSH width rule above: without this the
+       drawer stays as wide as it was beside the content — a column at the
+       left edge — and its panel a box in that column's corner, with the page
+       showing all around it. */
+    .sui-drawer--push.sui-drawer--open.sui-drawer--left, .sui-drawer--push.sui-drawer--open.sui-drawer--right,
+    .sui-drawer--push.sui-drawer--open.sui-drawer--top, .sui-drawer--push.sui-drawer--open.sui-drawer--bottom {
+        width: auto; height: auto; min-width: 0; max-width: none; min-height: 0; max-height: none;
+    }
     .sui-drawer--left .sui-drawer-panel, .sui-drawer--right .sui-drawer-panel {
-        top: auto; bottom: 0; left: 0; right: 0; width: auto; height: var(--sui-drawer-size);
-        min-width: 0; max-width: none; min-height: var(--sui-drawer-min); max-height: var(--sui-drawer-max);
+        top: auto; bottom: 0; left: 0; right: 0; width: auto; height: 70%;
+        min-width: 0; max-width: none; min-height: 0; max-height: 90%;
         border-width: 1px 0 0; border-radius: var(--sui-radius-lg) var(--sui-radius-lg) 0 0; box-shadow: var(--sui-shadow-pop);
     }
     .sui-drawer--left.sui-drawer--minimized .sui-drawer-panel, .sui-drawer--right.sui-drawer--minimized .sui-drawer-panel { transform: translateY(calc(100% + 16px)); }
