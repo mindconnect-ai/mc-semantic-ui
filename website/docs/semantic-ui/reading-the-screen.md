@@ -154,6 +154,30 @@ answer says why:
 A command with `fields` and no `action` just fills them in
 (`{ ok: true, triggered: false }`).
 
+## Nothing is wired
+
+Both methods are just methods. There is no listener, no endpoint, no stream
+subscription that calls them: a server reaches them only through a bridge the
+application builds. That is deliberate, and it is the place to decide who may
+do what — the library has no switch, because a switch would suggest the
+methods are reachable without one.
+
+What to weigh when you build that bridge:
+
+- **A snapshot collects what has not been submitted.** Values the user has
+  typed and not sent are in it. Secrets are left out (see above), but the rest
+  is the screen as it stands.
+- **`confirmed: true` skips the question.** Send it only where the agreement
+  was actually obtained, from a person, for that action. Without it the
+  browser asks, which is the safe default.
+- **A `DANGER` action is marked as one**, and so is an action with a
+  `confirm` — the snapshot reports both, so a bridge can treat them
+  differently from the rest without knowing the application.
+- **Two things are on whatever you wire.** `suiBuses()` / `suiBus(id)` find
+  every bus on the page, and `sui-tree-changed` fires on the document (with
+  the changed node's id and the operation, no content). Neither gives a
+  same-origin script anything it could not already do to the DOM.
+
 ## Which bus answered
 
 ```js
