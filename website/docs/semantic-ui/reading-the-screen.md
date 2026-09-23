@@ -34,6 +34,13 @@ so a hybrid page can be read from the first paint.
 renderer.tree();   // the page as it stands, patches included — or null
 ```
 
+The tree handed to `mount()` is kept, not copied, and the patches write into
+it. Mount a page your code is done with — one built per render, or a response
+just parsed — rather than a literal you intend to mount again. When a patch
+names a node the copy does not have (a server-rendered page with no
+`sui-model`, say), the console says so once: the screen changed and the copy
+did not, so a snapshot would show the old node.
+
 ## `bus.snapshot(options)` — what is on the screen
 
 ```js

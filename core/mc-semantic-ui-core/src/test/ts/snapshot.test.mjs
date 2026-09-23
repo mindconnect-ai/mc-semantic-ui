@@ -143,6 +143,45 @@ describe("the renderer's copy of the tree", () => {
         assert.equal(inCopy.id, "orders");
         assert.deepEqual(inCopy.rows[0].data, { status: "paid" });
     });
+
+    test("a patch the copy cannot place says so, once", () => {
+        const said = [];
+        const warn = console.warn;
+        console.warn = (...args) => said.push(args.join(" "));
+        try {
+            const stray = new El("div", { id: "stray" });
+            root.appendChild(stray);
+            elements.set("stray", stray);
+            renderer.applyPatch({ patches: [{ op: "REPLACE", targetId: "stray", node: { type: "text", id: "stray", text: "hi" } }] });
+            renderer.applyPatch({ patches: [{ op: "REPLACE", targetId: "stray", node: { type: "text", id: "stray", text: "again" } }] });
+        } finally {
+            console.warn = warn;
+        }
+        assert.equal(said.length, 1, said.join(" | "));
+        assert.match(said[0], /stray/);
+        assert.match(said[0], /tree copy/);
+    });
+
+    test("an id that moves is found again, not remembered wrongly", () => {
+        // The lookup keeps where it last found an id. A REPLACE leaves that
+        // place good; a REMOVE and a fresh APPEND elsewhere must not.
+        renderer.applyPatch({
+            patches: [{ op: "REPLACE", targetId: "compose", node: { type: "form", id: "compose", title: "First" } }],
+        });
+        assert.equal(renderer.tree().children[1].title, "First");
+        renderer.applyPatch({ patches: [{ op: "REMOVE", targetId: "compose" }] });
+        renderer.applyPatch({
+            patches: [{
+                op: "APPEND", targetId: "inbox",
+                node: { type: "form", id: "compose", title: "Second" },
+            }],
+        });
+        renderer.applyPatch({
+            patches: [{ op: "MERGE", targetId: "compose", attributes: { title: "Third" } }],
+        });
+        const moved = renderer.tree().children[0].items.find(i => i.id === "compose");
+        assert.equal(moved.title, "Third");
+    });
 });
 
 // ── What the snapshot says ──────────────────────────────────────────────────
@@ -350,6 +389,23 @@ describe("snapshot", () => {
         // One page of many, and the button above the table.
         assert.deepEqual(node.pagination, { page: 1, size: 20, total: 84 });
         assert.deepEqual(node.actions, [{ id: "export", label: "Export CSV", enabled: true }]);
+    });
+
+    test("a ceiling smaller than the smallest answer says which", () => {
+        const { tree, dom } = screen();
+        const shot = buildSnapshot(tree, { maxChars: 40 }, dom, "b");
+        assert.equal(shot.node, null);
+        assert.equal(shot.truncated, true);
+        assert.equal(shot.reason, "too-small");
+    });
+
+    test("a tree that points back at itself does not take the walk with it", () => {
+        const table = { type: "table", id: "orders", rows: [] };
+        const row = { type: "row", id: "r1", data: { total: "42.00" }, table };
+        table.rows.push(row);   // the row knows its table, the table its rows
+        const dom = { byId: () => null, values: () => ({}) };
+        const shot = buildSnapshot({ type: "stack", id: "page", children: [table] }, { root: "r1" }, dom, "b");
+        assert.equal(shot.node.id, "r1");
     });
 
     test("nothing rendered yet is a reason, not a crash", () => {

@@ -127,8 +127,11 @@ export interface Snapshot {
     node: SnapshotNode | Record<string, unknown> | null;
     /** True when anything was left out to stay inside {@code maxChars} or {@code depth}. */
     truncated?: boolean;
-    /** Why {@link #node} is null: no page rendered yet, or no such root. */
-    reason?: "no-tree" | "unknown-root";
+    /**
+     * Why {@link #node} is null: nothing rendered yet, no such root, or a
+     * {@code maxChars} too small to hold even the root node.
+     */
+    reason?: "no-tree" | "unknown-root" | "too-small";
 }
 
 /** The bits of the DOM the snapshot needs. Injected, so this module stays testable. */
@@ -224,11 +227,15 @@ interface Ctx {
  * {@code type} is a node, wherever it hangs — so a plugin's own node shape is
  * found like a built-in one.
  */
-export function findNode(tree: unknown, id: string): Record<string, unknown> | null {
-    if (tree == null || typeof tree !== "object") return null;
+export function findNode(tree: unknown, id: string, seen: Set<unknown> = new Set()): Record<string, unknown> | null {
+    // A node that points back at an ancestor is not a tree any more, and an
+    // application is free to build one (a row keeping a reference to its
+    // table). Without this the walk would recurse until the stack gave out.
+    if (tree == null || typeof tree !== "object" || seen.has(tree)) return null;
+    seen.add(tree);
     if (Array.isArray(tree)) {
         for (const entry of tree) {
-            const hit = findNode(entry, id);
+            const hit = findNode(entry, id, seen);
             if (hit) return hit;
         }
         return null;
@@ -237,7 +244,7 @@ export function findNode(tree: unknown, id: string): Record<string, unknown> | n
     if (record.id === id && typeof record.type === "string") return record;
     for (const value of Object.values(record)) {
         if (value != null && typeof value === "object") {
-            const hit = findNode(value, id);
+            const hit = findNode(value, id, seen);
             if (hit) return hit;
         }
     }
@@ -279,7 +286,9 @@ export function buildSnapshot(
         if (limit <= 0) break;
         result = build(limit);
     }
-    if (sizeOf(result) > maxChars) return { busId, mode, node: null, truncated: true };
+    // Still over after three tries: the ceiling is smaller than the smallest
+    // answer there is. Say that, rather than let it read as an empty screen.
+    if (sizeOf(result) > maxChars) return { busId, mode, node: null, truncated: true, reason: "too-small" };
     return result;
 }
 

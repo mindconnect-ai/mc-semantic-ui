@@ -33,6 +33,20 @@ function screen() {
     ]);
     const body = new El("div", { class: "sui-field", id: "body" }, [richtext]);
 
+    // A field with an onChange trigger, and a radio group whose options share
+    // one name — the two shapes that used to over-report a change.
+    const note = new Input("input", {
+        id: "note__input", name: "note", type: "text", value: "hello",
+        "data-change-trigger": trigger("/note", "POST"),
+    });
+    const noteField = new El("div", { class: "sui-field", id: "note" }, [note]);
+    const radios = ["open", "done", "all"].map(v => new Input("input", {
+        id: `status__opt-${v}`, name: "status", type: "radio", value: v,
+        "data-sui-type": "SELECT", "data-change-trigger": trigger("/status", "POST"),
+        ...(v === "open" ? { checked: "" } : {}),
+    }));
+    const statusField = new El("div", { class: "sui-choice-group", id: "status" }, radios);
+
     const search = new El("button", {
         id: "search", "data-action": "search", "data-trigger": trigger("/search", "GET"),
     });
@@ -53,7 +67,7 @@ function screen() {
     });
     const footer = new El("div", { class: "sui-form-footer" }, [search, remove, off, dead, busy]);
 
-    const form = new El("form", { id: "search-form", "data-sui": "form" }, [field, body, footer]);
+    const form = new El("form", { id: "search-form", "data-sui": "form" }, [field, body, noteField, statusField, footer]);
     const root = new El("div", { id: "root" }, [form]);
 
     // A second bus's screen, beside this one's and not inside it.
@@ -102,7 +116,7 @@ function screen() {
             json: async () => ({ patches: [] }), text: async () => "{}",
         };
     });
-    return { bus, root, input, otherInput, editor, hidden, search, requests, confirm, all };
+    return { bus, root, input, otherInput, editor, hidden, search, note, radios, requests, confirm, all };
 }
 
 const settle = () => new Promise(r => setTimeout(r, 10));
@@ -124,7 +138,8 @@ describe("perform does what a click does", () => {
         assert.deepEqual(result.fields, ["q"]);
         assert.equal(clicked.requests.length, 1);
         assert.deepEqual(performed.requests, clicked.requests);
-        assert.match(performed.requests[0].url, /\/search\?q=rechnung$/);
+        // The whole form rides along, the same way for both paths.
+        assert.equal(performed.requests[0].url, "/search?q=rechnung&note=hello&status=open");
     });
 
     test("a field that is typed into is the field the form sends", async () => {
@@ -203,6 +218,31 @@ describe("perform says why not", () => {
         assert.equal(result.reason, "unknown-field");
         assert.equal(result.triggered, false);
         assert.deepEqual(s.requests, []);
+    });
+});
+
+describe("perform reports a change like a browser does", () => {
+    test("a value that did not move fires nothing", async () => {
+        const s = screen();
+        const result = await s.bus.perform({ fields: { note: "hello" } });
+        await settle();
+        assert.equal(result.ok, true);
+        assert.deepEqual(s.requests, []);
+    });
+
+    test("a value that moved fires once", async () => {
+        const s = screen();
+        await s.bus.perform({ fields: { note: "written" } });
+        await settle();
+        assert.deepEqual(s.requests.map(r => r.url), ["/note"]);
+    });
+
+    test("a radio group speaks once, through the option that was chosen", async () => {
+        const s = screen();
+        await s.bus.perform({ fields: { status: "done" } });
+        await settle();
+        assert.deepEqual(s.requests.map(r => r.url), ["/status"]);
+        assert.deepEqual(s.radios.map(r => r.checked), [false, true, false]);
     });
 });
 

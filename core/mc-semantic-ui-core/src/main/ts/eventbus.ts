@@ -678,8 +678,18 @@ export class SuiEventBus {
         }
         const controls = this.controlsNamed(el, id);
         if (controls.length === 0) return false;
-        for (const control of controls) writeControl(control, value);
+        // Only what actually moved reports itself, and only the way a browser
+        // would: a radio that lost the dot stays silent, the one that gained
+        // it speaks. Firing on every control of a group made a field's
+        // onChange run once per option, and a field set to the value it
+        // already had submitted a form nobody had touched.
+        const moved: Array<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement> = [];
         for (const control of controls) {
+            const before = controlState(control);
+            writeControl(control, value);
+            if (controlState(control) !== before && speaks(control)) moved.push(control);
+        }
+        for (const control of moved) {
             this.fireOn(control, "input");
             this.fireOn(control, "change");
         }
@@ -2458,6 +2468,26 @@ export function suiBuses(): SuiEventBus[] {
 /** The bus with this id, or undefined. */
 export function suiBus(id: string): SuiEventBus | undefined {
     return liveBuses.get(id);
+}
+
+/** What a control says right now, as one comparable value. */
+function controlState(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): string {
+    if (control instanceof HTMLInputElement && (control.type === "checkbox" || control.type === "radio")) {
+        return control.checked ? "on" : "off";
+    }
+    if (control instanceof HTMLSelectElement && control.multiple) {
+        return Array.from(control.selectedOptions, o => o.value).join("\u0000");
+    }
+    return String(control.value ?? "");
+}
+
+/**
+ * Whether a control that just changed reports it. A radio only ever reports
+ * becoming the chosen one — the browser fires nothing on the one that lost
+ * the dot, and neither do we.
+ */
+function speaks(control: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement): boolean {
+    return !(control instanceof HTMLInputElement && control.type === "radio" && !control.checked);
 }
 
 /**
