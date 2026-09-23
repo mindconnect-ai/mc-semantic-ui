@@ -1,4 +1,5 @@
 import type { UiDrawer } from "../model.js";
+import type { OutlineHandler } from "../snapshot.js";
 import { escapeHtml, encodeTrigger, type SuiRenderer } from "../renderer.js";
 import { renderIcon } from "./icon.js";
 import { cls } from "./util.js";
@@ -218,3 +219,14 @@ export function keepDrawerStates<N>(node: N, lookup: (id: string) => HTMLElement
     };
     return visit(node) as N;
 }
+
+/**
+ * What a drawer says about itself. Its state is the one thing the model
+ * cannot tell: opening and minimizing happen in the browser without the
+ * server hearing about it, so it is read off the element.
+ */
+export const outlineDrawer: OutlineHandler<UiDrawer> = (node, ctx) => ({
+    title: node.title,
+    state: ctx.attr(node.id, "data-state") ?? undefined,
+    children: node.content ? [node.content] : [],
+});

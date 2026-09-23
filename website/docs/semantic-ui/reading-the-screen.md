@@ -114,6 +114,51 @@ What the shape is made of:
 `mode: "full"` returns the nodes as they were rendered — every model field, for
 debugging — with the same omissions for secrets and the same live values.
 
+### What a node says about itself
+
+Each node type says how it appears in the outline, registered next to its
+painter. What a node shows and what it says about itself are one piece of
+knowledge — and for an extension's node it is the only place that knows what
+its own fields mean:
+
+```ts
+renderer.register<UiMarkdownNode>("markdown", node => `<div class="sui-markdown">…</div>`);
+renderer.registerOutline<UiMarkdownNode>("markdown", node => ({ text: node.content }));
+```
+
+The handler says *what* to report; the walk stays in the snapshot. It never
+recurses: it hands back the children it wants described, and they are walked
+under the caller's `depth` and `maxChars`. A handler can also say that its
+node is something to fill in or to press, and read the parts of the screen
+only the browser knows:
+
+```ts
+renderer.registerOutline<UiSwitchNode>("switch", (node, ctx) => ({
+    kind: "action",
+    action: { id: node.id, label: node.label, enabled: ctx.usable(node.id) },
+}));
+
+renderer.registerOutline<UiPanelNode>("panel", (node, ctx) => ({
+    title: node.title,
+    state: ctx.attr(node.id, "data-state") ?? undefined,   // what the user did to it
+    children: node.content ? [node.content] : [],
+}));
+```
+
+`ctx` also offers `value(id, fallback)` for what a control shows now,
+`element(id)` for a reading nothing else expresses, and `secret(field)` for
+the rule about passwords and tokens.
+
+A type that registers nothing is described by the general rules: its `text`,
+`title` and `label`, then every child node below it. That is deliberate — a
+page rendered before its extension is installed still describes itself, just
+more thinly. A handler that throws costs its own node's detail and nothing
+else; the console says which type it was.
+
+The core types use the same mechanism: a field reports its value, an action
+whether it can be pressed, a list its rows, a table its cells, a drawer the
+state the user put it in.
+
 ## `bus.perform(command)` — doing what a click does
 
 ```js

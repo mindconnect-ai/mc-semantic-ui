@@ -1,4 +1,6 @@
 import type { UiField } from "../model.js";
+import type { OutlineHandler, SnapshotField } from "../snapshot.js";
+import { describeAction } from "./action.js";
 import { escapeHtml, encodeTrigger } from "../renderer.js";
 import { renderIcon } from "./icon.js";
 import { renderActions } from "./shared.js";
@@ -244,3 +246,25 @@ function renderOptions(f: UiField): string {
         `<option value="${escapeHtml(c.option.value ?? "")}" ${c.checked ? "selected" : ""}>${escapeHtml(c.option.label ?? "")}</option>`
     ).join("");
 }
+
+/**
+ * What a field says about itself in a snapshot: its label, its kind, and the
+ * value the control shows right now — or, for a password, a file or anything
+ * whose name reads like a token, that the value is withheld.
+ *
+ * <p>Registered beside the painter above ({@code installDefaultHandlers}), so
+ * the two descriptions of a field live in one file.
+ */
+export const outlineField: OutlineHandler<UiField> = (f, ctx) => {
+    const field: SnapshotField = { id: f.id };
+    if (f.label != null) field.label = f.label;
+    if (f.fieldType != null) field.type = f.fieldType;
+    if (f.required === true) field.required = true;
+    if (f.validationError != null) field.error = f.validationError;
+    if (Array.isArray(f.options)) field.options = f.options;
+    if (ctx.secret(f)) field.omitted = true;
+    else field.value = ctx.value(f.id, f.value);
+    // The action on the control's row belongs to the field, not to the form.
+    if (f.trailing) field.action = describeAction(f.trailing, ctx);
+    return { kind: "field", field };
+};

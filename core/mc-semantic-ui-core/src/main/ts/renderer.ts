@@ -10,26 +10,26 @@ import type {
 // itself never calls them directly.
 import { renderForm }         from "./renderers/form.js";
 import { renderDetail }       from "./renderers/detail.js";
-import { renderList }         from "./renderers/list.js";
+import { renderList, outlineList } from "./renderers/list.js";
 import { renderTree, renderTreeNode } from "./renderers/tree.js";
 import { renderMenu, renderMenuItem } from "./renderers/menu.js";
-import { renderMenuButton, renderActionMenu } from "./renderers/menu-button.js";
+import { renderMenuButton, renderActionMenu, outlineActionMenu, outlineMenuButton, outlineMenuItem } from "./renderers/menu-button.js";
 import { renderSection }      from "./renderers/section.js";
 import { renderSectionEntry } from "./renderers/section-entry.js";
 import { renderStack }        from "./renderers/stack.js";
 import { renderScrollPane }   from "./renderers/scrollpane.js";
 import { renderIFrame }       from "./renderers/iframe.js";
-import { renderTable }        from "./renderers/table.js";
+import { renderTable, outlineTable } from "./renderers/table.js";
 import { renderColumn }       from "./renderers/column.js";
 import { renderRow }          from "./renderers/row.js";
 import { renderHeader }       from "./renderers/header.js";
 import { renderText }         from "./renderers/text.js";
 import { renderLink }         from "./renderers/link.js";
-import { renderAction }       from "./renderers/action.js";
-import { renderField }        from "./renderers/field.js";
+import { renderAction, outlineAction } from "./renderers/action.js";
+import { renderField, outlineField } from "./renderers/field.js";
 import { renderFieldGroup }   from "./renderers/fieldgroup.js";
 import { renderDialog }       from "./renderers/dialog.js";
-import { renderDrawer, keepDrawerStates } from "./renderers/drawer.js";
+import { renderDrawer, keepDrawerStates, outlineDrawer } from "./renderers/drawer.js";
 import { renderUpload }       from "./renderers/upload.js";
 import { renderIconNode, addIconSprite } from "./renderers/icon.js";
 import { renderSpinner }      from "./renderers/spinner.js";
@@ -69,6 +69,7 @@ export {
 // at construction time. List items have no type discriminator so they
 // can't go through the dispatcher; they get their own handler slot.
 import { defaultRenderItem } from "./renderers/shared.js";
+import type { OutlineHandler } from "./snapshot.js";
 import { renderAppShell } from "./renderers/app-shell.js";
 
 /**
@@ -93,6 +94,9 @@ export type NodeHandler<N extends { type: string } = UiNode> =
  * follow the same shape.
  */
 export type ItemHandler = (item: UiListItem, renderer: SuiRenderer) => string;
+
+/** Re-exported so an extension registering an outline imports one module. */
+export type { OutlineHandler, OutlineContext, OutlineResult, OutlineNodeSpec, OutlineItemSpec } from "./snapshot.js";
 
 /**
  * Pluggable renderer for the semantic-ui node tree.
@@ -121,6 +125,13 @@ export interface LoadingIndicator {
 
 export class SuiRenderer {
     private readonly handlers = new Map<string, NodeHandler<any>>();
+    /**
+     * How each node type describes itself in a snapshot — see
+     * {@link #registerOutline}. A type with no entry is described by the
+     * general rules, which is what a plugin's node gets before its extension
+     * is installed.
+     */
+    private readonly outlines = new Map<string, OutlineHandler<any>>();
     /** Node types already reported as having no handler — warned once each. */
     private readonly warnedMissing = new Set<string>();
     private itemHandler: ItemHandler = defaultRenderItem;
@@ -303,6 +314,27 @@ export class SuiRenderer {
     /** Returns true if a handler is registered for the given type. */
     has(type: string): boolean {
         return this.handlers.has(type);
+    }
+
+    /**
+     * Registers how a node type describes itself in a snapshot — its words,
+     * its rows, which of its children can be filled in or pressed, and any
+     * state only the screen knows.
+     *
+     * <p>It belongs beside the painter for the same type: what a node shows
+     * and what it says about itself are one piece of knowledge, and for an
+     * extension's node it is the only place that knows what its own fields
+     * mean. A type that registers none is described by the general rules —
+     * its words, and every child node below it.
+     */
+    registerOutline<N extends { type: string } = UiNode>(type: string, handler: OutlineHandler<N>): this {
+        this.outlines.set(type, handler as OutlineHandler);
+        return this;
+    }
+
+    /** The outline handler for a type, if one is registered. */
+    outlineFor(type: string): OutlineHandler | undefined {
+        return this.outlines.get(type);
     }
 
     /**
@@ -1478,7 +1510,18 @@ export function installDefaultHandlers(renderer: SuiRenderer): SuiRenderer {
         .register<UiUpload>("upload",            renderUpload)
         .register<UiIcon>("icon",                renderIconNode)
         .register<UiSpinner>("spinner",          renderSpinner)
-        .register<UiProgress>("progress",        renderProgress);
+        .register<UiProgress>("progress",        renderProgress)
+        // How each of them describes itself in a snapshot. Only the types
+        // whose content needs reading: the rest is covered by the general
+        // rules (words, then every child node).
+        .registerOutline<UiField>("field",            outlineField)
+        .registerOutline<UiAction>("action",          outlineAction)
+        .registerOutline<UiActionMenu>("action-menu", outlineActionMenu)
+        .registerOutline<UiMenuButton>("menu-button", outlineMenuButton)
+        .registerOutline<UiMenuItem>("menu-item",     outlineMenuItem)
+        .registerOutline<UiList>("list",              outlineList)
+        .registerOutline<UiTable>("table",            outlineTable)
+        .registerOutline<UiDrawer>("drawer",          outlineDrawer);
 }
 
 /** Convenience: a fresh renderer pre-loaded with the default handlers. */

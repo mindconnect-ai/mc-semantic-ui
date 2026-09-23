@@ -1,4 +1,5 @@
 import type { UiList } from "../model.js";
+import type { OutlineHandler } from "../snapshot.js";
 import { escapeHtml, type SuiRenderer } from "../renderer.js";
 import { cls, evt } from "./util.js";
 import { renderActions, renderPagination } from "./shared.js";
@@ -16,3 +17,28 @@ export function renderList(node: UiList, r: SuiRenderer): string {
         ${node.pagination ? renderPagination(node.pagination) : ""}
     </div>`;
 }
+
+/**
+ * What a list says about itself: its title, its rows — each with the label,
+ * the description and whether the row itself is clickable — and the buttons
+ * in its header. A row's own content and actions are handed on as children,
+ * so each of them is described by whatever type it is.
+ */
+export const outlineList: OutlineHandler<UiList> = (node) => ({
+    title: node.title,
+    items: (node.items ?? []).map(item => ({
+        id: item.id,
+        label: item.label,
+        description: item.description,
+        clickable: !!item.onClick,
+        children: [
+            ...(item.actions ?? []),
+            ...(item.content ? [item.content] : []),
+            ...(item.labelNode ? [item.labelNode] : []),
+        ],
+    })),
+    pagination: node.pagination
+        ? { page: node.pagination.page, size: node.pagination.size, total: node.pagination.total }
+        : undefined,
+    children: [...(node.actions ?? []), ...(node.headerExtra ? [node.headerExtra] : [])],
+});

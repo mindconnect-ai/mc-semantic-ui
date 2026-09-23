@@ -1,4 +1,5 @@
 import type { UiAction, UiNode, UiTable, UiTrigger } from "../model.js";
+import type { OutlineHandler, OutlineItemSpec, SnapshotColumn } from "../snapshot.js";
 import { escapeHtml, encodeTrigger, type SuiRenderer } from "../renderer.js";
 import { cls, evt } from "./util.js";
 import { renderActions, renderPagination } from "./shared.js";
@@ -192,4 +193,63 @@ function substituteCellTemplate(template: UiNode, ctx: Record<string, unknown>, 
         return out;
     };
     return walk(template) as UiNode;
+}
+
+/**
+ * What a table says about itself: the column headings, a row per line with
+ * its cells keyed by column, and which page of a longer table this is.
+ *
+ * <p>A cell's value sits in the row's data map under the column's
+ * {@code dataKey} where it has one, otherwise under its id — the same lookup
+ * the painter above does, so the snapshot reports what the cell shows. The
+ * tick comes from the row's own checkbox, because picking rows happens in the
+ * browser and the model would only know what the server last sent.
+ */
+export const outlineTable: OutlineHandler<UiTable> = (node, ctx) => {
+    const cols = (node.columns ?? []).map(c => ({
+        id: c.id, key: c.dataKey ?? c.id,
+        label: typeof c.label === "string" ? c.label : undefined,
+    }));
+    const columns: SnapshotColumn[] = cols.map(c => c.label == null ? { id: c.id } : { id: c.id, label: c.label });
+    const picked = pickedRows(node);
+    const items: OutlineItemSpec[] = (node.rows ?? []).map(row => {
+        const id = String(row.id ?? "");
+        const data = (row.data ?? {}) as Record<string, unknown>;
+        const cells: Record<string, unknown> = {};
+        if (cols.length > 0) {
+            for (const c of cols) if (c.key in data) cells[c.id] = data[c.key];
+        } else {
+            // No columns declared: the row's own data is the best we can say.
+            Object.assign(cells, data);
+        }
+        const ticked = rowTicked(id, ctx);
+        return {
+            id, cells,
+            clickable: !!row.onClick,
+            selected: ticked !== undefined ? ticked : picked?.has(id),
+        };
+    });
+    return {
+        title: node.title,
+        columns: columns.length > 0 ? columns : undefined,
+        items,
+        pagination: node.pagination
+            ? { page: node.pagination.page, size: node.pagination.size, total: node.pagination.total }
+            : undefined,
+        children: [...(node.actions ?? []), ...(node.headerExtra ? [node.headerExtra] : [])],
+    };
+};
+
+/** The rows the model says are picked, or undefined when the table has no selection. */
+function pickedRows(node: UiTable): Set<string> | undefined {
+    const many = node.selectedRowIds ?? [];
+    const one = node.selectedRowId ? [node.selectedRowId] : [];
+    if (many.length === 0 && one.length === 0 && !node.selectMode) return undefined;
+    return new Set([...many, ...one]);
+}
+
+/** Whether the row's selection box is ticked on screen; undefined when it has none. */
+function rowTicked(id: string, ctx: { element(id: string): HTMLElement | null }): boolean | undefined {
+    const box = ctx.element(id)?.querySelector?.<HTMLInputElement>(".sui-table-selection input");
+    return box ? !!box.checked : undefined;
 }

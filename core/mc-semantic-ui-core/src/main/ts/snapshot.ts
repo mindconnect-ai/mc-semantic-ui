@@ -123,8 +123,13 @@ export interface Snapshot {
     /** Which bus answered — see {@code SuiEventBus#id}. */
     busId: string;
     mode: SnapshotMode;
-    /** The outline (or the full model); {@code null} when there was nothing to show. */
-    node: SnapshotNode | Record<string, unknown> | null;
+    /**
+     * The outline (or the full model); {@code null} when there was nothing to
+     * show. A {@code root} that names a field or an action is described as
+     * one, so the answer can be a {@link SnapshotField} or a
+     * {@link SnapshotAction} instead of a node.
+     */
+    node: SnapshotNode | SnapshotField | SnapshotAction | Record<string, unknown> | null;
     /** True when anything was left out to stay inside {@code maxChars} or {@code depth}. */
     truncated?: boolean;
     /**
@@ -162,9 +167,6 @@ const SECRET_FIELD_TYPES = new Set(["PASSWORD", "FILE"]);
  * no business reading it out of the page.
  */
 const SECRET_NAME = /(pass(word|phrase)?|secret|token|csrf|xsrf|nonce|api[-_ ]?key|credential|authorization)/i;
-
-/** Node types that are buttons rather than content. */
-const ACTION_TYPES = new Set(["action", "action-menu", "menu-item"]);
 
 /** Whether a value is a node: something with a type discriminator. */
 function isNode(value: unknown): value is Record<string, unknown> & { type: string } {
@@ -214,6 +216,8 @@ interface Ctx {
     dom: SnapshotDom;
     budget: Budget;
     mode: SnapshotMode;
+    /** How a node type describes itself; absent means the general rules. */
+    outlineFor?: OutlineLookup;
     /**
      * True once {@code depth} has cut something. Deliberately not the budget's
      * flag: a spent budget ends the whole walk, a depth limit ends one branch
@@ -251,6 +255,21 @@ export function findNode(tree: unknown, id: string, seen: Set<unknown> = new Set
     return null;
 }
 
+/** What the snapshot needs from its surroundings. */
+export interface SnapshotEnv {
+    /** How the screen is read back. */
+    dom: SnapshotDom;
+    /** Which bus is answering. */
+    busId: string;
+    /** How a node type describes itself — the renderer's outline registry. */
+    outlineFor?: OutlineLookup;
+    /**
+     * Resolves {@code options.root} in one step (the renderer's id index).
+     * Without it the tree is walked.
+     */
+    resolveRoot?: (id: string) => Record<string, unknown> | null | undefined;
+}
+
 /**
  * Builds the snapshot of {@code tree} (or of the subtree named by
  * {@code options.root}).
@@ -258,28 +277,23 @@ export function findNode(tree: unknown, id: string, seen: Set<unknown> = new Set
 export function buildSnapshot(
     tree: UiNode | Record<string, unknown> | null | undefined,
     options: SnapshotOptions,
-    dom: SnapshotDom,
-    busId: string,
-    /**
-     * How {@code options.root} is looked up. The renderer keeps an index of
-     * every id it holds and answers in one step; without one, the tree is
-     * walked. Either way the node must be in {@code tree} — a node the page
-     * has dropped is not on the screen, and is not described here.
-     */
-    resolve?: (id: string) => Record<string, unknown> | null | undefined,
+    env: SnapshotEnv,
 ): Snapshot {
+    const { dom, busId, outlineFor, resolveRoot } = env;
     const mode: SnapshotMode = options.mode ?? "outline";
     if (!tree) return { busId, mode, node: null, reason: "no-tree" };
     const start = options.root
-        ? (resolve?.(options.root) ?? findNode(tree, options.root))
+        ? (resolveRoot?.(options.root) ?? findNode(tree, options.root))
         : (tree as Record<string, unknown>);
     if (!start) return { busId, mode, node: null, reason: "unknown-root" };
     const maxChars = options.maxChars ?? DEFAULT_MAX_CHARS;
     const depth = options.depth ?? DEFAULT_DEPTH;
     const build = (limit: number): Snapshot => {
         const budget = new Budget(limit);
-        const ctx: Ctx = { dom, budget, mode, depthCut: false };
-        const node = mode === "full" ? fullNode(start, depth, ctx) : outlineNode(start, depth, ctx);
+        const ctx: Ctx = { dom, budget, mode, outlineFor, depthCut: false };
+        const node = mode === "full"
+            ? fullNode(start, depth, ctx)
+            : outlineEntry(start, depth, ctx).value;
         const shot: Snapshot = { busId, mode, node };
         if (budget.cut || ctx.depthCut) shot.truncated = true;
         return shot;
@@ -307,189 +321,195 @@ function sizeOf(shot: Snapshot): number {
     catch { return 0; }
 }
 
-// ── Outline ─────────────────────────────────────────────────────────────────
+// ── What a node says about itself ───────────────────────────────────────────
 
 /**
- * The outline of one node: its own words, then its children sorted into what
- * can be read ({@code children}, {@code items}), what can be filled in
- * ({@code fields}) and what can be pressed ({@code actions}).
+ * How one node type describes itself in a snapshot. Registered next to the
+ * painter for that type ({@code SuiRenderer#registerOutline}), because what a
+ * node shows and what it says about itself are the same knowledge — and an
+ * extension's node is the only place that knows what its own fields mean.
  *
- * <p>A node with no id carries no handle for {@code perform} and nothing an
- * agent can point at, so it only appears when it has something to say — a
- * text, a title, or children that do.
+ * <p>A handler says <b>what</b> to report; the walk stays here. It never
+ * recurses: it hands back the children it wants described
+ * ({@link OutlineNodeSpec#children}, {@link OutlineNodeSpec#items}) and the
+ * snapshot walks them under the caller's {@code depth} and {@code maxChars}.
  */
-function outlineNode(node: Record<string, unknown>, depth: number, ctx: Ctx): SnapshotNode {
+export type OutlineHandler<N = any> = (node: N, ctx: OutlineContext) => OutlineResult;
+
+/** Finds the handler for a node type, if one is registered. */
+export type OutlineLookup = (type: string) => OutlineHandler | undefined;
+
+/** What a handler may ask about the screen, so it needs no DOM of its own. */
+export interface OutlineContext {
+    /**
+     * What the control with this id says now; {@code modelValue} when it is
+     * not on the screen (below a collapsed section, before the first paint).
+     */
+    value(id: string, modelValue?: unknown): unknown;
+    /** An attribute of the element with this id — a drawer's {@code data-state}, say. */
+    attr(id: string, name: string): string | null;
+    /** The element itself, for a live reading nothing else expresses (a row's tick). */
+    element(id: string): HTMLElement | null;
+    /** False when the control with this id is disabled or busy on screen. */
+    usable(id: string, enabledInModel?: boolean): boolean;
+    /** Whether a field's value must be withheld — a password, a file, a token. */
+    secret(field: { id?: string; label?: string; fieldType?: string }): boolean;
+}
+
+/** A node that is content: it has words, and children worth walking. */
+export interface OutlineNodeSpec {
+    kind?: "node";
+    title?: string;
+    label?: string;
+    text?: string;
+    /** A state the browser owns, not the server — a drawer's open/minimized. */
+    state?: string;
+    columns?: SnapshotColumn[];
+    pagination?: SnapshotPagination;
+    /** Rows: a list's items, a table's lines. */
+    items?: OutlineItemSpec[];
+    /** Child nodes to describe. Each lands in the bucket its own handler names. */
+    children?: unknown[];
+}
+
+/** One row, as its container describes it. */
+export interface OutlineItemSpec {
+    id: string;
+    label?: string;
+    description?: string;
+    cells?: Record<string, unknown>;
+    selected?: boolean;
+    clickable?: boolean;
+    /** Nodes inside the row — its actions, its content. */
+    children?: unknown[];
+}
+
+/** A node that is a control to fill in. It describes itself whole. */
+export interface OutlineFieldSpec {
+    kind: "field";
+    field: SnapshotField;
+}
+
+/** A node that is something to press. */
+export interface OutlineActionSpec {
+    kind: "action";
+    action: SnapshotAction;
+    /** Entries of a menu: pressable in their own right, listed beside it. */
+    entries?: unknown[];
+}
+
+export type OutlineResult = OutlineNodeSpec | OutlineFieldSpec | OutlineActionSpec;
+
+/** A described node, and which bucket it belongs in. */
+type Entry =
+    | { kind: "node"; value: SnapshotNode }
+    | { kind: "field"; value: SnapshotField }
+    | { kind: "action"; value: SnapshotAction; entries?: unknown[] };
+
+/** The context handed to every handler. */
+function contextFor(ctx: Ctx): OutlineContext {
+    return {
+        value: (id, modelValue) => liveValue(id, modelValue, ctx),
+        attr: (id, name) => (id ? ctx.dom.byId(id)?.getAttribute?.(name) ?? null : null),
+        element: (id) => (id ? ctx.dom.byId(id) : null),
+        usable: (id, enabledInModel) => isUsable(id, enabledInModel !== false, ctx),
+        secret: (field) => isSecretField(field),
+    };
+}
+
+// ── The walk ────────────────────────────────────────────────────────────────
+
+/**
+ * The outline of one node: what it says about itself, then its children in
+ * the bucket each of them names — what can be read ({@code children},
+ * {@code items}), filled in ({@code fields}) or pressed ({@code actions}).
+ */
+function outlineEntry(node: Record<string, unknown>, depth: number, ctx: Ctx): Entry {
+    const spec = describe(node, ctx);
+    if (spec.kind === "field") {
+        ctx.budget.take(spec.field);
+        return { kind: "field", value: spec.field };
+    }
+    if (spec.kind === "action") {
+        ctx.budget.take(spec.action);
+        return { kind: "action", value: spec.action, entries: spec.entries };
+    }
     const out: SnapshotNode = { type: String(node.type) };
     if (typeof node.id === "string" && node.id) out.id = node.id;
-    copyText(node, out, ctx);
+    if (spec.title != null) out.title = spec.title;
+    if (spec.label != null) out.label = spec.label;
+    if (spec.text != null) out.text = spec.text;
+    if (spec.state != null) out.state = spec.state;
     // Charged before the children are walked, so each node is counted once.
-    if (!ctx.budget.take(out)) { out.truncated = true; return out; }
+    if (!ctx.budget.take(out)) { out.truncated = true; return { kind: "node", value: out }; }
+    const hasBelow = (spec.children?.length ?? 0) > 0 || (spec.items?.length ?? 0) > 0;
     if (depth <= 0) {
-        if (hasChildren(node)) { out.truncated = true; ctx.depthCut = true; }
-        return out;
+        if (hasBelow) { out.truncated = true; ctx.depthCut = true; }
+        return { kind: "node", value: out };
     }
-    // A table keeps its content in a shape of its own: cells in a data map
-    // under rows, headings in column nodes beside them. Walked generically it
-    // comes out as rows with nothing in them, so it gets its own pass — and
-    // fill() then skips the two keys this has already read.
-    if (node.type === "table") outlineTable(node, out, ctx);
-    fill(node, out, depth, ctx);
-    return out;
-}
-
-/** The keys {@link outlineTable} has already dealt with. */
-const TABLE_KEYS = new Set(["columns", "rows", "pagination"]);
-
-/**
- * A table as a reader sees it: the column headings, then a row per line with
- * its cells keyed by column — the value under the column's {@code dataKey}
- * where it has one, otherwise under its id, which is what the renderer puts
- * in the cell. The tick comes from the DOM, so a row the user has just
- * checked reads as checked.
- */
-function outlineTable(node: Record<string, unknown>, out: SnapshotNode, ctx: Ctx): void {
-    const columns = (Array.isArray(node.columns) ? node.columns : []).filter(isNode);
-    const cols = columns.map(c => ({
-        id: String(c.id ?? ""),
-        key: String(c.dataKey ?? c.id ?? ""),
-        label: typeof c.label === "string" ? c.label : undefined,
-    }));
-    if (cols.length > 0) {
-        const heads: SnapshotColumn[] = cols.map(c => c.label == null ? { id: c.id } : { id: c.id, label: c.label });
-        if (!ctx.budget.take(heads)) { out.truncated = true; return; }
-        out.columns = heads;
-    }
-    const picked = pickedRows(node);
-    for (const row of (Array.isArray(node.rows) ? node.rows : [])) {
-        if (!isNode(row)) continue;
-        const id = String(row.id ?? "");
-        const item: SnapshotItem = { id };
-        const data = (row.data ?? {}) as Record<string, unknown>;
-        // No columns declared: the row's own data is the best we can say.
-        const cells: Record<string, unknown> = {};
-        if (cols.length > 0) {
-            for (const c of cols) {
-                if (c.key in data) cells[c.id] = data[c.key];
-            }
-        } else {
-            Object.assign(cells, data);
-        }
-        if (Object.keys(cells).length > 0) item.cells = cells;
-        if (row.onClick) item.clickable = true;
-        const ticked = rowTicked(id, ctx);
-        if (ticked !== undefined) item.selected = ticked;
-        else if (picked !== null) item.selected = picked.has(id);
-        if (!ctx.budget.take(item)) { out.truncated = true; return; }
-        (out.items ??= []).push(item);
-    }
-    const page = node.pagination as Record<string, unknown> | undefined;
-    if (page && typeof page.page === "number") {
-        const shown = { page: page.page, size: Number(page.size ?? 0), total: Number(page.total ?? 0) };
-        if (ctx.budget.take(shown)) out.pagination = shown;
+    if (spec.columns && spec.columns.length > 0) {
+        if (ctx.budget.take(spec.columns)) out.columns = spec.columns;
         else out.truncated = true;
     }
+    for (const item of spec.items ?? []) {
+        (out.items ??= []).push(outlineItem(item, depth - 1, ctx));
+        if (ctx.budget.cut) { out.truncated = true; return { kind: "node", value: out }; }
+    }
+    walkChildren(spec.children ?? [], out, depth, ctx);
+    if (spec.pagination && !ctx.budget.cut) {
+        if (ctx.budget.take(spec.pagination)) out.pagination = spec.pagination;
+        else out.truncated = true;
+    }
+    return { kind: "node", value: out };
 }
 
-/** The rows the model says are picked, or null when the table has no selection. */
-function pickedRows(node: Record<string, unknown>): Set<string> | null {
-    const many = Array.isArray(node.selectedRowIds) ? node.selectedRowIds.map(String) : null;
-    const one = typeof node.selectedRowId === "string" ? [node.selectedRowId] : null;
-    if (!many && !one && !node.selectMode) return null;
-    return new Set([...(many ?? []), ...(one ?? [])]);
-}
-
-/** Whether the row's selection box is ticked on screen; undefined when it has none. */
-function rowTicked(id: string, ctx: Ctx): boolean | undefined {
-    const el = id ? ctx.dom.byId(id) : null;
-    const box = el?.querySelector?.<HTMLInputElement>(".sui-table-selection input");
-    return box ? !!box.checked : undefined;
-}
-
-/** The node's own words plus the state the DOM (not the model) decides. */
-function copyText(node: Record<string, unknown>, out: SnapshotNode, ctx: Ctx): void {
-    if (typeof node.title === "string") out.title = node.title;
-    if (typeof node.label === "string") out.label = node.label;
-    if (typeof node.text === "string") out.text = node.text;
-    // A drawer is opened and minimized in the browser without the server
-    // hearing about it, so its model says nothing useful: read the element.
-    if (node.type === "drawer" && typeof node.id === "string") {
-        const el = ctx.dom.byId(node.id);
-        const state = el?.getAttribute?.("data-state");
-        if (state) out.state = state;
+/** The described node, from its own handler or from the general rules. */
+function describe(node: Record<string, unknown>, ctx: Ctx): OutlineResult {
+    const handler = ctx.outlineFor?.(String(node.type));
+    if (!handler) return genericSpec(node);
+    try {
+        return handler(node, contextFor(ctx));
+    } catch (err) {
+        // A handler that throws must not take the whole screen's description
+        // with it: the node falls back to what anyone can say about it.
+        console.warn(`Snapshot: the outline handler for "${node.type}" failed`, err);
+        return genericSpec(node);
     }
 }
 
-/** Whether a node has anything below it that a deeper walk would show. */
-function hasChildren(node: Record<string, unknown>): boolean {
-    for (const [key, value] of Object.entries(node)) {
-        if (key === "trailing") continue;
-        if (isNode(value)) return true;
-        if (Array.isArray(value) && value.some(v => isNode(v) || isItem(v))) return true;
-    }
-    return false;
-}
-
-/** A list row: no type discriminator, but an id and a label. */
-function isItem(value: unknown): value is Record<string, unknown> {
-    return value != null && typeof value === "object" && !Array.isArray(value)
-        && typeof (value as { type?: unknown }).type !== "string"
-        && typeof (value as { id?: unknown }).id === "string";
-}
-
-/**
- * Sorts a node's children into the outline's four buckets. Shared by nodes and
- * by list rows, which carry the same kinds of children.
- */
-function fill(
-    node: Record<string, unknown>,
-    out: { items?: SnapshotItem[]; fields?: SnapshotField[]; actions?: SnapshotAction[]; children?: SnapshotNode[]; truncated?: boolean },
-    depth: number,
-    ctx: Ctx,
-): void {
-    const skip = node.type === "table" ? TABLE_KEYS : null;
-    for (const [key, value] of Object.entries(node)) {
-        // A field's trailing action is reported on the field itself.
-        if (key === "trailing" || skip?.has(key)) continue;
-        for (const child of Array.isArray(value) ? value : [value]) {
-            if (isNode(child)) {
-                addNode(child, out, depth, ctx);
-            } else if (isItem(child) && (key === "items" || key === "rows")) {
-                (out.items ??= []).push(outlineItem(child, depth - 1, ctx));
-            } else {
-                continue;
-            }
-            if (ctx.budget.cut) { out.truncated = true; return; }
-        }
+/** Describes each child and puts it where its kind belongs. */
+function walkChildren(children: unknown[], out: Buckets, depth: number, ctx: Ctx): void {
+    for (const child of children) {
+        if (!isNode(child)) continue;
+        place(outlineEntry(child, depth - 1, ctx), out, depth, ctx);
+        if (ctx.budget.cut) { out.truncated = true; return; }
     }
 }
 
-/** Puts one child node into the bucket its type belongs in. */
-function addNode(
-    child: Record<string, unknown> & { type: string },
-    out: { fields?: SnapshotField[]; actions?: SnapshotAction[]; children?: SnapshotNode[]; items?: SnapshotItem[] },
-    depth: number,
-    ctx: Ctx,
-): void {
-    if (child.type === "field") {
-        const field = outlineField(child, ctx);
-        if (!ctx.budget.take(field)) return;
-        (out.fields ??= []).push(field);
-        return;
-    }
-    if (ACTION_TYPES.has(child.type)) {
-        // A menu button is a button *and* a container of entries: the entries
-        // are what can be pressed, so they are what the outline lists.
-        const entries = Array.isArray(child.items) ? child.items.filter(isNode) : [];
-        const action = outlineAction(child, ctx);
-        if (!ctx.budget.take(action)) return;
-        (out.actions ??= []).push(action);
-        for (const entry of entries) {
-            addNode(entry as Record<string, unknown> & { type: string }, out, depth, ctx);
+/** Where the outline puts things. */
+interface Buckets {
+    items?: SnapshotItem[];
+    fields?: SnapshotField[];
+    actions?: SnapshotAction[];
+    children?: SnapshotNode[];
+    truncated?: boolean;
+}
+
+/** One described child, in its bucket. */
+function place(entry: Entry, out: Buckets, depth: number, ctx: Ctx): void {
+    if (entry.kind === "field") { (out.fields ??= []).push(entry.value); return; }
+    if (entry.kind === "action") {
+        (out.actions ??= []).push(entry.value);
+        // A menu is a button and a list of entries: the entries are what can
+        // be pressed, so they stand beside it rather than under it.
+        for (const item of entry.entries ?? []) {
+            if (!isNode(item)) continue;
+            place(outlineEntry(item, depth - 1, ctx), out, depth, ctx);
             if (ctx.budget.cut) return;
         }
         return;
     }
-    const sub = outlineNode(child, depth - 1, ctx);
+    const sub = entry.value;
     // A node with neither an id nor words of its own is pure layout: its
     // children stand in for it, so the outline does not grow a level for it.
     if (!sub.id && !sub.title && !sub.label && !sub.text && !sub.truncated) {
@@ -504,37 +524,73 @@ function addNode(
     (out.children ??= []).push(sub);
 }
 
-/** One list row, walked like a small node. */
-function outlineItem(item: Record<string, unknown>, depth: number, ctx: Ctx): SnapshotItem {
-    const out: SnapshotItem = { id: String(item.id) };
-    if (typeof item.label === "string") out.label = item.label;
-    if (typeof item.description === "string") out.description = item.description;
-    if (item.onClick) out.clickable = true;
+/** One row, and the nodes inside it. */
+function outlineItem(spec: OutlineItemSpec, depth: number, ctx: Ctx): SnapshotItem {
+    const out: SnapshotItem = { id: spec.id };
+    if (spec.label != null) out.label = spec.label;
+    if (spec.description != null) out.description = spec.description;
+    if (spec.cells && Object.keys(spec.cells).length > 0) out.cells = spec.cells;
+    if (spec.selected !== undefined) out.selected = spec.selected;
+    if (spec.clickable) out.clickable = true;
     if (!ctx.budget.take(out)) { out.truncated = true; return out; }
+    const children = spec.children ?? [];
     if (depth <= 0) {
-        if (hasChildren(item)) { out.truncated = true; ctx.depthCut = true; }
+        if (children.some(isNode)) { out.truncated = true; ctx.depthCut = true; }
         return out;
     }
-    fill(item, out, depth, ctx);
+    walkChildren(children, out, depth, ctx);
     return out;
 }
 
-/** A field with its live value — or with the value withheld. */
-function outlineField(field: Record<string, unknown>, ctx: Ctx): SnapshotField {
-    const id = String(field.id ?? "");
-    const out: SnapshotField = { id };
-    if (typeof field.label === "string") out.label = field.label;
-    if (typeof field.fieldType === "string") out.type = field.fieldType;
-    if (field.required === true) out.required = true;
-    if (typeof field.validationError === "string") out.error = field.validationError;
-    if (Array.isArray(field.options)) out.options = field.options as SnapshotField["options"];
-    if (isSecretField(field as { id?: string; label?: string; fieldType?: string })) {
-        out.omitted = true;
-    } else {
-        out.value = liveValue(id, field.value, ctx);
+// ── What anyone can say about a node ────────────────────────────────────────
+
+/**
+ * The description of a node whose type has registered none: its own words,
+ * every child node below it, and the rows of anything that carries
+ * {@code items}. It is what a plugin's node gets before its extension is
+ * installed — a snapshot must not depend on that having happened.
+ */
+function genericSpec(node: Record<string, unknown>): OutlineNodeSpec {
+    const spec: OutlineNodeSpec = {};
+    if (typeof node.title === "string") spec.title = node.title;
+    if (typeof node.label === "string") spec.label = node.label;
+    if (typeof node.text === "string") spec.text = node.text;
+    const children: unknown[] = [];
+    for (const [key, value] of Object.entries(node)) {
+        // A field's trailing action is reported on the field itself.
+        if (key === "trailing") continue;
+        for (const child of Array.isArray(value) ? value : [value]) {
+            if (isNode(child)) children.push(child);
+            else if (isItem(child) && (key === "items" || key === "rows")) {
+                (spec.items ??= []).push(genericItem(child));
+            }
+        }
     }
-    if (isNode(field.trailing)) out.action = outlineAction(field.trailing, ctx);
-    return out;
+    if (children.length > 0) spec.children = children;
+    return spec;
+}
+
+/** A row nobody has described: its words, and whatever nodes hang in it. */
+function genericItem(item: Record<string, unknown>): OutlineItemSpec {
+    const spec: OutlineItemSpec = { id: String(item.id) };
+    if (typeof item.label === "string") spec.label = item.label;
+    if (typeof item.description === "string") spec.description = item.description;
+    if (item.onClick) spec.clickable = true;
+    const children: unknown[] = [];
+    for (const value of Object.values(item)) {
+        for (const child of Array.isArray(value) ? value : [value]) {
+            if (isNode(child)) children.push(child);
+        }
+    }
+    if (children.length > 0) spec.children = children;
+    return spec;
+}
+
+/** A list row: no type discriminator, but an id. */
+function isItem(value: unknown): value is Record<string, unknown> {
+    return value != null && typeof value === "object" && !Array.isArray(value)
+        && typeof (value as { type?: unknown }).type !== "string"
+        && typeof (value as { id?: unknown }).id === "string";
 }
 
 /**
@@ -549,25 +605,13 @@ function liveValue(id: string, modelValue: unknown, ctx: Ctx): unknown {
     return id in values ? values[id] : (modelValue ?? null);
 }
 
-/** A button, with {@code enabled} taken from the element rather than the model. */
-function outlineAction(action: Record<string, unknown>, ctx: Ctx): SnapshotAction {
-    const id = String(action.id ?? "");
-    const out: SnapshotAction = { id };
-    if (typeof action.label === "string") out.label = action.label;
-    if (typeof action.style === "string") out.style = action.style;
-    if (typeof action.confirm === "string") out.confirm = action.confirm;
-    if (typeof action.disabledReason === "string") out.disabledReason = action.disabledReason;
-    out.enabled = isEnabled(id, action, ctx);
-    return out;
-}
-
-/** Disabled on screen beats enabled in the model — the screen is what is true. */
-function isEnabled(id: string, action: Record<string, unknown>, ctx: Ctx): boolean {
+/** Disabled or busy on screen beats enabled in the model — the screen is what is true. */
+function isUsable(id: string, enabledInModel: boolean, ctx: Ctx): boolean {
     const el = id ? ctx.dom.byId(id) : null;
     if (el?.hasAttribute?.("disabled")) return false;
     if (el?.getAttribute?.("aria-disabled") === "true") return false;
     if (el?.classList?.contains?.("is-loading")) return false;
-    return action.enabled !== false && action.loading !== true;
+    return enabledInModel;
 }
 
 // ── Full ────────────────────────────────────────────────────────────────────

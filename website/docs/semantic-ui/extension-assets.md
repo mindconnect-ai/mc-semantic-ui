@@ -156,6 +156,10 @@ UiCustom.of("chat-widget").id("draft-chat")
 ```js
 export function install(renderer) {
     renderer.register("chat-widget", node => `<div id="${node.id}" data-api="${node.api}"></div>`);
+    // How the node describes itself when the screen is read back — see
+    // "Reading the screen". Without it, a snapshot names the node and says
+    // nothing about what it holds.
+    renderer.registerOutline("chat-widget", node => ({ title: node.title, text: node.draft }));
 }
 ```
 

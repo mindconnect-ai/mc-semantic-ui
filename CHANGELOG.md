@@ -23,6 +23,17 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ### Added
 
+- **A node type says how it appears in a snapshot.**
+  `renderer.registerOutline(type, handler)` sits next to the painter for the
+  same type: the handler reports the node's words, its rows, which of its
+  children can be filled in or pressed, and any state only the screen knows
+  (`ctx.value`, `ctx.attr`, `ctx.usable`). The walk stays in the snapshot, so
+  a handler never has to reckon with `depth` or `maxChars`. The core types now
+  describe themselves this way, and the markdown extension reports its
+  `content` — a chat turn used to say that something had been written, not
+  what. A type that registers nothing is still described by the general rules,
+  so a page whose extension has not been installed loses detail, not presence.
+
 - **The event bus can say what is on the screen, and be driven from outside.**
   The renderer now keeps the tree it drew and applies every patch to it, so
   `bus.snapshot({ root, depth, mode, maxChars })` can describe the page
