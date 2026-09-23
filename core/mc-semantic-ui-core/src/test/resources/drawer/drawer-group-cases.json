@@ -1,0 +1,117 @@
+[
+  {
+    "name": "the dock: two at the bottom of their container, sharing the strip, resizable",
+    "node": {
+      "type": "drawer-group",
+      "id": "dock",
+      "cssClass": "dock",
+      "edge": "BOTTOM",
+      "scope": "CONTAINER",
+      "arrange": "SHARE",
+      "size": "40%",
+      "minSize": "160px",
+      "maxSize": "80%",
+      "resizable": true,
+      "drawers": [
+        {
+          "type": "drawer",
+          "id": "chat",
+          "title": "Draft with AI",
+          "icon": "sparkles",
+          "badge": "2",
+          "edge": "LEFT",
+          "scope": "VIEWPORT",
+          "mode": "PUSH",
+          "resizable": true,
+          "size": "300px",
+          "closable": true,
+          "onClose": {
+            "url": "/chat/1",
+            "method": "DELETE",
+            "behavior": "APPLY_RESPONSE"
+          },
+          "content": {
+            "type": "text",
+            "id": "t1",
+            "text": "Hello <you>"
+          }
+        },
+        {
+          "type": "drawer",
+          "id": "files",
+          "title": "Files",
+          "state": "MINIMIZED",
+          "content": {
+            "type": "text",
+            "id": "t2",
+            "text": "a.pdf"
+          }
+        }
+      ]
+    },
+    "html": "<div class=\"sui-drawer-group sui-drawer-group--bottom sui-drawer-group--container sui-drawer-group--overlay sui-drawer-group--share sui-drawer-group--resizable dock\" id=\"dock\" data-sui=\"drawer-group\" style=\"--sui-drawer-size:40%;--sui-drawer-min:160px;--sui-drawer-max:80%;\"><div class=\"sui-drawer sui-drawer--bottom sui-drawer--open sui-drawer--container sui-drawer--overlay\" id=\"chat\" data-sui=\"drawer\" data-state=\"open\" data-close-trigger='{\"url\":\"/chat/1\",\"method\":\"DELETE\",\"behavior\":\"APPLY_RESPONSE\"}' style=\"--sui-drawer-size:300px;\"><button type=\"button\" class=\"sui-drawer-handle\" data-sui-drawer=\"open\" aria-controls=\"chat__panel\" aria-expanded=\"true\"><span class=\"sui-drawer-icon\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#sparkles\"></use></svg></span><span class=\"sui-drawer-title\">Draft with AI</span><span class=\"sui-drawer-badge\">2</span></button><div class=\"sui-drawer-panel\" id=\"chat__panel\" role=\"region\" aria-label=\"Draft with AI\" tabindex=\"-1\"><div class=\"sui-drawer-header\"><span class=\"sui-drawer-icon\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#sparkles\"></use></svg></span><span class=\"sui-drawer-title\">Draft with AI</span><button type=\"button\" class=\"sui-drawer-btn\" data-sui-drawer=\"minimize\" aria-label=\"Minimize\" title=\"Minimize\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#minus\"></use></svg></button><button type=\"button\" class=\"sui-drawer-btn\" data-sui-drawer=\"close\" aria-label=\"Close\" title=\"Close\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#x\"></use></svg></button></div><div class=\"sui-drawer-body\"><span class=\"sui-text\" id=\"t1\">Hello &lt;you&gt;</span></div></div></div><div class=\"sui-drawer sui-drawer--bottom sui-drawer--minimized sui-drawer--container sui-drawer--overlay\" id=\"files\" data-sui=\"drawer\" data-state=\"minimized\"><button type=\"button\" class=\"sui-drawer-handle\" data-sui-drawer=\"open\" aria-controls=\"files__panel\" aria-expanded=\"false\"><span class=\"sui-drawer-title\">Files</span></button><div class=\"sui-drawer-panel\" id=\"files__panel\" role=\"region\" aria-label=\"Files\" tabindex=\"-1\"><div class=\"sui-drawer-header\"><span class=\"sui-drawer-title\">Files</span><button type=\"button\" class=\"sui-drawer-btn\" data-sui-drawer=\"minimize\" aria-label=\"Minimize\" title=\"Minimize\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#minus\"></use></svg></button></div><div class=\"sui-drawer-body\"><span class=\"sui-text\" id=\"t2\">a.pdf</span></div></div></div><div class=\"sui-drawer-resize\" data-sui-drawer=\"resize\" role=\"separator\" aria-orientation=\"horizontal\" aria-label=\"Resize\"></div></div>"
+  },
+  {
+    "name": "a stack at the left, pushing: who is in front, and how to report a switch",
+    "node": {
+      "type": "drawer-group",
+      "id": "side",
+      "edge": "LEFT",
+      "mode": "PUSH",
+      "arrange": "STACK",
+      "active": "notes",
+      "size": "320px",
+      "onActiveChange": {
+        "url": "/side/front/{id}",
+        "method": "POST",
+        "behavior": "APPLY_RESPONSE"
+      },
+      "drawers": [
+        {
+          "type": "drawer",
+          "id": "log",
+          "title": "Log"
+        },
+        {
+          "type": "drawer",
+          "id": "notes",
+          "title": "Notes",
+          "content": {
+            "type": "text",
+            "id": "t3",
+            "text": "n"
+          }
+        }
+      ]
+    },
+    "html": "<div class=\"sui-drawer-group sui-drawer-group--left sui-drawer-group--viewport sui-drawer-group--push sui-drawer-group--stack\" id=\"side\" data-sui=\"drawer-group\" data-active=\"notes\" data-active-trigger='{\"url\":\"/side/front/{id}\",\"method\":\"POST\",\"behavior\":\"APPLY_RESPONSE\"}' style=\"--sui-drawer-size:320px;\"><div class=\"sui-drawer sui-drawer--left sui-drawer--open sui-drawer--viewport sui-drawer--push\" id=\"log\" data-sui=\"drawer\" data-state=\"open\"><button type=\"button\" class=\"sui-drawer-handle\" data-sui-drawer=\"open\" aria-controls=\"log__panel\" aria-expanded=\"true\"><span class=\"sui-drawer-title\">Log</span></button><div class=\"sui-drawer-panel\" id=\"log__panel\" role=\"region\" aria-label=\"Log\" tabindex=\"-1\"><div class=\"sui-drawer-header\"><span class=\"sui-drawer-title\">Log</span><button type=\"button\" class=\"sui-drawer-btn\" data-sui-drawer=\"minimize\" aria-label=\"Minimize\" title=\"Minimize\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#minus\"></use></svg></button></div><div class=\"sui-drawer-body\"></div></div></div><div class=\"sui-drawer sui-drawer--left sui-drawer--open sui-drawer--viewport sui-drawer--push\" id=\"notes\" data-sui=\"drawer\" data-state=\"open\"><button type=\"button\" class=\"sui-drawer-handle\" data-sui-drawer=\"open\" aria-controls=\"notes__panel\" aria-expanded=\"true\"><span class=\"sui-drawer-title\">Notes</span></button><div class=\"sui-drawer-panel\" id=\"notes__panel\" role=\"region\" aria-label=\"Notes\" tabindex=\"-1\"><div class=\"sui-drawer-header\"><span class=\"sui-drawer-title\">Notes</span><button type=\"button\" class=\"sui-drawer-btn\" data-sui-drawer=\"minimize\" aria-label=\"Minimize\" title=\"Minimize\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#minus\"></use></svg></button></div><div class=\"sui-drawer-body\"><span class=\"sui-text\" id=\"t3\">n</span></div></div></div></div>"
+  },
+  {
+    "name": "defaults: right, over the window, sharing, nothing in it yet",
+    "node": {
+      "type": "drawer-group",
+      "id": "empty"
+    },
+    "html": "<div class=\"sui-drawer-group sui-drawer-group--right sui-drawer-group--viewport sui-drawer-group--overlay sui-drawer-group--share\" id=\"empty\" data-sui=\"drawer-group\"></div>"
+  },
+  {
+    "name": "hidden, at the top, resizable: the grip is horizontal",
+    "node": {
+      "type": "drawer-group",
+      "id": "news",
+      "edge": "TOP",
+      "resizable": true,
+      "display": "HIDDEN",
+      "cssClass": "ticker",
+      "drawers": [
+        {
+          "type": "drawer",
+          "id": "headlines",
+          "title": "Headlines",
+          "state": "CLOSED"
+        }
+      ]
+    },
+    "html": "<div class=\"sui-drawer-group sui-drawer-group--top sui-drawer-group--viewport sui-drawer-group--overlay sui-drawer-group--share sui-drawer-group--resizable ticker sui-hidden\" id=\"news\" data-sui=\"drawer-group\"><div class=\"sui-drawer sui-drawer--top sui-drawer--closed sui-drawer--viewport sui-drawer--overlay\" id=\"headlines\" data-sui=\"drawer\" data-state=\"closed\"><button type=\"button\" class=\"sui-drawer-handle\" data-sui-drawer=\"open\" aria-controls=\"headlines__panel\" aria-expanded=\"false\"><span class=\"sui-drawer-title\">Headlines</span></button><div class=\"sui-drawer-panel\" id=\"headlines__panel\" role=\"region\" aria-label=\"Headlines\" tabindex=\"-1\"><div class=\"sui-drawer-header\"><span class=\"sui-drawer-title\">Headlines</span><button type=\"button\" class=\"sui-drawer-btn\" data-sui-drawer=\"minimize\" aria-label=\"Minimize\" title=\"Minimize\"><svg class=\"sui-icon\" aria-hidden=\"true\"><use href=\"/sui/icons.svg#minus\"></use></svg></button></div><div class=\"sui-drawer-body\"></div></div></div><div class=\"sui-drawer-resize\" data-sui-drawer=\"resize\" role=\"separator\" aria-orientation=\"horizontal\" aria-label=\"Resize\"></div></div>"
+  }
+]

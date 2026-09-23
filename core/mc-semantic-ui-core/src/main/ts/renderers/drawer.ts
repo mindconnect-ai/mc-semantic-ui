@@ -117,6 +117,26 @@ export function layoutDrawerHandles(scope: ParentNode | null = typeof document !
     }
 }
 
+/**
+ * The other open overlay drawers at the same edge of the same area as
+ * {@code drawer} — the container it is in, or the window — and not in a
+ * group, which has its own rule for its members.
+ */
+function othersOpenAtEdge(drawer: HTMLElement): HTMLElement[] {
+    const parent = drawer.parentElement;
+    if (!parent || parent.classList.contains("sui-drawer-group")) return [];
+    if (!drawer.classList.contains("sui-drawer--overlay")) return [];
+    const edge = edgeOf(drawer);
+    const inContainer = drawer.classList.contains("sui-drawer--container");
+    const scope: ParentNode | null = inContainer ? parent : (typeof document !== "undefined" ? document : null);
+    if (!scope || typeof scope.querySelectorAll !== "function") return [];
+    return Array.from(scope.querySelectorAll<HTMLElement>(".sui-drawer--open.sui-drawer--overlay")).filter(d =>
+        d !== drawer && edgeOf(d) === edge
+        && d.classList.contains("sui-drawer--container") === inContainer
+        && (!inContainer || d.parentElement === parent)
+        && !d.parentElement?.classList.contains("sui-drawer-group"));
+}
+
 /** The edge a drawer element slides in from, read off its class. */
 function edgeOf(drawer: HTMLElement): string {
     return drawer.getAttribute("class")?.match(/sui-drawer(?:-group)?--(top|bottom|left|right)\b/)?.[1] ?? "right";
@@ -184,6 +204,14 @@ export function wireDrawers(onChange?: DrawerListener, onFront?: StackListener):
 function change(drawer: HTMLElement, state: DrawerState, focus: boolean, closedByUser = false): void {
     if (!setDrawerState(drawer, state, focus)) return;
     listener?.(drawer, state, closedByUser);
+    // One open drawer per edge of an area: the one opened now lies over any
+    // other open there, whose own handle is hidden while it is open — so it
+    // could neither be seen nor brought back. It goes to its handle instead.
+    // Two that should be open together belong in a group, which lays them
+    // out; a PUSH drawer takes room of its own and covers nothing.
+    if (state === "open") {
+        for (const other of othersOpenAtEdge(drawer)) change(other, "minimized", false);
+    }
     // A drawer opened from its handle in a stack is the one the user wants to
     // see; one minimized from the front leaves the next open one in front.
     const group = drawer.parentElement;

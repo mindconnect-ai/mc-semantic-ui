@@ -1,0 +1,10 @@
+{{!--
+  UiDrawerGroup → several drawers at one edge, and how they get on. Mirror of
+  renderDrawerGroup() in renderers/drawer-group.ts. The group is the element
+  at the edge with the strip's size; the drawers inside are ordinary drawer
+  elements, each rendered by the groupDrawers helper with the group's edge,
+  scope and mode written over its own and no grip of its own — the strip's
+  grip, last in the group, resizes them together. The sizes are CSS lengths
+  (UiDrawerGroup refuses anything else), so they go into the style as they are.
+--}}
+<div class="sui-drawer-group sui-drawer-group--{{lower edge "RIGHT"}} sui-drawer-group--{{lower scope "VIEWPORT"}} sui-drawer-group--{{lower mode "OVERLAY"}} sui-drawer-group--{{lower arrange "SHARE"}}{{#if resizable}} sui-drawer-group--resizable{{/if}}{{#if cssClass}} {{cssClass}}{{/if}}" id="{{id}}" data-sui="drawer-group"{{#if active}} data-active="{{active}}"{{/if}}{{#if onActiveChange}} data-active-trigger='{{{trigger onActiveChange}}}'{{/if}}{{#if (or size minSize maxSize)}} style="{{#if size}}--sui-drawer-size:{{size}};{{/if}}{{#if minSize}}--sui-drawer-min:{{minSize}};{{/if}}{{#if maxSize}}--sui-drawer-max:{{maxSize}};{{/if}}"{{/if}}>{{{groupDrawers this}}}{{#if resizable}}<div class="sui-drawer-resize" data-sui-drawer="resize" role="separator" aria-orientation="{{#if (or (eq edge "TOP") (eq edge "BOTTOM"))}}horizontal{{else}}vertical{{/if}}" aria-label="Resize"></div>{{/if}}</div>

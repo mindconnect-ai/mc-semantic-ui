@@ -43,9 +43,9 @@ import java.util.List;
  * and {@link UiDrawer#getOnClose() onClose}, and its own state — open,
  * minimized, closed — with the same rules as outside a group.
  *
- * <p>Rendered by the browser today. The server-side template and the JavaFX
- * painter are still to come; until then the server renders a group as a
- * placeholder and the desktop client shows nothing for it.
+ * <p>Rendered by the browser and by the server ({@code drawer-group.hbs}).
+ * The JavaFX painter is still to come; until then the desktop client shows
+ * nothing for a group.
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

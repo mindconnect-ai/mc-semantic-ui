@@ -657,6 +657,46 @@ public final class SuiHandlebarsHelpers {
             return new com.github.jknack.handlebars.Handlebars.SafeString(
                     ProgressRenderer.render(p));
         });
+
+        // {{{groupDrawers this}}} → the drawers of a UiDrawerGroup, each
+        // rendered through drawer.hbs as it stands inside the group: with the
+        // group's edge, scope and mode written over its own, and without a
+        // grip — the strip's size is the group's to change. Mirrors the
+        // spread in renderDrawerGroup() (renderers/drawer-group.ts).
+        hb.registerHelper("groupDrawers", (ctx, opts) -> {
+            if (!(ctx instanceof ai.mindconnect.ui.model.UiDrawerGroup g) || g.getDrawers() == null) return "";
+            StringBuilder out = new StringBuilder();
+            for (ai.mindconnect.ui.model.UiDrawer d : g.getDrawers()) {
+                out.append(renderer.render(placedBy(d, g, mapper)));
+            }
+            return out.toString();
+        });
+    }
+
+    /**
+     * A drawer as it stands inside a group: a copy with the group's edge,
+     * scope and mode (the group's defaults where it has none, as
+     * renderDrawerGroup() applies them) and {@code resizable} off; everything
+     * else is the drawer's own. The copy goes through Jackson — the same
+     * round trip the wire makes — so a field added to {@code UiDrawer} rides
+     * along without this method knowing it. The content is the original's,
+     * not a copy: it is only carried, and a subtree the core does not know
+     * would not survive the round trip.
+     */
+    private static ai.mindconnect.ui.model.UiDrawer placedBy(
+            ai.mindconnect.ui.model.UiDrawer d, ai.mindconnect.ui.model.UiDrawerGroup g, ObjectMapper mapper) {
+        ai.mindconnect.ui.model.UiDrawer copy;
+        try {
+            copy = mapper.treeToValue(mapper.valueToTree(d), ai.mindconnect.ui.model.UiDrawer.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("UiDrawer '" + d.getId() + "' does not survive a JSON round trip", e);
+        }
+        copy.setContent(d.getContent());
+        copy.setEdge(g.getEdge() != null ? g.getEdge() : ai.mindconnect.ui.model.UiDrawer.Edge.RIGHT);
+        copy.setScope(g.getScope() != null ? g.getScope() : ai.mindconnect.ui.model.UiDrawer.Scope.VIEWPORT);
+        copy.setMode(g.getMode() != null ? g.getMode() : ai.mindconnect.ui.model.UiDrawer.Mode.OVERLAY);
+        copy.setResizable(false);
+        return copy;
     }
 
     /**

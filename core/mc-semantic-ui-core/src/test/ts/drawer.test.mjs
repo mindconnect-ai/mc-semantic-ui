@@ -223,6 +223,45 @@ describe("the user's controls", () => {
         }
     });
 
+    /** Two drawers at one edge of one container, both open, as a server may send them. */
+    const twoAtOneEdge = (mode = "overlay") => {
+        const make = (id) => {
+            const p = drawerElement("open");
+            p.el.id = id;
+            p.el.className = `sui-drawer sui-drawer--bottom sui-drawer--open sui-drawer--container sui-drawer--${mode}`;
+            return p;
+        };
+        const a = make("log"), b = make("console");
+        const host = new El("div", { class: "sui-drawer-host" }, [a.el, b.el]);
+        return { a, b, host };
+    };
+
+    test("opening a drawer at an edge where another is open sends that one to its handle", () => {
+        const { a, b } = twoAtOneEdge();
+        drawerJs.setDrawerState(a.el, "minimized");
+        // The user brings the log back while the console is open at the same edge.
+        fire("click", a.handle);
+        assert.equal(a.el.getAttribute("data-state"), "open");
+        assert.equal(b.el.getAttribute("data-state"), "minimized");
+        // Both changes are the user's, and both are reported.
+        assert.deepEqual(changes, [["log", "open", false], ["console", "minimized", false]]);
+    });
+
+    test("a PUSH drawer covers nothing, so it minimizes nothing", () => {
+        const { a, b } = twoAtOneEdge("push");
+        drawerJs.setDrawerState(a.el, "minimized");
+        fire("click", a.handle);
+        assert.equal(b.el.getAttribute("data-state"), "open");
+    });
+
+    test("drawers of a group keep their own rule", () => {
+        const { a, b, host } = twoAtOneEdge();
+        host.className = "sui-drawer-group sui-drawer-group--bottom sui-drawer-group--share";
+        drawerJs.setDrawerState(a.el, "minimized");
+        fire("click", a.handle);
+        assert.equal(b.el.getAttribute("data-state"), "open");
+    });
+
     test("the handle opens it, minimize and close do what they say, each reported once", () => {
         fire("click", parts.handle);
         assert.equal(parts.el.getAttribute("data-state"), "open");

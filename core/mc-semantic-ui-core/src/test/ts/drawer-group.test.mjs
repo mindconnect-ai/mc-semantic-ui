@@ -8,11 +8,15 @@
 import { test, describe, before, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { El, installControls } from "./support/mini-dom.mjs";
 
-const DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../target/ts-dist");
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const DIST = path.resolve(HERE, "../../../target/ts-dist");
+const CASES = JSON.parse(readFileSync(path.resolve(HERE, "../resources/drawer/drawer-group-cases.json"), "utf8"));
 
+const icon = await import(`${DIST}/renderers/icon.js`);
 const drawerJs = await import(`${DIST}/renderers/drawer.js`);
 const { createDefaultRenderer } = await import(`${DIST}/renderer.js`);
 
@@ -26,6 +30,14 @@ const group = (extra = {}) => ({
 });
 
 describe("rendering", () => {
+    // DrawerGroupRenderTest renders the same cases through drawer-group.hbs.
+    for (const c of CASES) {
+        test(`as on the server: ${c.name}`, () => {
+            icon.setIconSpriteUrl("/sui/icons.svg");
+            assert.equal(createDefaultRenderer().render(c.node), c.html);
+        });
+    }
+
     test("the group stands at the edge with the strip's size, the drawers inside it", () => {
         const html = createDefaultRenderer().render(group({ resizable: true, arrange: "SHARE" }));
         assert.match(html, /^<div class="sui-drawer-group sui-drawer-group--bottom sui-drawer-group--container sui-drawer-group--overlay sui-drawer-group--share sui-drawer-group--resizable" id="dock" data-sui="drawer-group" style="--sui-drawer-size:60%;">/);

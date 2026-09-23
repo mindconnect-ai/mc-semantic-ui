@@ -14,9 +14,8 @@ import { cls } from "./util.js";
  * over its own, so the classes on it agree with where the group put it. The
  * wiring (open, minimize, close, the handle) is the drawer's own and works
  * unchanged; the group adds one thing, bringing a stacked drawer to the front
- * ({@code stackFront} in drawer.ts).
- *
- * <p>No server template yet: the server renders a group as a placeholder.
+ * ({@code stackFront} in drawer.ts). The server's drawer-group.hbs writes
+ * the same markup.
  */
 export function renderDrawerGroup(node: UiDrawerGroup, r: SuiRenderer): string {
     const id = escapeHtml(node.id);

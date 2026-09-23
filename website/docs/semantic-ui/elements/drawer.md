@@ -57,8 +57,12 @@ takes <kbd>Esc</kbd> first.
 
 **Several at once.** Any number may be open at once, at different edges.
 Minimized handles at the same edge of the same container line up side by
-side. A handle stays above the open panels. Two open drawers at the *same*
-edge lie over one another — unless they are in a group, below.
+side. A handle stays above the open panels. At one edge of one area, one
+drawer is open at a time: opening a second sends the first to its handle —
+it would otherwise lie under the new one with its handle hidden, and could
+neither be seen nor brought back. The server may still send two open at one
+edge; the rule applies when the user opens one. Two that should be open
+together belong in a group, below.
 
 ## Two at one edge: `drawer-group`
 
@@ -91,9 +95,8 @@ which is the strip's extent along the edge's axis; the drawers share the
 other axis. A drawer keeps its title, icon and badge, its content, `closable`
 and `onClose`, and its own state with the same rules as outside a group.
 
-For the browser today. The server-side template and the JavaFX painter are
-still to come: the server renders a group as a placeholder, the desktop
-client shows nothing for it.
+The browser and the server render a group alike. The JavaFX painter is
+still to come: the desktop client shows nothing for it yet.
 
 **Look.** The drawer uses the theme's tokens, so it follows dark mode as well.
 The handle is as tall as a button. It slides in and folds away softly, and
