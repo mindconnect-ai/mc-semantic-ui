@@ -490,6 +490,92 @@ describe("snapshot", () => {
         assert.deepEqual(node.children, [{ type: "text", id: "p1", text: "Ada" }]);
     });
 
+    test("a handler that answers with nothing costs its node's detail", () => {
+        // The commonest slip: an arrow body without a return.
+        const own = installDefaultHandlers(new SuiRenderer());
+        own.registerOutline("plug", (node) => { node.title; });
+        const said = [];
+        const warn = console.warn;
+        console.warn = (...a) => said.push(a[0]);
+        let node;
+        try {
+            node = buildSnapshot(
+                { type: "stack", id: "page", children: [{ type: "plug", id: "p1", title: "Still here" }] },
+                {}, { dom: { byId: () => null, values: () => ({}) }, busId: "b", outlineFor: (t) => own.outlineFor(t) },
+            ).node;
+        } finally {
+            console.warn = warn;
+        }
+        assert.equal(node.children[0].title, "Still here");
+        assert.match(said[0], /plug/);
+    });
+
+    test("a kind without its payload is not believed", () => {
+        const own = installDefaultHandlers(new SuiRenderer());
+        own.registerOutline("plug", () => ({ kind: "field" }));
+        const warn = console.warn;
+        console.warn = () => { };
+        let node;
+        try {
+            node = buildSnapshot(
+                { type: "stack", id: "page", children: [{ type: "plug", id: "p1" }] },
+                {}, { dom: { byId: () => null, values: () => ({}) }, busId: "b", outlineFor: (t) => own.outlineFor(t) },
+            ).node;
+        } finally {
+            console.warn = warn;
+        }
+        // Not a null in the fields, which nobody could read.
+        assert.equal(node.fields, undefined);
+        assert.deepEqual(node.children, [{ type: "plug", id: "p1" }]);
+    });
+
+    test("a submenu is a level, so depth bounds it — and so does a loop", () => {
+        const dom = { byId: () => null, values: () => ({}) };
+        const deep = { type: "menu-item", id: "i2", label: "deep" };
+        const top = { type: "menu-item", id: "i1", label: "top", children: [deep] };
+        const page = {
+            type: "stack", id: "page",
+            children: [{ type: "action-menu", id: "m", label: "Menu", items: [top] }],
+        };
+        const shallow = buildSnapshot(page, { depth: 1 }, env(dom));
+        assert.deepEqual(shallow.node.actions.map(a => a.id), ["m", "i1"]);
+        assert.equal(shallow.truncated, true);
+
+        // Two entries that list each other: the walk ends instead of the stack.
+        const a = { type: "menu-item", id: "a", label: "A", children: [] };
+        const b = { type: "menu-item", id: "b", label: "B", children: [a] };
+        a.children.push(b);
+        const loop = { type: "stack", id: "page", children: [{ type: "action-menu", id: "m2", label: "Loop", items: [a] }] };
+        const walked = buildSnapshot(loop, { depth: 3 }, env(dom));
+        assert.equal(walked.truncated, true);
+        assert.ok(JSON.stringify(walked).length < 1000);
+    });
+
+    test("a wordless node keeps its level when it carries the key to its rows", () => {
+        // Flattening a layout node moves its children up; a table's columns
+        // and its page are not children, and went missing with the level.
+        const dom = { byId: () => null, values: () => ({}) };
+        const table = {
+            type: "table",
+            columns: [{ type: "column", id: "c", label: "Customer" }],
+            rows: [{ type: "row", id: "r1", data: { c: "Ada" } }],
+            pagination: { page: 1, size: 20, total: 84 },
+        };
+        const { node } = buildSnapshot({ type: "stack", id: "page", children: [table] }, {}, env(dom));
+        assert.deepEqual(node.children[0].columns, [{ id: "c", label: "Customer" }]);
+        assert.deepEqual(node.children[0].pagination, { page: 1, size: 20, total: 84 });
+    });
+
+    test("a trailing that is not a node is not reported as an action", () => {
+        const dom = { byId: () => null, values: () => ({}) };
+        const form = {
+            type: "form", id: "f",
+            fields: [{ type: "field", id: "q", label: "Q", fieldType: "TEXT", trailing: "oops" }],
+        };
+        const { node } = buildSnapshot(form, {}, env(dom));
+        assert.equal(node.fields[0].action, undefined);
+    });
+
     test("a handler that throws costs its node's detail, not the snapshot", () => {
         const own = installDefaultHandlers(new SuiRenderer());
         own.registerOutline("bomb", () => { throw new Error("no"); });

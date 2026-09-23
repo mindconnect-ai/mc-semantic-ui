@@ -216,6 +216,8 @@ interface Ctx {
     dom: SnapshotDom;
     budget: Budget;
     mode: SnapshotMode;
+    /** What handlers are given; built once per pass, not per node. */
+    api: OutlineContext;
     /** How a node type describes itself; absent means the general rules. */
     outlineFor?: OutlineLookup;
     /**
@@ -290,7 +292,8 @@ export function buildSnapshot(
     const depth = options.depth ?? DEFAULT_DEPTH;
     const build = (limit: number): Snapshot => {
         const budget = new Budget(limit);
-        const ctx: Ctx = { dom, budget, mode, outlineFor, depthCut: false };
+        const ctx = { dom, budget, mode, outlineFor, depthCut: false } as Ctx;
+        ctx.api = contextFor(ctx);
         const node = mode === "full"
             ? fullNode(start, depth, ctx)
             : outlineEntry(start, depth, ctx).value;
@@ -402,9 +405,9 @@ export type OutlineResult = OutlineNodeSpec | OutlineFieldSpec | OutlineActionSp
 
 /** A described node, and which bucket it belongs in. */
 type Entry =
-    | { kind: "node"; value: SnapshotNode }
-    | { kind: "field"; value: SnapshotField }
-    | { kind: "action"; value: SnapshotAction; entries?: unknown[] };
+    | { kind: "node"; value: SnapshotNode; dropped?: boolean }
+    | { kind: "field"; value: SnapshotField; dropped?: boolean }
+    | { kind: "action"; value: SnapshotAction; entries?: unknown[]; dropped?: boolean };
 
 /** The context handed to every handler. */
 function contextFor(ctx: Ctx): OutlineContext {
@@ -427,12 +430,14 @@ function contextFor(ctx: Ctx): OutlineContext {
 function outlineEntry(node: Record<string, unknown>, depth: number, ctx: Ctx): Entry {
     const spec = describe(node, ctx);
     if (spec.kind === "field") {
-        ctx.budget.take(spec.field);
-        return { kind: "field", value: spec.field };
+        // What does not fit is not reported: the ceiling the caller named is
+        // a ceiling, and the walk stops here anyway.
+        const dropped = !ctx.budget.take(spec.field);
+        return { kind: "field", value: spec.field, dropped };
     }
     if (spec.kind === "action") {
-        ctx.budget.take(spec.action);
-        return { kind: "action", value: spec.action, entries: spec.entries };
+        const dropped = !ctx.budget.take(spec.action);
+        return { kind: "action", value: spec.action, entries: spec.entries, dropped };
     }
     const out: SnapshotNode = { type: String(node.type) };
     if (typeof node.id === "string" && node.id) out.id = node.id;
@@ -467,14 +472,35 @@ function outlineEntry(node: Record<string, unknown>, depth: number, ctx: Ctx): E
 function describe(node: Record<string, unknown>, ctx: Ctx): OutlineResult {
     const handler = ctx.outlineFor?.(String(node.type));
     if (!handler) return genericSpec(node);
+    let spec: unknown;
     try {
-        return handler(node, contextFor(ctx));
+        spec = handler(node, ctx.api);
     } catch (err) {
         // A handler that throws must not take the whole screen's description
         // with it: the node falls back to what anyone can say about it.
         console.warn(`Snapshot: the outline handler for "${node.type}" failed`, err);
         return genericSpec(node);
     }
+    if (!usableSpec(spec)) {
+        // The commonest slip is an arrow body with no return. One extension
+        // getting that wrong must cost its own node's detail, no more.
+        console.warn(`Snapshot: the outline handler for "${node.type}" answered with nothing usable`, spec);
+        return genericSpec(node);
+    }
+    return spec;
+}
+
+/** Whether a handler's answer can be believed: a spec, with the payload its kind promises. */
+function usableSpec(spec: unknown): spec is OutlineResult {
+    if (spec == null || typeof spec !== "object" || Array.isArray(spec)) return false;
+    const kind = (spec as { kind?: unknown }).kind;
+    if (kind === "field") return isPlainObject((spec as OutlineFieldSpec).field);
+    if (kind === "action") return isPlainObject((spec as OutlineActionSpec).action);
+    return kind === undefined || kind === "node";
+}
+
+function isPlainObject(value: unknown): boolean {
+    return value != null && typeof value === "object" && !Array.isArray(value);
 }
 
 /** Describes each child and puts it where its kind belongs. */
@@ -497,14 +523,19 @@ interface Buckets {
 
 /** One described child, in its bucket. */
 function place(entry: Entry, out: Buckets, depth: number, ctx: Ctx): void {
+    if (entry.dropped) { out.truncated = true; return; }
     if (entry.kind === "field") { (out.fields ??= []).push(entry.value); return; }
     if (entry.kind === "action") {
         (out.actions ??= []).push(entry.value);
         // A menu is a button and a list of entries: the entries are what can
-        // be pressed, so they stand beside it rather than under it.
+        // be pressed, so they stand beside it rather than under it. A submenu
+        // is one level further down and is counted as one — otherwise a menu
+        // nested in a menu would be listed whatever depth was asked for, and
+        // entries that name each other would never end.
         for (const item of entry.entries ?? []) {
             if (!isNode(item)) continue;
-            place(outlineEntry(item, depth - 1, ctx), out, depth, ctx);
+            if (depth <= 0) { out.truncated = true; ctx.depthCut = true; return; }
+            place(outlineEntry(item, depth - 1, ctx), out, depth - 1, ctx);
             if (ctx.budget.cut) return;
         }
         return;
@@ -512,7 +543,12 @@ function place(entry: Entry, out: Buckets, depth: number, ctx: Ctx): void {
     const sub = entry.value;
     // A node with neither an id nor words of its own is pure layout: its
     // children stand in for it, so the outline does not grow a level for it.
-    if (!sub.id && !sub.title && !sub.label && !sub.text && !sub.truncated) {
+    // Unless it carries something that only makes sense beside its rows —
+    // the columns they are keyed by, which page of a longer list this is, a
+    // state the browser owns: that would be dropped with the level.
+    const speaks = sub.id || sub.title || sub.label || sub.text
+        || sub.columns || sub.pagination || sub.state || sub.truncated;
+    if (!speaks) {
         for (const key of ["fields", "actions", "items", "children"] as const) {
             const values = sub[key];
             if (!values) continue;

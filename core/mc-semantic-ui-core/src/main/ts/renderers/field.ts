@@ -265,6 +265,10 @@ export const outlineField: OutlineHandler<UiField> = (f, ctx) => {
     if (ctx.secret(f)) field.omitted = true;
     else field.value = ctx.value(f.id, f.value);
     // The action on the control's row belongs to the field, not to the form.
-    if (f.trailing) field.action = describeAction(f.trailing, ctx);
+    // Only a real node: anything else would report an action with no id, and
+    // an id is the only handle there is for pressing one.
+    if (f.trailing && typeof (f.trailing as { type?: unknown }).type === "string") {
+        field.action = describeAction(f.trailing, ctx);
+    }
     return { kind: "field", field };
 };
