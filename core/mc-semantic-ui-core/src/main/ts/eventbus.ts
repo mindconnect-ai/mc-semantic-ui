@@ -1198,7 +1198,11 @@ export class SuiEventBus {
         try { wireMenuButtons(this.root); } catch { /* ignore */ }
         // Drawers: handle, minimize, close, Escape, resize — and the user's
         // changes reported to the server through onStateChange / onClose.
-        try { wireDrawers((drawer, state, closed) => this.drawerChanged(drawer, state, closed)); } catch { /* ignore */ }
+        try {
+            wireDrawers(
+                (drawer, state, closed) => this.drawerChanged(drawer, state, closed),
+                (group, drawer) => this.stackChanged(group, drawer));
+        } catch { /* ignore */ }
         // Live feeds marked .sui-autoscroll stick to their newest entry and
         // surface a jump-to-latest arrow when the user scrolls up.
         try { wireAutoScroll(this.root); } catch { /* ignore */ }
@@ -2011,6 +2015,17 @@ export class SuiEventBus {
         };
         fire("data-state-trigger");
         if (closedByUser) fire("data-close-trigger");
+    }
+
+    /**
+     * The user brought another drawer of a STACK group to the front: the
+     * group's onActiveChange fires with {id} filled in.
+     */
+    private stackChanged(group: HTMLElement, drawer: HTMLElement): void {
+        const trigger = this.parseTriggerAttr(group, "data-active-trigger");
+        if (!trigger) return;
+        if (trigger.url) trigger.url = trigger.url.split("{id}").join(encodeURIComponent(drawer.id));
+        void this.dispatch(trigger, group);
     }
 
     private parseTriggerAttr(el: HTMLElement, attr: string): UiTrigger | null {

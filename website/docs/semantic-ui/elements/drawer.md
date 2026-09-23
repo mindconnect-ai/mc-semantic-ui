@@ -57,7 +57,43 @@ takes <kbd>Esc</kbd> first.
 
 **Several at once.** Any number may be open at once, at different edges.
 Minimized handles at the same edge of the same container line up side by
-side. A handle stays above the open panels.
+side. A handle stays above the open panels. Two open drawers at the *same*
+edge lie over one another — unless they are in a group, below.
+
+## Two at one edge: `drawer-group`
+
+A `UiDrawerGroup` holds several drawers at one edge and says how they get on
+with each other — as configuration, not as a rule the renderer guesses:
+
+```java
+UiDrawerGroup.of("dock", chat, files)
+    .edge(UiDrawer.Edge.BOTTOM).scope(UiDrawer.Scope.CONTAINER)
+    .share()                                  // or .stack().active("chat")
+    .size("60%").minSize("120px").resizable();
+```
+
+- **`share()`** — the open drawers divide the edge between them: two at the
+  bottom stand side by side, each half the width, the full height of the
+  strip. Minimize one and the other takes its room; the strip's grip resizes
+  them together.
+- **`stack()`** — they lie on top of each other. The one in front
+  (`active`) shows its content; the others are their header bars, stacked
+  above it, and a click on a bar brings that drawer forward — a class swap,
+  nothing redrawn. Opening a drawer from its handle puts it in front; when
+  the front one is minimized the next open one takes its place. The group
+  reports a switch through `onActiveChange`, with `{id}` in the URL. Like a
+  drawer's `state`, a null `active` on a patch means "as it is": what the
+  user brought forward stays there.
+
+The group owns the **edge, the scope and the mode** — a drawer inside ignores
+its own, so there is one truth about where it stands — and the **size**,
+which is the strip's extent along the edge's axis; the drawers share the
+other axis. A drawer keeps its title, icon and badge, its content, `closable`
+and `onClose`, and its own state with the same rules as outside a group.
+
+For the browser today. The server-side template and the JavaFX painter are
+still to come: the server renders a group as a placeholder, the desktop
+client shows nothing for it.
 
 **Look.** The drawer uses the theme's tokens, so it follows dark mode as well.
 The handle is as tall as a button. It slides in and folds away softly, and
