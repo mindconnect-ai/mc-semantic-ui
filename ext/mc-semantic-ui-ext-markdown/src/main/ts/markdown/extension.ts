@@ -58,6 +58,12 @@ function loadMarked(): Promise<MarkedModule> {
 export async function install(renderer: SuiRenderer): Promise<void> {
     let marked: MarkedModule["marked"] | null = null;
 
+    // What the node says about itself when the screen is described: its text.
+    // Markdown is the text — without this a chat turn would report that
+    // something was said and not what, since the words sit in `content` and
+    // the general rules only know `text`, `title` and `label`.
+    renderer.registerOutline?.<UiMarkdownNode>("markdown", (node) => ({ text: node.content ?? "" }));
+
     renderer.register<UiMarkdownNode>("markdown", (node) => {
         const className = node.cssClass
             ? `sui-markdown ${escapeHtml(node.cssClass)}`

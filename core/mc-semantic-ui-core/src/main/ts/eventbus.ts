@@ -556,9 +556,13 @@ export class SuiEventBus {
             },
             values: (element) => harvestNamedControls(element),
         };
-        return buildSnapshot(
-            this.renderer.tree?.() ?? null, options, dom, this.myId,
-            (id) => this.renderer.nodeById?.(id) as Record<string, unknown> | undefined);
+        return buildSnapshot(this.renderer.tree?.() ?? null, options, {
+            dom,
+            busId: this.myId,
+            // Each node type describes itself; the renderer holds the register.
+            outlineFor: (type) => this.renderer.outlineFor?.(type),
+            resolveRoot: (id) => this.renderer.nodeById?.(id) as Record<string, unknown> | undefined,
+        });
     }
 
     /**

@@ -228,6 +228,12 @@ describe("the renderer's copy of the tree", () => {
 
 // ── What the snapshot says ──────────────────────────────────────────────────
 
+// Each node type describes itself, and the renderer is where those
+// descriptions are registered — so a snapshot outside the bus asks the same
+// register the bus does.
+const registry = installDefaultHandlers(new SuiRenderer());
+const env = (dom, busId = "b") => ({ dom, busId, outlineFor: (type) => registry.outlineFor(type) });
+
 /** A screen: the tree, plus a DOM stand-in that answers for its controls. */
 function screen(typed = {}, attrs = {}) {
     const tree = {
@@ -270,7 +276,7 @@ function screen(typed = {}, attrs = {}) {
 describe("snapshot", () => {
     test("the outline is what someone acting on the screen needs", () => {
         const { tree, dom } = screen({ q: "rechnung" });
-        const { node, busId } = buildSnapshot(tree, {}, dom, "sui-bus-1");
+        const { node, busId } = buildSnapshot(tree, {}, env(dom, "sui-bus-1"));
         assert.equal(busId, "sui-bus-1");
         assert.equal(node.id, "email-shell");
 
@@ -294,7 +300,7 @@ describe("snapshot", () => {
 
     test("a typed value is the value; a secret is left out", () => {
         const { tree, dom } = screen({ q: "rechnung" });
-        const { node } = buildSnapshot(tree, {}, dom, "b");
+        const { node } = buildSnapshot(tree, {}, env(dom));
         const fields = node.children[1].fields;
         assert.deepEqual(fields[0], { id: "q", label: "Search", type: "TEXT", value: "rechnung" });
         assert.deepEqual(fields[1], { id: "pw", label: "Password", type: "PASSWORD", omitted: true });
@@ -304,20 +310,20 @@ describe("snapshot", () => {
 
     test("a disabled button reports itself disabled, whatever the model said", () => {
         const { tree, dom } = screen({}, { search: { id: "search", disabled: "" } });
-        const { node } = buildSnapshot(tree, {}, dom, "b");
+        const { node } = buildSnapshot(tree, {}, env(dom));
         assert.equal(node.children[1].actions[0].enabled, false);
     });
 
     test("root takes one subtree", () => {
         const { tree, dom } = screen();
-        const { node } = buildSnapshot(tree, { root: "email-list" }, dom, "b");
+        const { node } = buildSnapshot(tree, { root: "email-list" }, env(dom));
         assert.equal(node.id, "email-list");
         assert.equal(node.items.length, 1);
     });
 
     test("an unknown root says so instead of guessing", () => {
         const { tree, dom } = screen();
-        const shot = buildSnapshot(tree, { root: "nope" }, dom, "b");
+        const shot = buildSnapshot(tree, { root: "nope" }, env(dom));
         assert.equal(shot.node, null);
         assert.equal(shot.reason, "unknown-root");
     });
@@ -334,7 +340,7 @@ describe("snapshot", () => {
             ],
         };
         const dom = { byId: () => null, values: () => ({}) };
-        const { node, truncated } = buildSnapshot(tree, { depth: 1 }, dom, "b");
+        const { node, truncated } = buildSnapshot(tree, { depth: 1 }, env(dom));
         assert.deepEqual(node.children.map(c => c.id), ["a", "b", "c"]);
         assert.equal(node.children[0].items, undefined);
         assert.equal(node.children[0].truncated, true);
@@ -356,7 +362,7 @@ describe("snapshot", () => {
         const tree = level(4, 0);
         const model = JSON.stringify(tree).length;
         const dom = { byId: () => null, values: () => ({}) };
-        const shot = buildSnapshot(tree, { mode: "full" }, dom, "b");
+        const shot = buildSnapshot(tree, { mode: "full" }, env(dom));
         assert.equal(shot.truncated, undefined, "a model of " + model + " chars fits in 20000");
         assert.ok(JSON.stringify(shot).length > model,
             `full snapshot was ${JSON.stringify(shot).length} chars for a ${model}-char model`);
@@ -364,7 +370,7 @@ describe("snapshot", () => {
 
     test("depth stops the walk and says where", () => {
         const { tree, dom } = screen();
-        const { node, truncated } = buildSnapshot(tree, { depth: 1 }, dom, "b");
+        const { node, truncated } = buildSnapshot(tree, { depth: 1 }, env(dom));
         assert.equal(node.children[0].id, "email-list");
         assert.equal(node.children[0].items, undefined);
         assert.equal(node.children[0].truncated, true);
@@ -373,7 +379,7 @@ describe("snapshot", () => {
 
     test("maxChars is kept, and the cut is visible", () => {
         const { tree, dom } = screen({ q: "rechnung" });
-        const shot = buildSnapshot(tree, { maxChars: 200 }, dom, "b");
+        const shot = buildSnapshot(tree, { maxChars: 200 }, env(dom));
         assert.equal(shot.truncated, true);
         assert.ok(JSON.stringify(shot).length <= 200,
             `snapshot was ${JSON.stringify(shot).length} chars`);
@@ -381,7 +387,7 @@ describe("snapshot", () => {
 
     test("full mode carries the model, secrets still withheld", () => {
         const { tree, dom } = screen({ q: "rechnung" });
-        const { node } = buildSnapshot(tree, { mode: "full", root: "search-form" }, dom, "b");
+        const { node } = buildSnapshot(tree, { mode: "full", root: "search-form" }, env(dom));
         assert.equal(node.type, "form");
         // Every model field is there — a trigger, a style, whatever the node had.
         assert.equal(node.actions[1].confirm, "Delete 3 messages?");
@@ -419,7 +425,7 @@ describe("snapshot", () => {
         const rows = { r1: ticked, r2: plain };
         const dom = { byId: (id) => rows[id] ?? null, values: () => ({}) };
 
-        const { node } = buildSnapshot(tree, {}, dom, "b");
+        const { node } = buildSnapshot(tree, {}, env(dom));
         assert.deepEqual(node.columns, [
             { id: "customer", label: "Customer" },
             { id: "total", label: "Total" },
@@ -435,7 +441,7 @@ describe("snapshot", () => {
 
     test("a ceiling smaller than the smallest answer says which", () => {
         const { tree, dom } = screen();
-        const shot = buildSnapshot(tree, { maxChars: 40 }, dom, "b");
+        const shot = buildSnapshot(tree, { maxChars: 40 }, env(dom));
         assert.equal(shot.node, null);
         assert.equal(shot.truncated, true);
         assert.equal(shot.reason, "too-small");
@@ -446,12 +452,151 @@ describe("snapshot", () => {
         const row = { type: "row", id: "r1", data: { total: "42.00" }, table };
         table.rows.push(row);   // the row knows its table, the table its rows
         const dom = { byId: () => null, values: () => ({}) };
-        const shot = buildSnapshot({ type: "stack", id: "page", children: [table] }, { root: "r1" }, dom, "b");
+        const shot = buildSnapshot({ type: "stack", id: "page", children: [table] }, { root: "r1" }, env(dom));
         assert.equal(shot.node.id, "r1");
     });
 
+    test("a type that describes itself is described its way", () => {
+        // What an extension does: register the painter, and beside it how the
+        // node says what it holds. This is the markdown case — the words sit
+        // in `content`, which no general rule could guess.
+        const own = installDefaultHandlers(new SuiRenderer());
+        own.registerOutline("markdown", (node) => ({ text: node.content ?? "" }));
+        const ownEnv = (dom) => ({ dom, busId: "b", outlineFor: (t) => own.outlineFor(t) });
+        const dom = { byId: () => null, values: () => ({}) };
+        const chat = {
+            type: "list", id: "messages", title: "Chat", items: [
+                { id: "m1", label: "You  [09:12]", content: { type: "markdown", id: "msg-m1", content: "Wie viele offene Rechnungen?" } },
+            ],
+        };
+        const { node } = buildSnapshot(chat, {}, ownEnv(dom));
+        assert.equal(node.items[0].children[0].text, "Wie viele offene Rechnungen?");
+
+        // Without the registration the node is still there, just wordless —
+        // which is what a page rendered before its extension is installed has.
+        const { node: plain } = buildSnapshot(chat, {}, env(dom));
+        assert.equal(plain.items[0].children[0].type, "markdown");
+        assert.equal(plain.items[0].children[0].text, undefined);
+    });
+
+    test("a type nobody has described still shows its words and its children", () => {
+        const dom = { byId: () => null, values: () => ({}) };
+        const tree = {
+            type: "org-chart", id: "chart", title: "Who reports to whom",
+            people: [{ type: "text", id: "p1", text: "Ada" }],
+        };
+        const { node } = buildSnapshot(tree, {}, env(dom));
+        assert.equal(node.title, "Who reports to whom");
+        assert.deepEqual(node.children, [{ type: "text", id: "p1", text: "Ada" }]);
+    });
+
+    test("a handler that answers with nothing costs its node's detail", () => {
+        // The commonest slip: an arrow body without a return.
+        const own = installDefaultHandlers(new SuiRenderer());
+        own.registerOutline("plug", (node) => { node.title; });
+        const said = [];
+        const warn = console.warn;
+        console.warn = (...a) => said.push(a[0]);
+        let node;
+        try {
+            node = buildSnapshot(
+                { type: "stack", id: "page", children: [{ type: "plug", id: "p1", title: "Still here" }] },
+                {}, { dom: { byId: () => null, values: () => ({}) }, busId: "b", outlineFor: (t) => own.outlineFor(t) },
+            ).node;
+        } finally {
+            console.warn = warn;
+        }
+        assert.equal(node.children[0].title, "Still here");
+        assert.match(said[0], /plug/);
+    });
+
+    test("a kind without its payload is not believed", () => {
+        const own = installDefaultHandlers(new SuiRenderer());
+        own.registerOutline("plug", () => ({ kind: "field" }));
+        const warn = console.warn;
+        console.warn = () => { };
+        let node;
+        try {
+            node = buildSnapshot(
+                { type: "stack", id: "page", children: [{ type: "plug", id: "p1" }] },
+                {}, { dom: { byId: () => null, values: () => ({}) }, busId: "b", outlineFor: (t) => own.outlineFor(t) },
+            ).node;
+        } finally {
+            console.warn = warn;
+        }
+        // Not a null in the fields, which nobody could read.
+        assert.equal(node.fields, undefined);
+        assert.deepEqual(node.children, [{ type: "plug", id: "p1" }]);
+    });
+
+    test("a submenu is a level, so depth bounds it — and so does a loop", () => {
+        const dom = { byId: () => null, values: () => ({}) };
+        const deep = { type: "menu-item", id: "i2", label: "deep" };
+        const top = { type: "menu-item", id: "i1", label: "top", children: [deep] };
+        const page = {
+            type: "stack", id: "page",
+            children: [{ type: "action-menu", id: "m", label: "Menu", items: [top] }],
+        };
+        const shallow = buildSnapshot(page, { depth: 1 }, env(dom));
+        assert.deepEqual(shallow.node.actions.map(a => a.id), ["m", "i1"]);
+        assert.equal(shallow.truncated, true);
+
+        // Two entries that list each other: the walk ends instead of the stack.
+        const a = { type: "menu-item", id: "a", label: "A", children: [] };
+        const b = { type: "menu-item", id: "b", label: "B", children: [a] };
+        a.children.push(b);
+        const loop = { type: "stack", id: "page", children: [{ type: "action-menu", id: "m2", label: "Loop", items: [a] }] };
+        const walked = buildSnapshot(loop, { depth: 3 }, env(dom));
+        assert.equal(walked.truncated, true);
+        assert.ok(JSON.stringify(walked).length < 1000);
+    });
+
+    test("a wordless node keeps its level when it carries the key to its rows", () => {
+        // Flattening a layout node moves its children up; a table's columns
+        // and its page are not children, and went missing with the level.
+        const dom = { byId: () => null, values: () => ({}) };
+        const table = {
+            type: "table",
+            columns: [{ type: "column", id: "c", label: "Customer" }],
+            rows: [{ type: "row", id: "r1", data: { c: "Ada" } }],
+            pagination: { page: 1, size: 20, total: 84 },
+        };
+        const { node } = buildSnapshot({ type: "stack", id: "page", children: [table] }, {}, env(dom));
+        assert.deepEqual(node.children[0].columns, [{ id: "c", label: "Customer" }]);
+        assert.deepEqual(node.children[0].pagination, { page: 1, size: 20, total: 84 });
+    });
+
+    test("a trailing that is not a node is not reported as an action", () => {
+        const dom = { byId: () => null, values: () => ({}) };
+        const form = {
+            type: "form", id: "f",
+            fields: [{ type: "field", id: "q", label: "Q", fieldType: "TEXT", trailing: "oops" }],
+        };
+        const { node } = buildSnapshot(form, {}, env(dom));
+        assert.equal(node.fields[0].action, undefined);
+    });
+
+    test("a handler that throws costs its node's detail, not the snapshot", () => {
+        const own = installDefaultHandlers(new SuiRenderer());
+        own.registerOutline("bomb", () => { throw new Error("no"); });
+        const said = [];
+        const warn = console.warn;
+        console.warn = (...a) => said.push(a[0]);
+        let node;
+        try {
+            node = buildSnapshot(
+                { type: "stack", id: "page", children: [{ type: "bomb", id: "b1", title: "Still here" }] },
+                {}, { dom: { byId: () => null, values: () => ({}) }, busId: "b", outlineFor: (t) => own.outlineFor(t) },
+            ).node;
+        } finally {
+            console.warn = warn;
+        }
+        assert.equal(node.children[0].title, "Still here");
+        assert.match(said[0], /bomb/);
+    });
+
     test("nothing rendered yet is a reason, not a crash", () => {
-        const shot = buildSnapshot(null, {}, { byId: () => null, values: () => ({}) }, "b");
+        const shot = buildSnapshot(null, {}, env({ byId: () => null, values: () => ({}) }));
         assert.equal(shot.node, null);
         assert.equal(shot.reason, "no-tree");
     });

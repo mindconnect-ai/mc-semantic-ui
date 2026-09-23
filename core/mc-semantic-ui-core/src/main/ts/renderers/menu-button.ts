@@ -1,4 +1,6 @@
 import type { UiActionMenu, UiMenuButton, UiMenuItem } from "../model.js";
+import type { OutlineHandler } from "../snapshot.js";
+import { describeAction } from "./action.js";
 import { escapeHtml, encodeTrigger, type SuiRenderer } from "../renderer.js";
 import { renderIcon } from "./icon.js";
 import { cls, evt } from "./util.js";
@@ -378,3 +380,34 @@ function positionPopover(trigger: HTMLElement, pop: HTMLElement, alignStart: boo
     pop.style.top = `${Math.round(top)}px`;
     pop.style.visibility = "";
 }
+
+/**
+ * A menu is a button and a list of entries. It describes itself as the
+ * button; its entries are pressable in their own right, so they are handed
+ * back as entries and stand beside it in the snapshot rather than under it.
+ */
+export const outlineActionMenu: OutlineHandler<UiActionMenu> = (node, ctx) => ({
+    kind: "action",
+    action: describeAction(node, ctx),
+    entries: node.items ?? [],
+});
+
+/** The same for a standalone menu button. */
+export const outlineMenuButton: OutlineHandler<UiMenuButton> = (node, ctx) => ({
+    kind: "action",
+    action: describeAction({ id: node.id, label: node.label ?? node.title ?? "", icon: node.icon }, ctx),
+    entries: node.items ?? [],
+});
+
+/**
+ * One entry. A heading or a divider is not pressable and carries no id worth
+ * reporting; a group is a button with its children beside it, like the menu
+ * itself.
+ */
+export const outlineMenuItem: OutlineHandler<UiMenuItem> = (node, ctx) => {
+    if (node.heading) return { label: node.label };
+    if (node.divider) return {};
+    const action = describeAction(node, ctx);
+    if (node.badge) action.label = `${action.label ?? ""} (${node.badge})`;
+    return { kind: "action", action, entries: node.children ?? [] };
+};
