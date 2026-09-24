@@ -1280,7 +1280,17 @@ a.sui-tree-label:hover { text-decoration: underline; }
         font-weight: 600; color: var(--sui-color-text-muted);
         text-align: left; white-space: nowrap;
     }
-    .sui-table--stack .sui-table-row-actions { justify-content: flex-end; }
+    /* A card is narrow and a row may carry several buttons: they wrap,
+       right-aligned, rather than stay on one line and run out of the card
+       on the left. A gap, not each button's left margin, so a wrapped line
+       starts at the edge. */
+    .sui-table--stack .sui-table-row-actions {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
+        white-space: normal;
+    }
+    .sui-table--stack .sui-table-row-actions > * + * { margin-left: 0; }
 }
 
 /* ── Standalone renderings of structural sub-nodes ──────────────────────────
