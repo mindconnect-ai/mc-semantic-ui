@@ -2,7 +2,7 @@ import type { UiAction, UiNode, UiTable, UiTrigger } from "../model.js";
 import type { OutlineHandler, OutlineItemSpec, SnapshotColumn } from "../snapshot.js";
 import { escapeHtml, encodeTrigger, type SuiRenderer } from "../renderer.js";
 import { cls, evt } from "./util.js";
-import { renderActions, renderPagination } from "./shared.js";
+import { renderActions, renderPagination, overflowAttr } from "./shared.js";
 import { renderIcon } from "./icon.js";
 
 export function renderTable(node: UiTable, r: SuiRenderer): string {
@@ -85,7 +85,8 @@ export function renderTable(node: UiTable, r: SuiRenderer): string {
     // header-level actions. Gating it on the title alone would silently
     // swallow the actions of a title-less table, so any one is enough to
     // render the bar.
-    const actionsHtml = renderActions(node.actions || [], r);
+    const actions = renderActions(node.actions || [], r);
+    const actionsHtml = actions ? `<div class="sui-actions"${overflowAttr(node)}>${actions}</div>` : "";
     const headerExtraHtml = node.headerExtra
         ? `<div class="sui-header-extra">${r.render(node.headerExtra)}</div>`
         : "";

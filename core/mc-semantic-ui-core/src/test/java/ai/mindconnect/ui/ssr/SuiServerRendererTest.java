@@ -1,5 +1,6 @@
 package ai.mindconnect.ui.ssr;
 
+import ai.mindconnect.ui.model.Overflow;
 import ai.mindconnect.ui.model.UiAction;
 import ai.mindconnect.ui.model.UiAppShell;
 import ai.mindconnect.ui.model.UiIFrame;
@@ -557,6 +558,32 @@ class SuiServerRendererTest {
         String plain = renderer.render(UiTable.of("t2", "X")
                 .column(UiTable.Column.text("a", "A")).row(java.util.Map.of("id", "x", "a", "1")));
         assertFalse(plain.contains("sui-table--stack"), plain);
+    }
+
+    @Test
+    void actionsOverflowMenuMarksTheButtonBar() {
+        var mark = "data-sui-overflow=\"menu\" data-sui-overflow-items=\":not(.sui-link)\"";
+        var back = UiAction.secondary("back", "Back").onClick(UiTrigger.go("/"));
+
+        String list = renderer.render(UiList.of("l", "Inbox").action(back).actionsOverflow(Overflow.MENU));
+        assertTrue(list.contains("<div class=\"sui-actions\" " + mark + ">"), list);
+
+        String table = renderer.render(UiTable.of("t", "Orders").action(back).actionsOverflow(Overflow.MENU));
+        assertTrue(table.contains("<div class=\"sui-actions\" " + mark + ">"), table);
+        // The bar is only there when there are buttons to hold.
+        String bare = renderer.render(UiTable.of("t2", "Orders"));
+        assertFalse(bare.contains("sui-actions"), bare);
+
+        String form = renderer.render(UiForm.of("f", "Edit").action(UiAction.primary("save", "Save").dispatch("POST", "/x")).actionsOverflow(Overflow.MENU));
+        assertTrue(form.contains("<div class=\"sui-form-footer\" " + mark + ">"), form);
+
+        String detail = renderer.render(UiDetail.of("d", "Order").action(back).actionsOverflow(Overflow.MENU));
+        assertTrue(detail.contains("<div class=\"sui-form-footer\" " + mark + ">"), detail);
+
+        // Default (WRAP) marks nothing, and the table's buttons still get their wrapper.
+        String wrap = renderer.render(UiTable.of("t3", "Orders").action(back));
+        assertFalse(wrap.contains("data-sui-overflow"), wrap);
+        assertTrue(wrap.contains("<div class=\"sui-actions\">"), wrap);
     }
 
     @Test

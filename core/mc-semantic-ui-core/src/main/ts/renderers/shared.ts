@@ -12,6 +12,17 @@ export function renderActions(actions: UiAnyAction[], r: SuiRenderer): string {
     return actions.map(a => r.render(a)).join("");
 }
 
+/**
+ * The mark that hands a button bar to the shared overflow behaviour
+ * (renderers/overflow.ts): with {@code actionsOverflow: "MENU"} the bar stays
+ * one row and the buttons that do not fit go into a "⋯" menu. A footer holds
+ * links beside its buttons; those stay where they are, so the entries that
+ * may move are named. Nothing for WRAP, the CSS default.
+ */
+export function overflowAttr(node: { actionsOverflow?: "WRAP" | "MENU" }): string {
+    return node.actionsOverflow === "MENU" ? ` data-sui-overflow="menu" data-sui-overflow-items=":not(.sui-link)"` : "";
+}
+
 export function renderLinks(links: UiLink[]): string {
     return links.map(l => renderLink(l)).join("");
 }

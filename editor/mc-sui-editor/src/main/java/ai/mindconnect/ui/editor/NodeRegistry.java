@@ -224,7 +224,8 @@ public final class NodeRegistry {
                         PropertyMeta.required("id", PropertyKind.STRING),
                         PropertyMeta.of("title", PropertyKind.STRING),
                         PropertyMeta.of("cssClass", PropertyKind.STRING),
-                        PropertyMeta.of("reloadOnSubmit", PropertyKind.BOOLEAN)
+                        PropertyMeta.of("reloadOnSubmit", PropertyKind.BOOLEAN),
+                        PropertyMeta.enumOf("actionsOverflow", List.of("WRAP", "MENU"))
                 ),
                 List.of(
                         ChildrenMeta.of("fields",  "field"),
@@ -284,7 +285,8 @@ public final class NodeRegistry {
                 List.of(
                         PropertyMeta.required("id", PropertyKind.STRING),
                         PropertyMeta.of("title", PropertyKind.STRING),
-                        PropertyMeta.of("cssClass", PropertyKind.STRING)
+                        PropertyMeta.of("cssClass", PropertyKind.STRING),
+                        PropertyMeta.enumOf("actionsOverflow", List.of("WRAP", "MENU"))
                 ),
                 List.of(
                         ChildrenMeta.of("fields",  "field"),
@@ -299,7 +301,8 @@ public final class NodeRegistry {
                 List.of(
                         PropertyMeta.required("id", PropertyKind.STRING),
                         PropertyMeta.of("title", PropertyKind.STRING),
-                        PropertyMeta.of("cssClass", PropertyKind.STRING)
+                        PropertyMeta.of("cssClass", PropertyKind.STRING),
+                        PropertyMeta.enumOf("actionsOverflow", List.of("WRAP", "MENU"))
                 ),
                 List.of(
                         ChildrenMeta.of("actions", "action")
@@ -320,7 +323,8 @@ public final class NodeRegistry {
                         PropertyMeta.of("selectedRowId", PropertyKind.STRING),
                         PropertyMeta.of("stackOnMobile", PropertyKind.BOOLEAN),
                         PropertyMeta.enumOf("selectMode",
-                                List.of("NONE", "SINGLE", "MULTI"))
+                                List.of("NONE", "SINGLE", "MULTI")),
+                        PropertyMeta.enumOf("actionsOverflow", List.of("WRAP", "MENU"))
                 ),
                 List.of(
                         // columns + rows are first-class UiNodes (UiColumn /

@@ -517,6 +517,12 @@ export interface UiForm extends UiNodeBase {
     icon?: string;
     fields: UiField[];
     actions?: UiAnyAction[];
+    /**
+     * What the button bar does when its buttons do not fit one row: `WRAP`
+     * (default) onto another line, or `MENU` — one row, the rest in a
+     * trailing "⋯" dropdown (the shared overflow behaviour).
+     */
+    actionsOverflow?: "WRAP" | "MENU";
     links?: UiLink[];
     /**
      * Optional rich body rendered inside the `<form>` after {@link fields}.
@@ -548,6 +554,12 @@ export interface UiDetail extends UiNodeBase {
     icon?: string;
     fields: UiField[];
     actions?: UiAnyAction[];
+    /**
+     * What the button bar does when its buttons do not fit one row: `WRAP`
+     * (default) onto another line, or `MENU` — one row, the rest in a
+     * trailing "⋯" dropdown (the shared overflow behaviour).
+     */
+    actionsOverflow?: "WRAP" | "MENU";
     links?: UiLink[];
 }
 
@@ -557,6 +569,12 @@ export interface UiTable extends UiNodeBase {
     rows: UiTableRow[];
     pagination?: Pagination;
     actions?: UiAnyAction[];
+    /**
+     * What the button bar does when its buttons do not fit one row: `WRAP`
+     * (default) onto another line, or `MENU` — one row, the rest in a
+     * trailing "⋯" dropdown (the shared overflow behaviour).
+     */
+    actionsOverflow?: "WRAP" | "MENU";
     rowActions?: UiAction[];
     /** Optional node rendered in the header row between title and actions. */
     headerExtra?: UiNode;
@@ -626,6 +644,12 @@ export interface UiList extends UiNodeBase {
     items: UiListItem[];
     pagination?: Pagination;
     actions?: UiAnyAction[];
+    /**
+     * What the button bar does when its buttons do not fit one row: `WRAP`
+     * (default) onto another line, or `MENU` — one row, the rest in a
+     * trailing "⋯" dropdown (the shared overflow behaviour).
+     */
+    actionsOverflow?: "WRAP" | "MENU";
     /** Optional node rendered in the header row between title and actions. */
     headerExtra?: UiNode;
     /** Leading icon token rendered in the header before the title. */

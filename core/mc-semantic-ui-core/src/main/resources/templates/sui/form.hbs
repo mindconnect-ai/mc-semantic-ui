@@ -22,7 +22,7 @@
   {{#if formError}}<div class="sui-form-error" role="alert">{{formError}}</div>{{/if}}
   {{#each fields}}{{> field this}}{{/each}}
   {{#each content}}{{{render this}}}{{/each}}
-  <div class="sui-form-footer">
+  <div class="sui-form-footer"{{#if (eq actionsOverflow "MENU")}} data-sui-overflow="menu" data-sui-overflow-items=":not(.sui-link)"{{/if}}>
     {{#each actions}}{{{formAction this}}}{{/each}}
     {{#each links}}{{> link this}}{{/each}}
   </div>
@@ -36,7 +36,7 @@
   {{#if formError}}<div class="sui-form-error" role="alert">{{formError}}</div>{{/if}}
   {{#each fields}}{{> field this}}{{/each}}
   {{#each content}}{{{render this}}}{{/each}}
-  <div class="sui-form-footer">
+  <div class="sui-form-footer"{{#if (eq actionsOverflow "MENU")}} data-sui-overflow="menu" data-sui-overflow-items=":not(.sui-link)"{{/if}}>
     {{#each actions}}{{{formAction this}}}{{/each}}
     {{#each links}}{{> link this}}{{/each}}
   </div>

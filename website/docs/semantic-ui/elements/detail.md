@@ -36,6 +36,7 @@ before it fires.*
 | `title` | `String` | Rendered as the `<h2>` above the rows. Omitted entirely when absent. |
 | `fields` | `List<UiField>` | The rows. Rendered read-only as `<dt>`/`<dd>` pairs — only `label` and `value` are used. Defaults to an empty list. |
 | `actions` | `List<UiAction>` | Buttons in the footer (Edit, Delete, …). Defaults to an empty list. |
+| `actionsOverflow` | `WRAP` · `MENU` | What the button bar does when its buttons do not fit one row. `WRAP` (default) takes another line; `MENU` keeps one row and folds the buttons that do not fit, from the end, into a trailing "⋯" menu — see [responsive](../responsive.md#button-bars-wrap-or-a--more-menu). |
 | `links` | `List<UiLink>` | Plain navigation links in the same footer row, after the actions. Defaults to an empty list. |
 | `cssClass` | `String` | Extra CSS class added next to `sui-detail`. |
 

@@ -3,7 +3,7 @@ import { escapeHtml, type SuiRenderer } from "../renderer.js";
 import { cls, evt } from "./util.js";
 import { renderField } from "./field.js";
 import { renderIcon } from "./icon.js";
-import { renderActions, renderLinks } from "./shared.js";
+import { renderActions, renderLinks, overflowAttr } from "./shared.js";
 
 export function renderForm(node: UiForm, r: SuiRenderer): string {
     // Through the dispatcher, like every other child, so each field's model is
@@ -41,7 +41,7 @@ export function renderForm(node: UiForm, r: SuiRenderer): string {
         ${node.formError ? `<div class="sui-form-error" role="alert">${escapeHtml(node.formError)}</div>` : ""}
         ${fields}
         ${content}
-        <div class="sui-form-footer">
+        <div class="sui-form-footer"${overflowAttr(node)}>
             ${renderActions(node.actions || [], r)}
             ${renderLinks(node.links || [])}
         </div>

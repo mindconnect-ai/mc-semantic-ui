@@ -283,7 +283,14 @@ UiTree.of("tree-ctx", "Files — each row has its own ⋮ menu")
 function dataTab() {
     const list = {
         type: "list", id: "demo-list", title: "Activity",
-        actions: [{ type: "action", id: "list-refresh", label: "Refresh", style: "SECONDARY", onClick: api("POST", "/activity/refresh") }],
+        // Three buttons and a MENU overflow: narrow the window and the ones
+        // that do not fit fold into a "⋯" menu, last first.
+        actions: [
+            { type: "action", id: "list-refresh", label: "Refresh", style: "SECONDARY", onClick: api("POST", "/activity/refresh") },
+            { type: "action", id: "list-mark", label: "Mark all as read", style: "SECONDARY", onClick: api("POST", "/activity/read") },
+            { type: "action", id: "list-export", label: "Export", style: "SECONDARY", icon: "download", onClick: api("POST", "/activity/export") },
+        ],
+        actionsOverflow: "MENU",
         items: [
             { id: "l1", label: "Deployment finished",   description: "web-frontend · 2m ago",        onClick: go("/activity/l1") },
             { id: "l2", label: "New comment on PR #42",  description: "workflow-controller · 14m ago", onClick: go("/activity/l2") },
@@ -295,6 +302,9 @@ function dataTab() {
     const listJava =
 `UiList.of("demo-list", "Activity")
     .action(UiAction.secondary("list-refresh", "Refresh").onClick(UiTrigger.api("POST", "/activity/refresh")))
+    .action(UiAction.secondary("list-mark", "Mark all as read").onClick(UiTrigger.api("POST", "/activity/read")))
+    .action(UiAction.secondary("list-export", "Export").icon("download").onClick(UiTrigger.api("POST", "/activity/export")))
+    .actionsOverflow(Overflow.MENU)
     .item(UiList.Item.of("l1", "Deployment finished").description("web-frontend · 2m ago").onClick(UiTrigger.go("/activity/l1")))
     .item(UiList.Item.of("l2", "New comment on PR #42").description("workflow-controller · 14m ago").onClick(UiTrigger.go("/activity/l2")))
     .item(UiList.Item.of("l3", "Nightly build")

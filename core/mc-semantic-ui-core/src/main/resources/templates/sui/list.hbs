@@ -8,7 +8,7 @@
   <div class="sui-list-header">
     {{#if title}}<h2>{{#if icon}}{{{icon icon}}}{{/if}}{{title}}</h2>{{/if}}
     {{#if headerExtra}}<div class="sui-header-extra">{{{render headerExtra}}}</div>{{/if}}
-    <div class="sui-actions">{{#each actions}}{{> action this}}{{/each}}</div>
+    <div class="sui-actions"{{#if (eq actionsOverflow "MENU")}} data-sui-overflow="menu" data-sui-overflow-items=":not(.sui-link)"{{/if}}>{{#each actions}}{{> action this}}{{/each}}</div>
   </div>
   <ul>{{#each items}}{{> item this}}{{/each}}</ul>
   {{#if pagination}}{{> pagination pagination}}{{/if}}

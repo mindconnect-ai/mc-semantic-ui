@@ -2,7 +2,7 @@ import type { UiDetail } from "../model.js";
 import { escapeHtml, type SuiRenderer } from "../renderer.js";
 import { cls, evt } from "./util.js";
 import { renderIcon } from "./icon.js";
-import { renderActions, renderLinks } from "./shared.js";
+import { renderActions, renderLinks, overflowAttr } from "./shared.js";
 
 export function renderDetail(node: UiDetail, r: SuiRenderer): string {
     // HIDDEN fields carry a value, not something to read — no row for them.
@@ -15,7 +15,7 @@ export function renderDetail(node: UiDetail, r: SuiRenderer): string {
     return `<div class="${cls("sui-detail", node)}"${evt(node)} id="${escapeHtml(node.id)}">
         ${node.title ? `<h2>${node.icon ? renderIcon(node.icon) : ""}${escapeHtml(node.title)}</h2>` : ""}
         <dl class="sui-detail-grid">${fields}</dl>
-        <div class="sui-form-footer">
+        <div class="sui-form-footer"${overflowAttr(node)}>
             ${renderActions(node.actions || [], r)}
             ${renderLinks(node.links || [])}
         </div>

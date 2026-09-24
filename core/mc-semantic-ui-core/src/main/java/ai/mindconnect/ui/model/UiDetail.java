@@ -14,11 +14,15 @@ public class UiDetail extends UiNode {
     /** Icon token shown before the title, as on a table or a list. */
     private String icon;
     private List<UiAction> actions = new ArrayList<>();
+    /** What the footer does when its buttons do not fit one row. Defaults to {@link Overflow#WRAP}. */
+    private Overflow       actionsOverflow;
     private List<UiLink>   links   = new ArrayList<>();
 
     public UiDetail field(UiField field)    { fields.add(field);   return this; }
     public UiDetail icon(String iconToken)  { this.icon = iconToken; return this; }
     public UiDetail action(UiAction action) { actions.add(action); return this; }
+    /** The buttons that do not fit the footer's row go into a "⋯" menu ({@link Overflow#MENU}) or wrap. */
+    public UiDetail actionsOverflow(Overflow overflow) { this.actionsOverflow = overflow; return this; }
     public UiDetail link(UiLink link)       { links.add(link);     return this; }
 
     public static UiDetail of(String id, String title) {

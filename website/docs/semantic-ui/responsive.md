@@ -76,6 +76,30 @@ const bus = new SuiEventBus(renderer, root);
 renderer.mount(page);   // tab overflow is handled automatically
 ```
 
+## Button bars → wrap or a "⋯ More" menu
+
+The button bar of a list's or table's header and the footer of a form or a
+detail wrap the same way by default. A button's label is always one line, so
+a bar that runs out of room wraps whole buttons — it never breaks "Back to the
+list" over three lines inside one. For a bar that stays one row and folds the
+buttons that do not fit into the same **⋯** dropdown the tabs use, set
+`actionsOverflow(Overflow.MENU)`:
+
+```java
+UiList.of("mail", "Inbox")
+    .action(UiAction.secondary("back", "Back to the list"))
+    .action(UiAction.secondary("assistant", "Assistant").icon("sparkles"))
+    .action(UiAction.primary("write", "Write").icon("plus"))
+    .actionsOverflow(Overflow.MENU);
+```
+
+The buttons fold from the end, so put the one that must stay visible first.
+In a header the bar shares the row with the title while it fits; on a phone
+it takes a row of its own under the title, measured against the full width,
+and a search box in the header (`headerExtra`) keeps its own row below. A
+footer's links stay where they are; only its buttons and menus fold. Without
+JS the bar wraps, as before.
+
 ## Navigation menu
 
 The sidebar `UiMenu` has its own responsive story — a `RESPONSIVE` mode that is

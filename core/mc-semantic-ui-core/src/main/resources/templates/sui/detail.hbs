@@ -12,7 +12,7 @@
     </div>
     {{/unless}}{{/each}}
   </dl>
-  <div class="sui-form-footer">
+  <div class="sui-form-footer"{{#if (eq actionsOverflow "MENU")}} data-sui-overflow="menu" data-sui-overflow-items=":not(.sui-link)"{{/if}}>
     {{#each actions}}{{> action this}}{{/each}}
     {{#each links}}{{> link this}}{{/each}}
   </div>

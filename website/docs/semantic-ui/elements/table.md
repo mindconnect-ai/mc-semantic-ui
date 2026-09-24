@@ -39,6 +39,7 @@ pagination trigger.*
 | `columns` | `List<UiColumn>` | Column definitions, left to right. See [`column`](./column.md). |
 | `rows` | `List<UiRow>` | The data rows. Empty renders a single "No rows." cell. See [`row`](./row.md). |
 | `actions` | `List<UiAction>` | Table-level buttons in the header bar (New, Export, …). The bar renders when there is a title **or** at least one action. |
+| `actionsOverflow` | `WRAP` · `MENU` | What the button bar does when its buttons do not fit one row. `WRAP` (default) takes another line; `MENU` keeps one row and folds the buttons that do not fit, from the end, into a trailing "⋯" menu — see [responsive](../responsive.md#button-bars-wrap-or-a--more-menu). |
 | `rowActions` | `List<UiAction>` | One shared action template rendered into a trailing cell of *every* row. `{id}` in the trigger `url` is replaced with the row's id. |
 | `selectMode` | `NONE` · `SINGLE` · `MULTI` | Row-selection controls. Defaults to `NONE`. |
 | `selectedRowIds` | `List<String>` | Row ids whose radio/checkbox renders pre-checked. |

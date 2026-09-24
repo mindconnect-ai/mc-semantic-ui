@@ -21,6 +21,18 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **`actionsOverflow` on `UiList`, `UiTable`, `UiForm` and `UiDetail`.** The
+  button bar of a list's or table's header and the footer of a form or a
+  detail can now do what a tab bar and a header's extras already could: with
+  `actionsOverflow(Overflow.MENU)` it stays one row and the buttons that do
+  not fit fold, from the end, into a trailing "⋯" menu (the shared overflow
+  behaviour; without JS the bar wraps). A table's header actions now sit in
+  a `.sui-actions` wrapper like a list's, and a button's label is one line
+  (`white-space: nowrap`) — a squeezed bar wraps whole buttons or folds them,
+  it no longer breaks a label over three lines inside a button.
+
 ### Changed
 
 - **A list's rows are nodes.** `UiList.Item` is now a `UiNode` of type
