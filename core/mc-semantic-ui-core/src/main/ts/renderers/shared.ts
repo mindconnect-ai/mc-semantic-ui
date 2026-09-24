@@ -1,13 +1,15 @@
 import type { UiAnyAction, UiLink, UiListItem, UiTrigger, Pagination } from "../model.js";
 import { escapeHtml, encodeTrigger, type SuiRenderer } from "../renderer.js";
-import { renderAction } from "./action.js";
-import { renderActionMenu } from "./menu-button.js";
 import { renderIcon } from "./icon.js";
 import { renderLink } from "./link.js";
 
-/** A button bar: buttons, and menus of buttons ({@link renderActionMenu}), in the order given. */
-export function renderActions(actions: UiAnyAction[]): string {
-    return actions.map(a => a.type === "action-menu" ? renderActionMenu(a) : renderAction(a)).join("");
+/**
+ * A button bar: buttons, and menus of buttons, in the order given. Each goes
+ * through the renderer, so an application's own "action" handler draws them
+ * too, and a MERGE on one of them finds its model.
+ */
+export function renderActions(actions: UiAnyAction[], r: SuiRenderer): string {
+    return actions.map(a => r.render(a)).join("");
 }
 
 export function renderLinks(links: UiLink[]): string {
@@ -62,15 +64,20 @@ export function defaultRenderItem(item: UiListItem, r: SuiRenderer): string {
             : "";
 
     const mainContent = `${label}${body}`;
-    const summaryInner = item.collapseSummaryId
-        ? `<span id="${escapeHtml(item.collapseSummaryId)}">${escapeHtml(item.collapseSummary)}</span>`
-        : escapeHtml(item.collapseSummary);
+    // The summary is a node when it is anything more than words — which the
+    // renderer's adopt() makes it whenever it carries an id, so the id form
+    // below is only reached by a list handler that draws rows on its own.
+    const summaryInner = item.collapseSummaryNode
+        ? r.render(item.collapseSummaryNode)
+        : item.collapseSummaryId
+            ? `<span class="sui-text" id="${escapeHtml(item.collapseSummaryId)}">${escapeHtml(item.collapseSummary)}</span>`
+            : escapeHtml(item.collapseSummary);
     // Client-controlled collapse: render collapsed and tag the element so the
     // morpher won't clobber the user's manual open/close on later patches.
     const detailsAttrs = item.collapseClientControlled
         ? " data-sui-client-collapse"
         : (item.collapseOpen ? " open" : "");
-    const wrappedContent = item.collapseSummary
+    const wrappedContent = item.collapseSummary || item.collapseSummaryNode
         ? `<details class="sui-activity"${detailsAttrs}>
             <summary class="sui-activity-summary">${summaryInner}</summary>
             <div class="sui-activity-body">${mainContent}</div>
@@ -79,6 +86,6 @@ export function defaultRenderItem(item: UiListItem, r: SuiRenderer): string {
 
     return `<li class="sui-list-item" id="${escapeHtml(item.id)}" data-id="${escapeHtml(item.id)}">
         <div class="sui-list-item-main">${wrappedContent}</div>
-        <div class="sui-list-item-actions">${renderActions(item.actions || [])}</div>
+        <div class="sui-list-item-actions">${renderActions(item.actions || [], r)}</div>
     </li>`;
 }

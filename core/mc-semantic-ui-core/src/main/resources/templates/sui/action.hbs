@@ -5,7 +5,7 @@
   SsrTriggerMapper.render() — keeping the template trivial avoids Handlebars
   conditionals on Trigger.method/behavior/payload at render time.
 
-  Containers (form.hbs, detail.hbs, list-item.hbs) call this partial via
+  Containers (form.hbs, detail.hbs, item.hbs) call this partial via
   {{> action this}}. Table row-actions need to substitute {id} per row, so
   table.hbs uses {{{rowAction this ../this}}} directly instead of this
   partial.

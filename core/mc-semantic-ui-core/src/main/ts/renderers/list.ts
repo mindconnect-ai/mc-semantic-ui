@@ -6,12 +6,12 @@ import { renderActions, renderPagination } from "./shared.js";
 import { renderIcon } from "./icon.js";
 
 export function renderList(node: UiList, r: SuiRenderer): string {
-    const items = (node.items || []).map(item => r.renderItem(item)).join("");
+    const items = (node.items || []).map(item => r.render(item)).join("");
     return `<div class="${cls("sui-list", node)}"${evt(node)} id="${escapeHtml(node.id)}">
         <div class="sui-list-header">
             ${node.title ? `<h2>${node.icon ? renderIcon(node.icon) : ""}${escapeHtml(node.title)}</h2>` : ""}
             ${node.headerExtra ? `<div class="sui-header-extra">${r.render(node.headerExtra)}</div>` : ""}
-            <div class="sui-actions">${renderActions(node.actions || [])}</div>
+            <div class="sui-actions">${renderActions(node.actions || [], r)}</div>
         </div>
         <ul>${items}</ul>
         ${node.pagination ? renderPagination(node.pagination) : ""}
@@ -33,6 +33,7 @@ export const outlineList: OutlineHandler<UiList> = (node) => ({
         clickable: !!item.onClick,
         children: [
             ...(item.actions ?? []),
+            ...(item.collapseSummaryNode ? [item.collapseSummaryNode] : []),
             ...(item.content ? [item.content] : []),
             ...(item.labelNode ? [item.labelNode] : []),
         ],

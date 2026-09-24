@@ -35,6 +35,7 @@ import java.util.Map;
     @JsonSubTypes.Type(value = UiSpinner.class,   name = "spinner"),
     @JsonSubTypes.Type(value = UiProgress.class,  name = "progress"),
     @JsonSubTypes.Type(value = UiList.class,      name = "list"),
+    @JsonSubTypes.Type(value = UiList.Item.class, name = "item"),
     @JsonSubTypes.Type(value = UiTree.class,      name = "tree"),
     @JsonSubTypes.Type(value = UiTreeNode.class,  name = "tree-node"),
     @JsonSubTypes.Type(value = UiMenu.class,       name = "menu"),

@@ -66,9 +66,10 @@ export {
     SUI_THEMES, STORAGE_KEY as THEME_STORAGE_KEY, DEFAULT_THEME,
     type SuiTheme, type ThemeSwitchOptions,
 } from "./theme.js";
-// Default item-handler for the UiList rendering — set on the SuiRenderer
-// at construction time. List items have no type discriminator so they
-// can't go through the dispatcher; they get their own handler slot.
+// Default item-handler for the UiList rendering — set on the SuiRenderer at
+// construction time. An item is a node of type "item" and goes through the
+// dispatcher like any other; the handler slot is the older way of replacing
+// how a row is drawn, and the "item" handler delegates to it.
 import { defaultRenderItem } from "./renderers/shared.js";
 import type { OutlineHandler } from "./snapshot.js";
 import { renderAppShell } from "./renderers/app-shell.js";
@@ -88,11 +89,9 @@ export type NodeHandler<N extends { type: string } = UiNode> =
     (node: N, renderer: SuiRenderer) => string;
 
 /**
- * Optional hook for declaring markup at a finer grain than a full node.
- * Used today for {@link UiListItem} (children of {@code UiList}); kept
- * separate from {@link NodeHandler} because items have no {@code type}
- * discriminator. Future "leaf hooks" (table-cells, form-fields) would
- * follow the same shape.
+ * How a list's row is drawn. The same thing as a {@link NodeHandler} for the
+ * type {@code "item"} — {@link SuiRenderer#registerItemHandler} is the older
+ * spelling of {@code register("item", …)}, kept because applications use it.
  */
 export type ItemHandler = (item: UiListItem, renderer: SuiRenderer) => string;
 
@@ -347,10 +346,11 @@ export class SuiRenderer {
      */
     render(node: { type: string } | null | undefined): string {
         if (node == null) return "";
-        // Remember what each id was built from. MERGE changes a few fields of
-        // a node and leaves the rest alone, which means the client has to know
-        // what the rest were — and this is the one place every node passes
-        // through, so it is the cheapest place to find out.
+        // This is the one place every node passes through, so it is where a
+        // tree is brought up to date (see adopt) and where each id's model is
+        // remembered: MERGE changes a few fields of a node and leaves the rest
+        // alone, which means the client has to know what the rest were.
+        adopt(node as Record<string, unknown>);
         const id = (node as { id?: string }).id;
         if (id) this.models.set(id, node as UiNode);
         const handler = this.handlers.get(node.type);
@@ -471,6 +471,7 @@ export class SuiRenderer {
             return;
         }
         const record = node as Record<string, unknown>;
+        adopt(record);
         // Only nodes: a UiNode always says what type it is, and this keeps the
         // walk out of the data maps a table's rows carry.
         if (typeof record.type === "string" && typeof record.id === "string" && record.id) {
@@ -735,6 +736,11 @@ export class SuiRenderer {
         } catch { /* a document that cannot take events is not this method's problem */ }
     }
 
+    /**
+     * Draws one list row through the item handler. {@code render(item)} is
+     * the same thing and the way to go — it also records the item's model for
+     * a later MERGE; this stays for list handlers that delegate.
+     */
     renderItem(item: UiListItem): string {
         return this.itemHandler(item, this);
     }
@@ -1342,7 +1348,7 @@ export class SuiRenderer {
         const added: Element[] = [];
         for (const item of (node.items ?? [])) {
             const tmp = document.createElement("ul");
-            tmp.innerHTML = this.renderItem(item);
+            tmp.innerHTML = this.render(item);
             const first = tmp.firstElementChild;
             if (first) {
                 ul.appendChild(first);
@@ -1477,6 +1483,7 @@ export function encodeTrigger(trigger: UiTrigger): string {
 export function installDefaultHandlers(renderer: SuiRenderer): SuiRenderer {
     return renderer
         .register<UiList>("list",                renderList)
+        .register<UiListItem>("item",            (item, r) => r.renderItem(item))
         .register<UiTree>("tree",                renderTree)
         .register<UiTreeNode>("tree-node",       renderTreeNode)
         .register<UiMenu>("menu",                renderMenu)
@@ -1690,6 +1697,36 @@ function ancestorScroller(el: HTMLElement): HTMLElement | null {
 function canScrollVertically(el: HTMLElement): boolean {
     const overflowY = getComputedStyle(el).overflowY;
     return overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay";
+}
+
+/**
+ * Brings a node up to the shape the renderers and the copy of the tree work
+ * with, in place. Two things from before every addressable thing was a node:
+ * a list's rows without {@code type} become {@code "item"}s, and an item's
+ * {@code collapseSummaryId} becomes a text node with that id — so REMOVE,
+ * REPLACE and MERGE find them in the copy by the same rule as everything
+ * else, and nothing downstream has to know either spelling existed.
+ */
+function adopt(node: Record<string, unknown>): void {
+    if (node.type === "list") typeEach(node.items, "item");
+    else if (node.type === "item" && typeof node.collapseSummaryId === "string" && node.collapseSummaryId
+        && !isNodeLike(node.collapseSummaryNode)) {
+        node.collapseSummaryNode = { type: "text", id: node.collapseSummaryId, text: node.collapseSummary ?? "" };
+    }
+    // A button bar written by hand, without types: buttons, as it always was.
+    typeEach(node.actions, "action");
+    if (node.type === "field" && typeof node.trailing === "object" && node.trailing !== null) typeEach([node.trailing], "action");
+}
+
+/** Gives every object in the array that has no type this one. */
+function typeEach(values: unknown, type: string): void {
+    if (!Array.isArray(values)) return;
+    for (const value of values) {
+        if (value != null && typeof value === "object" && !Array.isArray(value)
+            && typeof (value as { type?: unknown }).type !== "string") {
+            (value as { type: string }).type = type;
+        }
+    }
 }
 
 /** Whether a value is a node: an object that says what type it is. */

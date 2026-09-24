@@ -43,8 +43,12 @@ stack, and a pagination footer.*
 
 ### Item fields
 
-`UiList.Item` is a plain nested class, **not** a `UiNode` — it has no `type`
-discriminator and no `cssClass`.
+`UiList.Item` is a `UiNode` of type `"item"`, so it has everything a node has
+(`cssClass`, `display`, the event triggers) and, above all, an address: a
+patch can REMOVE it, REPLACE it with another item or MERGE a field of it, and
+the tree copy behind `bus.snapshot()` follows. It is only ever drawn by the
+list it sits in; JSON that still writes items without a `type` is read as
+items.
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -58,7 +62,8 @@ discriminator and no `cssClass`.
 | `content` | `UiNode` | Any node, rendered as the item's body. Wins over `description`. |
 | `collapseSummary` | `String` | When set, the whole item body is wrapped in a `<details>` disclosure with this text as the `<summary>`. |
 | `collapseOpen` | `boolean` | Defaults to `false`. `true` renders the disclosure open. Ignored when `collapseClientControlled` is set. |
-| `collapseSummaryId` | `String` | Puts an id on the `<summary>` text so a patch can REPLACE just the summary (flip "running" to "done") without touching the body. |
+| `collapseSummaryId` | `String` | Shorthand for a `collapseSummaryNode` that is a `text` with this id and `collapseSummary` as its words. The summary is then a node a patch can name: REPLACE it with another text, or MERGE `{"text": …}` on it (flip "running" to "done") without touching the body. |
+| `collapseSummaryNode` | `UiNode` | The summary as a node of its own, rendered inside the `<summary>` instead of `collapseSummary` — a text with an id, or a stack with an icon and a badge. `collapsible(UiNode, boolean)` sets it. |
 | `collapseClientControlled` | `boolean` | Defaults to `false`. `true` renders collapsed and tags the element `data-sui-client-collapse`, so the user's manual expand/collapse survives re-renders and streaming patches. |
 
 ### Pagination
@@ -180,9 +185,17 @@ catches people out. Pass the trigger with a literal `{page}` in the URL and the
 renderer substitutes it per button — no per-page node building on the server.
 
 **Patch the item, not the list.** Each `<li>` carries the item id, so a status
-change is one `REPLACE` on that item — not a re-render of the whole collection.
+change is one patch on that item — not a re-render of the whole collection.
 That keeps scroll position, focus and every other item's disclosure state
-intact.
+intact. What a patch can name inside a list, and what it may carry:
+
+| Target | `REMOVE` | `REPLACE` with | `MERGE` |
+|---|---|---|---|
+| an item | takes the row out | another item (`Operation.replace(id, item)`) | any of its fields — `label`, `description`, `content`, … |
+| the summary (`collapseSummaryId`) | — | a `UiText` | `{"text": …}` |
+| a header or item action | takes the button out | another action | `label`, `enabled`, `confirm`, `loading`, … |
+
+See [patches](../patches.md#inside-a-list).
 
 ## See also
 

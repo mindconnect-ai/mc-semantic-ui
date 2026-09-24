@@ -3,7 +3,6 @@ import type { OutlineHandler, OutlineItemSpec, SnapshotColumn } from "../snapsho
 import { escapeHtml, encodeTrigger, type SuiRenderer } from "../renderer.js";
 import { cls, evt } from "./util.js";
 import { renderActions, renderPagination } from "./shared.js";
-import { renderAction } from "./action.js";
 import { renderIcon } from "./icon.js";
 
 export function renderTable(node: UiTable, r: SuiRenderer): string {
@@ -61,7 +60,7 @@ export function renderTable(node: UiTable, r: SuiRenderer): string {
         // promoted to the UiRow or lives in row.data.
         const rowCtx: Record<string, unknown> = { ...data, id: row.id ?? data["id"] };
         const actionCells = rowActions.length
-            ? `<td class="sui-table-row-actions">${renderRowActions(rowActions, rowCtx)}</td>`
+            ? `<td class="sui-table-row-actions">${renderRowActions(rowActions, rowCtx, r)}</td>`
             : "";
         // <tr id="..."> so the editor's selection-by-id mechanism can address
         // the row directly — same reason <th> got an id above.
@@ -86,7 +85,7 @@ export function renderTable(node: UiTable, r: SuiRenderer): string {
     // header-level actions. Gating it on the title alone would silently
     // swallow the actions of a title-less table, so any one is enough to
     // render the bar.
-    const actionsHtml = renderActions(node.actions || []);
+    const actionsHtml = renderActions(node.actions || [], r);
     const headerExtraHtml = node.headerExtra
         ? `<div class="sui-header-extra">${r.render(node.headerExtra)}</div>`
         : "";
@@ -144,7 +143,7 @@ function sortControl(node: UiTable, c: { dataKey?: string; id?: string; label?: 
         + `</button>`;
 }
 
-function renderRowActions(actions: UiAction[], row: Record<string, unknown>): string {
+function renderRowActions(actions: UiAction[], row: Record<string, unknown>, r: SuiRenderer): string {
     const rowId = String(row["id"] ?? "");
     return actions.map(a => {
         // Row actions share a trigger template across all rows. We substitute
@@ -158,7 +157,7 @@ function renderRowActions(actions: UiAction[], row: Record<string, unknown>): st
         const personal: UiTrigger | undefined = a.onClick
             ? { ...a.onClick, url: a.onClick.url?.replace("{id}", rowId) }
             : undefined;
-        return renderAction({ ...a, id: perRowId, onClick: personal });
+        return r.render({ ...a, id: perRowId, onClick: personal } as UiAction);
     }).join("");
 }
 

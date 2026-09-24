@@ -79,12 +79,15 @@ class UiNodeMirrorTest {
 
 
     /**
-     * Where the mirror deliberately picked another name. Both are table-only
-     * shapes, and the TypeScript name says so where the Java one does not.
+     * Where the mirror deliberately picked another name. The table's two are
+     * table-only shapes, and the TypeScript name says so where the Java one
+     * does not; the list's row is a nested class whose simple name says
+     * nothing on its own.
      */
     private static final Map<String, String> RENAMED = Map.of(
             "UiColumn", "UiTableColumn",
-            "UiRow", "UiTableRow");
+            "UiRow", "UiTableRow",
+            "Item", "UiListItem");
 
     private final ObjectMapper mapper = new ObjectMapper();
 
