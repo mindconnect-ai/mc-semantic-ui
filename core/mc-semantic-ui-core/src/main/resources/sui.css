@@ -354,7 +354,7 @@ body {
     }
     .sui-header-extra .sui-field { flex: 1; }
     .sui-header-extra .sui-field input { width: 100%; flex: 1; }
-    .sui-list-header .sui-actions, .sui-table-header > .sui-btn { margin-left: auto; }
+    .sui-list-header .sui-actions, .sui-table-header .sui-actions { margin-left: auto; }
 }
 /* The list's own rows only — a markdown block nested inside a list item
    keeps its bullets. (Every theme used to re-add them by hand.) */
@@ -623,6 +623,10 @@ a.sui-tree-label:hover { text-decoration: underline; }
        the anchor defaults: no underline, no inherited text color, sit
        inline-block so padding behaves the same as on a <button>. */
     display: inline-block; line-height: 1; text-decoration: none;
+    /* A label is one line. A bar that runs out of room wraps whole buttons or
+       folds them into its "⋯" menu (actionsOverflow) — it never breaks
+       "Back to the list" over three lines inside a button. */
+    white-space: nowrap;
 }
 .sui-btn:hover { text-decoration: none; }
 .sui-btn:not(:disabled):active { transform: translateY(1px); }
@@ -1465,6 +1469,33 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
 .sui-overflow-menu > * { width: 100%; }
 .sui-overflow-menu a { color: var(--sui-color-text-body); padding: 8px 10px; border-radius: var(--sui-radius-sm); }
 .sui-overflow-menu a:hover { background: var(--sui-color-surface-alt); color: var(--sui-color-text-body); }
+
+/* ── Button bars with actionsOverflow: MENU ────────────────────────────────
+   A list's or table's header bar and a form's or detail's footer, marked by
+   the renderer and set up by the behaviour above. In the header the bar
+   shares the row with the title: content-sized while it fits, and the one to
+   give way when it does not (min-width 0; the title stops at its longest
+   word), pushed to the end by its margin. The entries inside are start-
+   aligned for the measurement, so the first one takes the auto margin: the
+   group sits at the end of a wider bar, the overflow still leaves at the end. */
+.sui-list-header:has(> .sui-actions.sui-overflow-ready),
+.sui-table-header:has(> .sui-actions.sui-overflow-ready) { flex-wrap: nowrap; }
+.sui-list-header > .sui-actions.sui-overflow-ready,
+.sui-table-header > .sui-actions.sui-overflow-ready { flex: 0 1 auto; min-width: 0; margin-left: auto; }
+.sui-list-header > .sui-actions.sui-overflow-ready > :first-child,
+.sui-table-header > .sui-actions.sui-overflow-ready > :first-child { margin-left: auto; }
+/* Narrow: the title has the first row, the bar the whole second one, and the
+   search box (order 3) its own below — the bar measured against the full
+   width folds only what a phone really cannot show. */
+@media (max-width: 640px) {
+    .sui-list-header:has(> .sui-actions.sui-overflow-ready),
+    .sui-table-header:has(> .sui-actions.sui-overflow-ready) { flex-wrap: wrap; }
+    .sui-list-header > .sui-actions.sui-overflow-ready,
+    .sui-table-header > .sui-actions.sui-overflow-ready { flex: 1 1 100%; order: 2; margin-left: 0; }
+}
+/* A button folded into the menu is an entry of it: full width, like a link. */
+.sui-overflow-menu .sui-btn { width: 100%; box-sizing: border-box; }
+.sui-overflow-menu form { width: 100%; }
 
 .sui-tabs--menu-ready { flex-wrap: nowrap; position: relative; }
 .sui-tabs--menu-ready .sui-tab { flex: 0 0 auto; white-space: nowrap; }

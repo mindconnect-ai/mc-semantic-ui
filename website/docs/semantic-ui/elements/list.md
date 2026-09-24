@@ -38,6 +38,7 @@ stack, and a pagination footer.*
 | `headerExtra` | `UiNode` | Node rendered in the header row between title and actions — built for compact inline forms like a search field (the form chrome is stripped). |
 | `items` | `List<UiList.Item>` | The rows. Defaults to an empty list. See below. |
 | `actions` | `List<UiAction>` | List-level buttons in the header, next to the title (Refresh, Add, …). Defaults to an empty list. |
+| `actionsOverflow` | `WRAP` · `MENU` | What the button bar does when its buttons do not fit one row. `WRAP` (default) takes another line; `MENU` keeps one row and folds the buttons that do not fit, from the end, into a trailing "⋯" menu — see [responsive](../responsive.md#button-bars-wrap-or-a--more-menu). |
 | `pagination` | `UiList.Pagination` | Optional pager rendered under the items. `null` = no pager. |
 | `cssClass` | `String` | Extra CSS class added next to `sui-list`. |
 

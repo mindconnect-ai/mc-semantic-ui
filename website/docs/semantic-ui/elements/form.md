@@ -39,6 +39,7 @@ run a client handler that returns a patch.*
 | `fields` | `List<UiField>` | The flat, vertical list of inputs. Empty by default. |
 | `content` | `List<UiNode>` | Rich body rendered *after* `fields` — any node tree, for columns, tabs or groups. |
 | `actions` | `List<UiAction>` | Footer buttons, and menus of them (`UiAction.menu(…)`, [below](#a-menu-in-the-button-bar)), in the order added. The first `PRIMARY` button (else the first button, never a menu) supplies the native `method`/`action` fallback. |
+| `actionsOverflow` | `WRAP` · `MENU` | What the button bar does when its buttons do not fit one row. `WRAP` (default) takes another line; `MENU` keeps one row and folds the buttons that do not fit, from the end, into a trailing "⋯" menu — see [responsive](../responsive.md#button-bars-wrap-or-a--more-menu). |
 | `links` | `List<UiLink>` | Footer links, rendered next to the actions. |
 | `formError` | `String` | Form-level error banner above the fields, `role="alert"`. For cross-field or save failures. |
 | `reloadOnSubmit` | `boolean` | `true` makes submit a native full-page navigation instead of an event-bus fetch. |

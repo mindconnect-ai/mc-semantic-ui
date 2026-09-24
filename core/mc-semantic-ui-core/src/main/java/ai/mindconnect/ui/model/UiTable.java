@@ -62,6 +62,8 @@ public class UiTable extends UiNode {
     private List<UiRow>               rows          = new ArrayList<>();
     private Pagination                pagination;
     private List<UiAction>            actions       = new ArrayList<>();
+    /** What the header's button bar does when its buttons do not fit one row. Defaults to {@link Overflow#WRAP}. */
+    private Overflow                  actionsOverflow;
     private List<UiAction>            rowActions    = new ArrayList<>();
     /** Optional node rendered inside the header row, between title and actions — e.g. a compact search form. */
     private UiNode                    headerExtra;
@@ -125,6 +127,8 @@ public class UiTable extends UiNode {
     public UiTable row(Map<String, Object> row)    { rows.add(UiRow.of(row)); return this; }
     public UiTable row(UiRow row)                  { rows.add(row);          return this; }
     public UiTable action(UiAction action)         { actions.add(action);    return this; }
+    /** The buttons that do not fit the header's row go into a "⋯" menu ({@link Overflow#MENU}) or wrap. */
+    public UiTable actionsOverflow(Overflow overflow) { this.actionsOverflow = overflow; return this; }
     public UiTable rowAction(UiAction action)      { rowActions.add(action); return this; }
     public UiTable selectedRow(String rowId)       { this.selectedRowId = rowId; return this; }
     public UiTable selectMode(SelectMode mode)     { this.selectMode = mode; return this; }

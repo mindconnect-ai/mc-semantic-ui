@@ -2,7 +2,7 @@ import type { UiList } from "../model.js";
 import type { OutlineHandler } from "../snapshot.js";
 import { escapeHtml, type SuiRenderer } from "../renderer.js";
 import { cls, evt } from "./util.js";
-import { renderActions, renderPagination } from "./shared.js";
+import { renderActions, renderPagination, overflowAttr } from "./shared.js";
 import { renderIcon } from "./icon.js";
 
 export function renderList(node: UiList, r: SuiRenderer): string {
@@ -11,7 +11,7 @@ export function renderList(node: UiList, r: SuiRenderer): string {
         <div class="sui-list-header">
             ${node.title ? `<h2>${node.icon ? renderIcon(node.icon) : ""}${escapeHtml(node.title)}</h2>` : ""}
             ${node.headerExtra ? `<div class="sui-header-extra">${r.render(node.headerExtra)}</div>` : ""}
-            <div class="sui-actions">${renderActions(node.actions || [], r)}</div>
+            <div class="sui-actions"${overflowAttr(node)}>${renderActions(node.actions || [], r)}</div>
         </div>
         <ul>${items}</ul>
         ${node.pagination ? renderPagination(node.pagination) : ""}
