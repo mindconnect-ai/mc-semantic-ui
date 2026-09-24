@@ -55,6 +55,14 @@ fresh empty one, so nothing has to be moved by hand at release time.
   `class="sui-text"` now, in both renderers, being the text node it stands
   for.
 
+### Fixed
+
+- **A stacked table's row buttons stay inside their card.** Under 640px a
+  table with `stackOnMobile` shows one card per row, and the row's buttons
+  stayed on one right-aligned line that did not wrap — with three or four of
+  them the first ones ran out of the card on the left and could not be
+  reached. They now wrap, right-aligned, with a gap between them.
+
 ## [0.4.2] - 2026-09-23
 
 ### Added
