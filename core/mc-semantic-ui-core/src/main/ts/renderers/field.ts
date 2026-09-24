@@ -1,7 +1,7 @@
 import type { UiField } from "../model.js";
 import type { OutlineHandler, SnapshotField } from "../snapshot.js";
 import { describeAction } from "./action.js";
-import { escapeHtml, encodeTrigger } from "../renderer.js";
+import { escapeHtml, encodeTrigger, type SuiRenderer } from "../renderer.js";
 import { renderIcon } from "./icon.js";
 import { renderActions } from "./shared.js";
 import { cls, evt } from "./util.js";
@@ -50,7 +50,7 @@ export function timeOptions(f: { step?: string; min?: string; max?: string }): s
 /** A CSS length, as UiField.CSS_LENGTH checks it on the server. */
 const CSS_LENGTH = /^\d{1,5}(?:\.\d{1,3})?(?:px|rem|em|vh|dvh|svh|lvh|%)$/;
 
-export function renderField(f: UiField): string {
+export function renderField(f: UiField, r: SuiRenderer): string {
     // HIDDEN: no wrapper, no label — only the value, submitted with the form
     // whether or not the field is editable. The input carries the model id
     // itself, since there is no wrapper to hold it. Parity with field.hbs.
@@ -75,7 +75,7 @@ export function renderField(f: UiField): string {
     }
     // Trailing action (e.g. a Browse… button) shares the control's row.
     if (f.trailing && f.editable) {
-        input = `<div class="sui-field-row">${input}${renderActions([f.trailing])}</div>`;
+        input = `<div class="sui-field-row">${input}${renderActions([f.trailing], r)}</div>`;
     }
     // The wrapper carries the UiNode id so the editor's id-based selection
     // works symmetrically with every other node type. The inner control

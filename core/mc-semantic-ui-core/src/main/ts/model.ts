@@ -263,8 +263,13 @@ export interface UiLink {
     onInput?: UiTrigger;
 }
 
-export interface UiListItem {
-    id: string;
+/**
+ * One row of a list. A node like any other — `type: "item"` — so a patch can
+ * name it: REMOVE takes the row out, REPLACE swaps it for another item, MERGE
+ * changes a field of it. Rendered by the list it sits in, never on its own.
+ */
+export interface UiListItem extends UiNodeBase {
+    type: "item";
     label: string;
     /** Optional rich label: rendered as the item header instead of the plain `label` text. */
     labelNode?: UiNode;
@@ -272,11 +277,17 @@ export interface UiListItem {
     icon?: string;
     description?: string;
     href?: string;
-    onClick?: UiTrigger;
     content?: UiNode;
     collapseSummary?: string;
     collapseOpen?: boolean;
+    /**
+     * Shorthand for a `collapseSummaryNode` that is a text with this id and
+     * `collapseSummary` as its text — the renderer builds that node, so the
+     * summary is something a patch can name.
+     */
     collapseSummaryId?: string;
+    /** The summary as a node of its own, rendered inside the `<summary>` instead of `collapseSummary`. */
+    collapseSummaryNode?: UiNode;
     /** When true the open/closed state is client-owned; renders collapsed + data-sui-client-collapse. */
     collapseClientControlled?: boolean;
     actions?: UiAnyAction[];
@@ -900,6 +911,7 @@ export type UiNode =
     | UiDetail
     | UiTable
     | UiList
+    | UiListItem
     | UiTree
     | UiTreeNode
     | UiMenu

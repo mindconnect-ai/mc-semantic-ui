@@ -9,7 +9,7 @@ export function renderForm(node: UiForm, r: SuiRenderer): string {
     // Through the dispatcher, like every other child, so each field's model is
     // indexed and a MERGE addressed to one field finds it. Type-less legacy
     // JSON still renders as a field.
-    const fields = (node.fields || []).map(f => f.type ? r.render(f) : renderField(f)).join("");
+    const fields = (node.fields || []).map(f => f.type ? r.render(f) : renderField(f, r)).join("");
     // Rich body: any layout nodes (stacks/sections/groups) rendered through the
     // dispatcher, after the flat fields. Named inputs anywhere inside still get
     // collected on submit, so the whole form travels as one payload.
@@ -42,7 +42,7 @@ export function renderForm(node: UiForm, r: SuiRenderer): string {
         ${fields}
         ${content}
         <div class="sui-form-footer">
-            ${renderActions(node.actions || [])}
+            ${renderActions(node.actions || [], r)}
             ${renderLinks(node.links || [])}
         </div>
     </form>`;

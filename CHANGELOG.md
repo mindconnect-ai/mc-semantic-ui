@@ -21,6 +21,28 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Changed
+
+- **A list's rows are nodes.** `UiList.Item` is now a `UiNode` of type
+  `"item"`, so a patch can name a row the way it names anything else: `REMOVE`
+  takes it out, `REPLACE` swaps it for another item (`Operation.replace(id,
+  item)` now compiles), `MERGE` changes a field of it — and the tree copy
+  behind `bus.snapshot()` follows, where before the screen changed and the
+  copy did not (the console said so: *"changed the page but not the tree
+  copy"*). An item's `collapseSummaryId` now names a `text` node inside the
+  `<summary>`, which takes `MERGE {"text": …}` as well as a `REPLACE`; a
+  `collapseSummaryNode` can hold any node there. The wire format gains
+  `"type": "item"` on every item; JSON without it is still read as items.
+  TypeScript code that builds items by hand has to say `type: "item"`.
+- **`MERGE` reaches every button.** Actions in a list's header, on an item,
+  in a form's or detail's footer, a table's toolbar and a field's trailing
+  slot are drawn through the renderer now, so a merge of `label`, `enabled`,
+  `confirm` or `loading` finds their model — it used to answer *"MERGE target
+  has no known model"* — and an application's own `action` handler draws
+  them too. The summary span an item's `collapseSummaryId` produces carries
+  `class="sui-text"` now, in both renderers, being the text node it stands
+  for.
+
 ## [0.4.2] - 2026-09-23
 
 ### Added

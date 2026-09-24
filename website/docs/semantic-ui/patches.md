@@ -203,6 +203,27 @@ A table keeps its own model, and a merge on a row goes through it: the table
 re-renders so header, cells, `cellTemplate`s and selection state stay
 consistent. A lone `<tr>` swap could not do that.
 
+## Inside a list
+
+A list's rows are nodes of type `item`, and so are the buttons in its header
+and on each row — every one of them has an id, and a patch can name any of
+them. What mindconnect's migrations screen sends after "Apply", for instance:
+
+```java
+UiPatch.of()
+    .patch(Operation.remove("agent:title-generator"))                   // one item, gone
+    .patch(Operation.merge("migration-group-agent-sum", Map.of("text", "Agents  (3)")))  // the group's counter
+    .patch(Operation.merge("apply-all", Map.of("label", "Apply 3 migrations")));         // the header button
+```
+
+The counter is the item's `collapseSummaryId`: that id names a `text` node
+inside the `<summary>`, so it takes a `REPLACE` with a `UiText` or a `MERGE`
+of its `text`. A button takes a `MERGE` of `label`, `enabled`, `confirm` or
+`loading` wherever it stands — a list's header, an item, a form's footer, a
+table's toolbar, a field's trailing slot. The tree copy behind
+[`bus.snapshot()`](./reading-the-screen.md) follows every one of these, so
+what the screen shows and what a snapshot says stay the same thing.
+
 ## Compatibility
 
 `MERGE` arrived after `REPLACE`, `APPEND`, `REMOVE` and `CLEAR`. A client older

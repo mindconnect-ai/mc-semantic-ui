@@ -1,10 +1,10 @@
 import type { UiDetail } from "../model.js";
-import { escapeHtml } from "../renderer.js";
+import { escapeHtml, type SuiRenderer } from "../renderer.js";
 import { cls, evt } from "./util.js";
 import { renderIcon } from "./icon.js";
 import { renderActions, renderLinks } from "./shared.js";
 
-export function renderDetail(node: UiDetail): string {
+export function renderDetail(node: UiDetail, r: SuiRenderer): string {
     // HIDDEN fields carry a value, not something to read — no row for them.
     const fields = (node.fields || []).filter(f => f.fieldType !== "HIDDEN").map(f =>
         `<div class="sui-detail-row">
@@ -16,7 +16,7 @@ export function renderDetail(node: UiDetail): string {
         ${node.title ? `<h2>${node.icon ? renderIcon(node.icon) : ""}${escapeHtml(node.title)}</h2>` : ""}
         <dl class="sui-detail-grid">${fields}</dl>
         <div class="sui-form-footer">
-            ${renderActions(node.actions || [])}
+            ${renderActions(node.actions || [], r)}
             ${renderLinks(node.links || [])}
         </div>
     </div>`;
