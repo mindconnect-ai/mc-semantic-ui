@@ -1246,7 +1246,12 @@ a.sui-tree-label:hover { text-decoration: underline; }
 .sui-table tbody tr:hover { background: var(--sui-color-surface-alt); }
 .sui-table tbody tr.sui-row--selected { background: var(--sui-color-primary-soft); }
 .sui-table tbody tr.sui-row--selected td { font-weight: 500; }
-.sui-table-row-actions { text-align: right; white-space: nowrap; }
+/* Row buttons may wrap, right-aligned: one unbreakable line of three or four
+   made the table wider than its container at tablet widths, the last button
+   cut off or only reachable by scrolling. The cell takes what the other
+   columns leave, and on a wide screen nothing wraps. */
+.sui-table-row-actions { text-align: right; white-space: normal; }
+.sui-table-row-actions > * { margin-block: 3px; }
 /* Row actions sit shoulder to shoulder as inline elements — give them the
    same breathing room action rows get elsewhere (.sui-actions gap). */
 .sui-table-row-actions > * + * { margin-left: 8px; }

@@ -21,6 +21,15 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A table's row buttons wrap at every width, not only when stacked.**
+  Between a phone and a desktop a table is not stacked yet, and its row
+  buttons stayed on one line: with three or four of them the table grew wider
+  than its container and the last button was cut off or only reachable by
+  scrolling. The row-actions cell now wraps its buttons, right-aligned; on a
+  wide screen nothing changes.
+
 ## [0.4.3] - 2026-09-24
 
 ### Added
