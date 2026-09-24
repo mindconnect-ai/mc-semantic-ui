@@ -56,7 +56,7 @@ wiring below: the jar declares its files, and `installAll(renderer, bus)` from
 <dependency>
   <groupId>ai.mindconnect</groupId>
   <artifactId>mc-semantic-ui-ext-chart</artifactId>
-  <version>0.4.2</version>
+  <version>0.4.3</version>
 </dependency>
 ```
 
