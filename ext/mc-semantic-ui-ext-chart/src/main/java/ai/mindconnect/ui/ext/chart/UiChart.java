@@ -36,6 +36,7 @@ public class UiChart extends UiNode {
      * the suffix — the title names the unit once.
      */
     @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ValueFormat {
         private String prefix;
         private String suffix;
