@@ -1,0 +1,20 @@
+{
+ "type": "chart",
+ "id": "z",
+ "chartType": "BAR",
+ "data": {
+  "labels": [
+   "x",
+   "y"
+  ],
+  "series": [
+   {
+    "name": "n",
+    "values": [
+     0,
+     0
+    ]
+   }
+  ]
+ }
+}

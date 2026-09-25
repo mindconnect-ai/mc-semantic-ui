@@ -1,0 +1,23 @@
+{
+ "type": "chart",
+ "id": "d",
+ "chartType": "DONUT",
+ "data": {
+  "labels": [
+   "gpt-6-luna",
+   "claude-haiku-4-5",
+   "gpt-oss-120b",
+   "extra label"
+  ],
+  "series": [
+   {
+    "name": "Tokens",
+    "values": [
+     4210345,
+     1830211,
+     912004
+    ]
+   }
+  ]
+ }
+}

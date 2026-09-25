@@ -1,0 +1,24 @@
+{
+ "type": "chart",
+ "id": "pm",
+ "chartType": "PIE",
+ "valueFormat": {
+  "suffix": " CHF",
+  "decimals": 2
+ },
+ "data": {
+  "labels": [
+   "A",
+   "B"
+  ],
+  "series": [
+   {
+    "name": "Cost",
+    "values": [
+     1.005,
+     2.675
+    ]
+   }
+  ]
+ }
+}
