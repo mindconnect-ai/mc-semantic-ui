@@ -6,20 +6,72 @@
  * touching the painter. Override --sui-chart-1 … --sui-chart-6 to recolour.
  */
 
-.sui-chart { background: var(--sui-color-surface); border-radius: var(--sui-radius-lg); padding: 16px 18px; }
+.sui-chart { position: relative; background: var(--sui-color-surface); border-radius: var(--sui-radius-lg);
+             padding: 16px 18px; }
 .sui-chart > h2 { font-size: 15px; font-weight: 600; margin: 0 0 10px; }
 
 .sui-chart-svg { display: block; width: 100%; height: auto; max-width: 420px; }
+.sui-chart-svg.sui-chart-cartesian { max-width: 760px; overflow: visible; }
+
+/* ── Hover ────────────────────────────────────────────────────────────────
+   The script marks everything of the column (or segment) under the pointer
+   .is-active and the chart .sui-chart--hover; the rest is the animation. */
+
+.sui-chart-bar, .sui-chart-dot, .sui-chart-seg {
+    transition: opacity 160ms ease, filter 160ms ease, transform 160ms ease, stroke-width 160ms ease;
+}
+/* Not on the segments: they carry rotate(-90 85 85), which a fill-box would move. */
+.sui-chart-bar, .sui-chart-dot { transform-box: fill-box; }
+.sui-chart-bar { transform-origin: 50% 100%; }
+.sui-chart-dot { transform-origin: 50% 50%; }
+
+.sui-chart--hover .sui-chart-bar:not(.is-active),
+.sui-chart--hover .sui-chart-seg:not(.is-active) { opacity: 0.4; }
+.sui-chart-bar.is-active { filter: brightness(1.1) saturate(1.1); transform: scaleX(1.12); }
+.sui-chart-dot.is-active { transform: scale(1.7); }
+.sui-chart-seg.is-active { filter: brightness(1.08); }
+.sui-chart-radial .sui-chart-seg.is-active[stroke-width="20"] { stroke-width: 26px; }
+
+.sui-chart-cursor { stroke: var(--sui-color-text-muted, #64748b); stroke-width: 1; stroke-dasharray: 3 3;
+                    opacity: 0; transition: opacity 120ms ease; pointer-events: none; }
+.sui-chart--hover .sui-chart-cursor { opacity: 0.7; }
+.sui-chart-cols rect { cursor: crosshair; }
+
+.sui-chart-tip { position: absolute; z-index: 5; pointer-events: none; min-width: 140px; max-width: 280px;
+                 padding: 8px 10px; border-radius: var(--sui-radius-md, 8px);
+                 background: var(--sui-color-surface-raised, var(--sui-color-surface, #fff));
+                 color: var(--sui-color-text-body, #0f172a);
+                 border: 1px solid var(--sui-color-border, #e2e8f0);
+                 box-shadow: 0 6px 20px rgba(15, 23, 42, 0.14);
+                 font-size: 12.5px; line-height: 1.35;
+                 transition: left 90ms ease-out, top 90ms ease-out; }
+.sui-chart-tip[hidden] { display: none; }
+.sui-chart-tip-label { font-weight: 600; margin-bottom: 4px; white-space: nowrap; }
+.sui-chart-tip-row { display: flex; align-items: center; gap: 8px; }
+.sui-chart-tip-name { color: var(--sui-color-text-muted, #64748b); flex: 1 1 auto; }
+.sui-chart-tip-value { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+.sui-chart-tip-total { border-top: 1px solid var(--sui-color-border, #e2e8f0); margin-top: 4px; padding-top: 4px; }
 
 /* Pie / donut: the drawing and its legend sit side by side, wrapping on narrow
    screens rather than squeezing the chart. */
 .sui-chart-radial { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
-.sui-chart-radial .sui-chart-svg { width: 170px; flex: 0 0 auto; }
+.sui-chart-radial .sui-chart-svg { width: 170px; flex: 0 0 auto; overflow: visible; }
 
 .sui-chart-legend { list-style: none; margin: 0; padding: 0; display: flex;
                     flex-direction: column; gap: 6px; font-size: 13px;
                     color: var(--sui-color-text-body); }
-.sui-chart-legend li { display: flex; align-items: center; gap: 8px; }
+.sui-chart-legend li { display: flex; align-items: center; gap: 8px; border-radius: 4px;
+                       transition: background-color 160ms ease; }
+.sui-chart-legend li[data-col] { cursor: default; padding: 1px 4px; margin: 0 -4px; }
+.sui-chart-legend li.is-active { background: var(--sui-color-primary-soft, #dbeafe); }
+.sui-chart-legend-name { flex: 1 1 auto; }
+.sui-chart-legend-value { color: var(--sui-color-text-muted, #64748b); font-variant-numeric: tabular-nums;
+                          white-space: nowrap; margin-left: 8px; }
+.sui-chart-legend--row { flex-direction: row; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
 .sui-chart-swatch { width: 10px; height: 10px; border-radius: 2px; flex: 0 0 auto; }
 
 .sui-chart-empty { color: var(--sui-color-empty, #94a3b8); font-style: italic; margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    .sui-chart-bar, .sui-chart-dot, .sui-chart-seg, .sui-chart-tip, .sui-chart-cursor { transition: none; }
+}

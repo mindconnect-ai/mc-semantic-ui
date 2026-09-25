@@ -1,0 +1,29 @@
+{
+ "type": "chart",
+ "id": "l",
+ "chartType": "LINE",
+ "valueFormat": {
+  "prefix": "$"
+ },
+ "data": {
+  "labels": [
+   "Mon",
+   "Tue",
+   "Wed",
+   "Thu",
+   "Fri"
+  ],
+  "series": [
+   {
+    "name": "Revenue",
+    "values": [
+     1234567.891,
+     2500000,
+     999.5,
+     12,
+     7
+    ]
+   }
+  ]
+ }
+}

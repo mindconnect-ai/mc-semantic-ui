@@ -33,7 +33,9 @@ class ChartPainterTest {
     void barChartDrawsOneRectPerValueWithATooltip() {
         String svg = ChartPainter.svg(chart(UiChart.ChartType.BAR));
 
-        assertEquals(3, svg.split("<rect", -1).length - 1, svg);
+        assertEquals(3, svg.split("class=\"sui-chart-bar\"", -1).length - 1, svg);
+        // One hover band per column, over the whole height.
+        assertEquals(3, svg.split("class=\"sui-chart-col\"", -1).length - 1, svg);
         // No JavaScript anywhere — the tooltip is a native <title>.
         assertTrue(svg.contains("<title>Q2: 30</title>"), svg);
         assertFalse(svg.contains("script"), svg);
@@ -59,7 +61,7 @@ class ChartPainterTest {
         assertTrue(pie.contains("stroke-width=\"84\""), pie);
         assertTrue(donut.contains("stroke-width=\"20\""), donut);
         // Both carry a legend entry per label.
-        assertEquals(3, donut.split("<li>", -1).length - 1, donut);
+        assertEquals(3, donut.split("<li data-col=", -1).length - 1, donut);
     }
 
     @Test

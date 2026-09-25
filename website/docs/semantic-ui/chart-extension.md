@@ -26,8 +26,10 @@ browser renderer and in SSR at once.
   style={{width: '100%', height: '520px', border: '1px solid var(--ifm-color-emphasis-300)', borderRadius: '8px'}}
 ></iframe>
 
-*Live — four chart types from one data set. Hover a bar or a segment for its
-value; those tooltips are native SVG `<title>`s, not JavaScript.*
+*Live — four chart types from one data set. Hover anywhere over a column: the
+tooltip shows every series at once, the column lifts and a crosshair marks it.
+Rendered on the server without the script, the same chart falls back to native
+SVG `<title>` tooltips.*
 
 ## What you get
 
@@ -36,7 +38,7 @@ value; those tooltips are native SVG `<title>`s, not JavaScript.*
 | Node type | `chart` (`UiChart`), contributed by this module |
 | Types | `BAR`, `LINE`, `AREA`, `PIE`, `DONUT` |
 | Output | plain SVG — no canvas, no charting library, no runtime dependency |
-| Works without JavaScript | **yes**, when rendered server-side |
+| Works without JavaScript | **yes**, when rendered server-side — with native tooltips instead of the hover |
 
 The [diagram extension](./diagram-extension.md) is built the same way, and is
 the model to copy if you write your own.
@@ -121,6 +123,9 @@ PDF export, or a hardened browser.
 | `title` | `String` | Optional heading rendered above the chart (`<h2>`). |
 | `chartType` | `LINE` · `BAR` · `PIE` · `DONUT` · `AREA` | Which chart to draw. |
 | `data` | `UiChart.ChartData` | The payload. |
+| `stacked` | `Boolean` | A bar chart with several series stacks them, one bar per label, the total in the tooltip. Otherwise they stand side by side. |
+| `crosshair` | `Boolean` | The dashed line down the hovered column of a bar, line or area chart. On unless `false`. |
+| `valueFormat` | `UiChart.ValueFormat` | `prefix`, `suffix`, `decimals` — how values read in tooltips, legends and on the axis. |
 | `cssClass` | `String` | Extra CSS class on the wrapper `<div>`. |
 
 `UiChart.ChartData` and its nested `Series`:
@@ -132,8 +137,21 @@ PDF export, or a hardened browser.
 | `series[].name` | `String` | Series name, for legends and tooltips. |
 | `series[].values` | `List<Number>` | The values, positionally aligned with `labels`. |
 
-There are no colour, axis, legend or scale fields. Anything of that kind is the
-painter's business, not the model's.
+There are no colour, axis or scale fields: the painter picks round ticks for
+the value axis itself, and the palette comes from CSS. What a value *means* —
+money, a unit — is the model's, through `valueFormat`:
+
+```java
+UiChart.of("cost", "Cost per day (CHF)", UiChart.ChartType.BAR, data)
+        .valueFormat(null, " CHF", 2);        // tooltip "1.61 CHF", axis "1.5"
+UiChart.of("tokens", "Tokens per day", UiChart.ChartType.BAR, data)
+        .stacked(true);                       // input and output, one bar a day
+```
+
+Values are written with thousands separators (`143,911`). Without `decimals`
+a whole number gets none, a number of at least 1 two, and a smaller one up to
+four. The axis keeps the prefix and leaves the suffix to the title, and writes
+large ticks short (`250k`, `1.5M`).
 
 ### Building one
 
@@ -169,8 +187,26 @@ UiChart.of("chart-revenue", "Revenue by quarter", UiChart.ChartType.BAR, data);
 
 **`data` is intentionally minimal.** Labels plus named numeric series is the
 common denominator every charting library accepts. If your chart needs more
-(stacking, dual axes, time scales), carry it in your own extension node type
-rather than stretching `UiChart`.
+(dual axes, time scales), carry it in your own extension node type rather than
+stretching `UiChart`.
+
+## The hover
+
+With the extension's script on the page, every bar, line and area chart has
+one transparent band per column over the whole plot height. The pointer
+anywhere over a column:
+
+- shows a tooltip at once — the label, each series with its colour and value,
+  and for stacked bars the total — beside the column, flipping sides at the
+  chart's right edge;
+- marks the column: its bars grow slightly and brighten, its dots grow, every
+  other column dims (CSS transitions, off under `prefers-reduced-motion`);
+- draws the dashed crosshair down its centre, unless `crosshair` is `false`.
+
+A donut or pie segment under the pointer, or its legend row, marks the
+segment and the row together. The listeners sit on the document, added once by
+`install()` (or `enableHover()`), so server-rendered charts come alive too; the
+script removes the native `<title>`s the first time it draws its own.
 
 **Charts nest.** A `chart` is a plain node, so it fits anywhere a node fits —
 including a [`tree-node`](./elements/tree-node.md)'s `content` slot or a
@@ -180,7 +216,10 @@ including a [`tree-node`](./elements/tree-node.md)'s `content` slot or a
 
 The painter exists twice — `ChartPainter.java` and `chart/extension.ts` —
 because the project renders from both sides. They are held to **byte-identical
-output**: every chart type is rendered through both and diffed.
+output**: `ChartPainterGoldenTest` draws every fixture in
+`src/test/resources/chart-golden/` in Java and compares it with what the
+TypeScript painter drew for it (`npm run build && node scripts/chart-golden.mjs`
+writes those).
 
 Three formatting rules exist only to keep that true, and each is pinned by a
 test because each one actually broke once:
@@ -190,6 +229,8 @@ test because each one actually broke once:
 | Whole numbers print without `.0` | Java would write `30.0` where JS writes `30` — visible in tooltips |
 | Negative zero is collapsed | The first pie segment starts at `-0.0`: Java prints `-0.00`, JS prints `0.00` |
 | Decimals always use a point | A German default locale would produce `12,5` and break the SVG |
+| Rounding starts from the exact binary value | `String.format` rounds `1.005` to `1.01`, JavaScript's `toFixed` to `1.00` |
+| Tick steps are found by multiplying by ten | `Math.pow` may differ in the last bit between the two |
 
 ## Swapping the painter
 
@@ -221,8 +262,10 @@ your stylesheet and still renders standalone:
 }
 ```
 
-Layout (size, legend placement, the empty state) lives in
-`/sui-ext/chart/chart.css` — override the `.sui-chart*` classes to change it.
+Layout (size, legend placement, the empty state, the hover's animation and
+the tooltip) lives in `/sui-ext/chart/chart.css` — override the `.sui-chart*`
+classes to change it: `.sui-chart-tip` is the tooltip, `.is-active` marks the
+hovered column or segment, `.sui-chart--hover` the chart while one is.
 
 ## See also
 

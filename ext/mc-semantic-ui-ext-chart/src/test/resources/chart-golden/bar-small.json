@@ -1,0 +1,24 @@
+{
+ "type": "chart",
+ "id": "s",
+ "chartType": "BAR",
+ "data": {
+  "labels": [
+   "a & b",
+   "<c>",
+   "\"d\"",
+   "e's"
+  ],
+  "series": [
+   {
+    "name": "x\"y\\z",
+    "values": [
+     0.0034,
+     0.25,
+     0.0,
+     -3
+    ]
+   }
+  ]
+ }
+}

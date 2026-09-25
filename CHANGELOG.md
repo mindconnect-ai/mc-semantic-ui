@@ -21,6 +21,23 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **Charts you can read.** A bar, line or area chart has a value axis with
+  round ticks (`250k`, `0.5`) and grid lines, and labels that thin out when a
+  month of days would collide. Hovering anywhere over a column — not only the
+  bar's edge — shows a tooltip at once with every series' value, the column
+  lifts and the rest dims, and a dashed crosshair marks it (`crosshair(false)`
+  leaves the line out). A donut's segment grows under the pointer, and its
+  legend carries each value and share (`4,210,345 · 56%`) and highlights with it.
+- **`UiChart.valueFormat(prefix, suffix, decimals)`** writes values as money or
+  units in tooltips, legends and on the axis (`1.61 CHF`, `$1,234,567`), with
+  thousands separators; without fixed decimals a small value keeps up to four
+  (`0.0034`, not `0.00`).
+- **Several series in one chart.** Bars are drawn side by side, or on top of
+  each other with `stacked(true)` and the total in the tooltip; lines and
+  areas draw one line each. Until now only the first series was drawn.
+
 ### Fixed
 
 - **A table's row buttons wrap at every width, not only when stacked.**
