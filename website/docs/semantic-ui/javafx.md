@@ -132,12 +132,12 @@ the client replaces exactly that panel. The demo does this over a real socket.
 
 ## What is supported
 
-24 node types render today, with no module beyond the renderer itself:
+25 node types render today, with no module beyond the renderer itself:
 
 | | |
 |---|---|
 | Frame | `UiAppShell`, `UiHeader` |
-| Layout | `UiStack`, `UiSection` (tabs), `UiScrollPane`, `UiFieldGroup`, `UiDrawer` |
+| Layout | `UiStack`, `UiSection` (tabs), `UiScrollPane`, `UiFieldGroup`, `UiDrawer`, `UiDrawerGroup` |
 | Data | `UiTable` (sorting, row actions, pagination), `UiTree`, `UiDetail`, `UiList` |
 | Input | `UiForm`, `UiField` (text, textarea, rich text, number, boolean, date, select, multiselect, file), `UiUpload` |
 | Action | `UiAction`, `UiActionMenu` (`UiAction.menu`), `UiLink`, `UiMenu`, `UiMenuButton` |
@@ -295,6 +295,20 @@ state the user chose unless it sets one. The handle is a button, and
 `{state}` filled in, and `onClose` fires as well when the X closes it.
 Minimized handles at one edge line up. Sizes take `px`, `%` (of the area),
 `vh`/`vw` (of the window) and `em`/`rem` (16px).
+
+A `UiDrawerGroup` stands where a lone drawer would — in the layout for
+`PUSH`, floating in the same layer for `OVERLAY` — as one strip with the
+group's size, and lays its drawers out inside it: the group's edge and scope
+are written over a drawer's own, and a drawer's `resizable` is ignored in
+favour of the strip's grip. `share()` gives the open drawers equal parts along
+the edge; a minimized one drops to its handle and the others take its room.
+`stack()` shows the front drawer and only the header bars of the others;
+pressing a bar brings that drawer forward, opening one from its handle puts it
+in front, and minimizing the front one leaves the next open one there.
+`onActiveChange` fires with `{id}` filled in when the user switches. A patch
+that replaces the group keeps the drawers' states and, without `active`, who
+is in front; a patch that replaces one drawer of the group paints it again as
+an item of the strip.
 
 ### Rich text, in its own artifact
 

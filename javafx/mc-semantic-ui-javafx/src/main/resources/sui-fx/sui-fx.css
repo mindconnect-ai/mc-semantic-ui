@@ -811,3 +811,33 @@
     -fx-background-color: -sui-primary;
     -fx-opacity: 0.35;
 }
+
+/* ── Drawer group (UiDrawerGroup) ─────────────────────────────────────────
+   Several drawers in one strip at an edge. The strip has the border and the
+   shadow — one for all of them — and the drawers inside are its items: no
+   frame, no shadow of their own. Neighbours in a SHARE strip are told apart
+   by a rule between them (.sui-drawer-next: every open one after the
+   first); the bars of a STACK by the header's own bottom rule. */
+.sui-drawer-group-strip {
+    -fx-background-color: -sui-surface;
+    -fx-border-color: -sui-border;
+    -fx-effect: dropshadow(gaussian, rgba(16, 24, 40, 0.14), 18, 0, 0, 4);
+}
+.sui-drawer-group-push > .sui-drawer-group-strip { -fx-effect: null; }
+.sui-drawer-group-bottom > .sui-drawer-group-strip { -fx-border-width: 1 0 0 0; }
+.sui-drawer-group-top    > .sui-drawer-group-strip { -fx-border-width: 0 0 1 0; }
+.sui-drawer-group-left   > .sui-drawer-group-strip { -fx-border-width: 0 1 0 0; }
+.sui-drawer-group-right  > .sui-drawer-group-strip { -fx-border-width: 0 0 0 1; }
+.sui-drawer-group > .sui-drawer > .sui-drawer-panel {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-effect: null;
+}
+.sui-drawer-group-bottom > .sui-drawer-next > .sui-drawer-panel,
+.sui-drawer-group-top    > .sui-drawer-next > .sui-drawer-panel { -fx-border-width: 0 0 0 1; -fx-border-color: -sui-border-soft; }
+.sui-drawer-group-left   > .sui-drawer-next > .sui-drawer-panel,
+.sui-drawer-group-right  > .sui-drawer-next > .sui-drawer-panel { -fx-border-width: 1 0 0 0; -fx-border-color: -sui-border-soft; }
+/* The bar of a stacked drawer behind the front one: pressable. */
+.sui-drawer-header-peek:hover { -fx-background-color: -sui-border-soft; }

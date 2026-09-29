@@ -32,8 +32,7 @@ fresh empty one, so nothing has to be moved by hand at release time.
   reported through `onActiveChange` with `{id}` in the URL. The group owns
   edge, scope, mode and the strip's size (`size`, `minSize`, `maxSize`,
   `resizable`); a drawer inside keeps its title, icon, badge, content and
-  state. Browser only for now — the server-side template and the JavaFX
-  painter are still to come.
+  state. Rendered by the browser, the server and the JavaFX client alike.
   Outside a group, a drawer the user opens at an edge where another is
   open sends that one to its handle: it would otherwise lie under the new
   one with its own handle hidden, unreachable.

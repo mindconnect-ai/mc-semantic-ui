@@ -2,6 +2,7 @@ package ai.mindconnect.ui.javafx;
 
 import ai.mindconnect.ui.javafx.renderers.ActionMenuRenderer;
 import ai.mindconnect.ui.javafx.renderers.ActionRenderer;
+import ai.mindconnect.ui.javafx.renderers.DrawerGroupRenderer;
 import ai.mindconnect.ui.javafx.renderers.DrawerRenderer;
 import ai.mindconnect.ui.javafx.renderers.DialogRenderer;
 import ai.mindconnect.ui.javafx.renderers.DetailRenderer;
@@ -90,7 +91,8 @@ import java.util.Optional;
  * {@code action}, {@code tree}, {@code dialog},
  * {@code spinner}, {@code progress}, {@code link}, {@code menu},
  * {@code menu-button}, {@code detail}, {@code list}, {@code upload},
- * {@code action-menu} and {@code drawer} — and a plugin's own type through
+ * {@code action-menu}, {@code drawer} and {@code drawer-group} — and a plugin's
+ * own type through
  * {@link #registerCustom}.
  * Anything else paints as a
  * visible placeholder rather than failing, so a tree that is only partly
@@ -496,6 +498,7 @@ public class SuiFxRenderer {
         register(UiUpload.class,     new UploadRenderer());
         register(ai.mindconnect.ui.model.UiActionMenu.class, new ActionMenuRenderer());
         register(ai.mindconnect.ui.model.UiDrawer.class,     new DrawerRenderer());
+        register(ai.mindconnect.ui.model.UiDrawerGroup.class, new DrawerGroupRenderer());
     }
 
     public static SuiFxRenderer createDefaultRenderer() {

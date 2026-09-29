@@ -20,6 +20,7 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
@@ -44,7 +45,7 @@ import java.util.regex.Pattern;
  * and closing only show and hide the parts — {@link #setState} — so whatever
  * the content holds (typed text, a widget's state) is still there.
  */
-public final class FxDrawer extends Region {
+public final class FxDrawer extends Region implements FxFloating {
 
     /** Where a drawer's node keeps its drawer, for {@link #of}. */
     private static final String KEY = "sui-fx-drawer";
@@ -57,9 +58,15 @@ public final class FxDrawer extends Region {
     private final UiDrawer.Edge edge;
     private final Button handle = new Button();
     private final VBox panel = new VBox();
+    private final HBox header = new HBox(6);
+    private final ScrollPane scroll = new ScrollPane();
     private final Region grip = new Region();
     private final Region anchor = new Region();
     private UiDrawer.State state;
+    /** The group this drawer is an item of, or null: see {@link FxDrawerGroup}. */
+    private FxDrawerGroup group;
+    /** STACK: showing only its header bar, behind the front drawer of its group. */
+    private boolean peeking;
     /** A size the user dragged to, in pixels; overrides {@code size}. */
     private Double dragged;
     /** Along its edge, where a minimized handle sits: set by the layer, so handles line up. */
@@ -118,6 +125,51 @@ public final class FxDrawer extends Region {
         return model;
     }
 
+    /** The model's id. */
+    public String id() {
+        return model.getId();
+    }
+
+    /** The group this drawer is an item of, or null. */
+    public FxDrawerGroup group() {
+        return group;
+    }
+
+    /** STACK: whether only its header bar shows. */
+    public boolean isPeeking() {
+        return peeking;
+    }
+
+    /**
+     * Makes this drawer an item of {@code group}: the group lays it out and
+     * hears of every change of state. The drawer keeps its own wiring — the
+     * handle opens, the header's buttons minimize and close.
+     */
+    void join(FxDrawerGroup group) {
+        this.group = group;
+    }
+
+    /**
+     * STACK, behind the front drawer: only the header bar shows, and pressing
+     * it brings the drawer to the front. Nothing is rendered either way — the
+     * body is hidden, not thrown away.
+     */
+    void setPeeking(boolean peek) {
+        if (peek == peeking) return;
+        peeking = peek;
+        scroll.setVisible(!peek);
+        scroll.setManaged(!peek);
+        header.setCursor(peek ? Cursor.HAND : Cursor.DEFAULT);
+        if (peek) header.getStyleClass().add("sui-drawer-header-peek");
+        else header.getStyleClass().remove("sui-drawer-header-peek");
+        requestLayout();
+    }
+
+    /** The header bar's height when it stands alone as a stacked drawer's card. */
+    double barHeight() {
+        return header.prefHeight(-1);
+    }
+
     /**
      * Moves the drawer to {@code next} — parts shown and hidden, nothing
      * rendered — and, when it was the user, tells the server: onStateChange
@@ -127,9 +179,11 @@ public final class FxDrawer extends Region {
         if (next == state) return;
         state = next;
         applyState(true);
-        if (!byUser) return;
-        fire(model.getOnStateChange(), next);
-        if (next == UiDrawer.State.CLOSED) fire(model.getOnClose(), next);
+        if (byUser) {
+            fire(model.getOnStateChange(), next);
+            if (next == UiDrawer.State.CLOSED) fire(model.getOnClose(), next);
+        }
+        if (group != null) group.stateChanged(this, next, byUser);
     }
 
     private void fire(UiTrigger trigger, UiDrawer.State next) {
@@ -181,7 +235,7 @@ public final class FxDrawer extends Region {
             setState(UiDrawer.State.MINIMIZED, true);
             handle.requestFocus();
         });
-        var header = new HBox(6, title, minimize);
+        header.getChildren().addAll(title, minimize);
         if (model.isClosable()) {
             var close = button("×", "Close", "x");
             close.setOnAction(e -> setState(UiDrawer.State.CLOSED, true));
@@ -190,9 +244,19 @@ public final class FxDrawer extends Region {
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(6, 6, 6, 12));
         header.getStyleClass().add("sui-drawer-header");
+        // The bar of a stacked drawer that is not in front: pressing it
+        // brings the drawer forward. Its buttons still do their own thing.
+        header.setOnMouseClicked(e -> {
+            if (!peeking || group == null || e.getButton() != MouseButton.PRIMARY) return;
+            for (Node n = e.getTarget() instanceof Node t ? t : null; n != null && n != header; n = n.getParent()) {
+                if (n instanceof Button) return;
+            }
+            e.consume();
+            group.front(this, true);
+        });
 
         Node body = model.getContent() != null ? ctx.render(model.getContent()) : new Region();
-        var scroll = new ScrollPane(body);
+        scroll.setContent(body);
         scroll.setFitToWidth(true);
         scroll.getStyleClass().add("sui-drawer-body");
         VBox.setVgrow(scroll, Priority.ALWAYS);
@@ -394,9 +458,29 @@ public final class FxDrawer extends Region {
     }
 
     /** The area an overlay drawer lies over, in its layer's coordinates. */
-    Bounds area() {
-        if (!(getParent() instanceof Pane layer)) return null;
-        if (model.getScope() != UiDrawer.Scope.CONTAINER || anchor.getParent() == null) {
+    @Override
+    public Bounds area() {
+        return areaOf(this, anchor, model.getScope());
+    }
+
+    @Override
+    public boolean showing() {
+        return state != UiDrawer.State.CLOSED;
+    }
+
+    @Override
+    public boolean clipped() {
+        return model.getScope() == UiDrawer.Scope.CONTAINER;
+    }
+
+    /**
+     * The area a floating thing lies over, in its layer's coordinates: the
+     * layer itself, or — for {@link UiDrawer.Scope#CONTAINER} — the bounds of
+     * the container its anchor stands in. Null before it is in a layer.
+     */
+    static Bounds areaOf(Region floating, Region anchor, UiDrawer.Scope scope) {
+        if (!(floating.getParent() instanceof Pane layer)) return null;
+        if (scope != UiDrawer.Scope.CONTAINER || anchor.getParent() == null) {
             return layer.getLayoutBounds();
         }
         Parent container = anchor.getParent();
@@ -417,18 +501,18 @@ public final class FxDrawer extends Region {
         private Layer() {
         }
 
-        static void add(FxDrawer drawer, Scene scene) {
+        static void add(Region floating, Scene scene) {
             Pane layer = layerOf(scene);
-            if (!layer.getChildren().contains(drawer)) layer.getChildren().add(drawer);
-            relayout(drawer);
+            if (!layer.getChildren().contains(floating)) layer.getChildren().add(floating);
+            relayout(floating);
         }
 
-        static void remove(FxDrawer drawer) {
-            if (drawer.getParent() instanceof Pane layer) layer.getChildren().remove(drawer);
+        static void remove(Region floating) {
+            if (floating.getParent() instanceof Pane layer) layer.getChildren().remove(floating);
         }
 
-        static void relayout(FxDrawer drawer) {
-            if (drawer.getParent() instanceof Pane layer) layer.requestLayout();
+        static void relayout(Region floating) {
+            if (floating.getParent() instanceof Pane layer) layer.requestLayout();
         }
 
         private static Pane layerOf(Scene scene) {
@@ -465,30 +549,34 @@ public final class FxDrawer extends Region {
             return layer;
         }
 
-        /** Every drawer on its area; minimized handles at one edge of one area lined up. */
+        /**
+         * Everything floating on its area — a group lays its own drawers out
+         * inside its area; the minimized handles of the lone drawers at one
+         * edge of one area lined up.
+         */
         private static void place(Pane layer) {
             Map<String, Double> taken = new HashMap<>();
-            List<Node> drawers = new ArrayList<>(layer.getChildren());
-            for (Node n : drawers) {
-                if (!(n instanceof FxDrawer d)) continue;
-                Bounds a = d.area();
+            List<Node> floating = new ArrayList<>(layer.getChildren());
+            for (Node n : floating) {
+                if (!(n instanceof Region r && n instanceof FxFloating f)) continue;
+                Bounds a = f.area();
                 if (a == null || a.getWidth() <= 0 || a.getHeight() <= 0) {
-                    d.setVisible(false);
+                    r.setVisible(false);
                     continue;
                 }
-                d.setVisible(d.state != UiDrawer.State.CLOSED);
-                if (d.getLayoutX() != a.getMinX() || d.getLayoutY() != a.getMinY()
-                        || d.getWidth() != a.getWidth() || d.getHeight() != a.getHeight()) {
-                    d.resizeRelocate(a.getMinX(), a.getMinY(), a.getWidth(), a.getHeight());
+                r.setVisible(f.showing());
+                if (r.getLayoutX() != a.getMinX() || r.getLayoutY() != a.getMinY()
+                        || r.getWidth() != a.getWidth() || r.getHeight() != a.getHeight()) {
+                    r.resizeRelocate(a.getMinX(), a.getMinY(), a.getWidth(), a.getHeight());
                 }
-                if (d.model.getScope() == UiDrawer.Scope.CONTAINER) {
-                    if (!(d.getClip() instanceof Rectangle r) || r.getWidth() != a.getWidth() || r.getHeight() != a.getHeight()) {
-                        d.setClip(new Rectangle(a.getWidth(), a.getHeight()));
+                if (f.clipped()) {
+                    if (!(r.getClip() instanceof Rectangle clip) || clip.getWidth() != a.getWidth() || clip.getHeight() != a.getHeight()) {
+                        r.setClip(new Rectangle(a.getWidth(), a.getHeight()));
                     }
-                } else if (d.getClip() != null) {
-                    d.setClip(null);
+                } else if (r.getClip() != null) {
+                    r.setClip(null);
                 }
-                if (d.state == UiDrawer.State.MINIMIZED) {
+                if (n instanceof FxDrawer d && d.state == UiDrawer.State.MINIMIZED) {
                     String key = System.identityHashCode(d.model.getScope() == UiDrawer.Scope.CONTAINER ? d.anchor.getParent() : layer)
                             + ":" + d.edge;
                     double offset = taken.getOrDefault(key, 0.0);
@@ -497,7 +585,7 @@ public final class FxDrawer extends Region {
                     double extent = d.alongY() ? d.handle.getWidth() : d.handle.getHeight();
                     taken.put(key, offset + extent + 8);
                 }
-                d.layout();
+                r.layout();
             }
         }
     }

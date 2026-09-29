@@ -1,9 +1,11 @@
 package ai.mindconnect.ui.javafx;
 
 import ai.mindconnect.ui.javafx.renderers.FxDrawer;
+import ai.mindconnect.ui.javafx.renderers.FxDrawerGroup;
 import ai.mindconnect.ui.model.UiAction;
 import ai.mindconnect.ui.model.UiCustom;
 import ai.mindconnect.ui.model.UiDrawer;
+import ai.mindconnect.ui.model.UiDrawerGroup;
 import ai.mindconnect.ui.model.UiField;
 import ai.mindconnect.ui.model.UiForm;
 import ai.mindconnect.ui.model.UiMenuItem;
@@ -22,8 +24,11 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -41,8 +46,8 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * The elements the web renderers gained, painted on the desktop: a menu in a
- * form's button bar, a drawer, a plugin's own node type, and the sizes of a
- * RICHTEXT field.
+ * form's button bar, a drawer, a group of drawers, a plugin's own node type,
+ * and the sizes of a RICHTEXT field.
  */
 class SuiFxNewElementsTest {
 
@@ -220,6 +225,240 @@ class SuiFxNewElementsTest {
         double logX = onFx(() -> drawers.get(1).handle().getLayoutX());
         double consoleX = onFx(() -> drawers.get(2).handle().getLayoutX());
         assertThat(consoleX).as("side by side, not on top of each other").isLessThan(logX);
+    }
+
+    // ── UiDrawerGroup ─────────────────────────────────────────────────────
+
+    /** A drawer that says RIGHT and wants a grip: in a group, the group has the say. */
+    private static UiDrawer member(String id, String title) {
+        return UiDrawer.of(id, title, UiStack.of(UiText.of(id + "-t", title + " content")))
+                .edge(UiDrawer.Edge.RIGHT).resizable()
+                .onStateChange(UiTrigger.api("POST", "/" + id + "/{state}"));
+    }
+
+    private static UiDrawerGroup dock(UiDrawerGroup.Arrange arrange, UiDrawer... drawers) {
+        return UiDrawerGroup.of("dock", drawers)
+                .edge(UiDrawer.Edge.BOTTOM).scope(UiDrawer.Scope.CONTAINER).arrange(arrange)
+                .size("50%").resizable()
+                .onActiveChange(UiTrigger.api("POST", "/dock/front/{id}"));
+    }
+
+    /** Paints {@code tree} into an 800×600 scene with the stylesheet, laid out. */
+    private static StackPane sceneOf(SuiFxEventBus bus, UiNode tree) {
+        return onFx(() -> {
+            var painted = bus.renderer().mount(tree);
+            var stack = new StackPane(painted);
+            var scene = new Scene(stack, 800, 600);
+            SuiFxStyles.install(scene);
+            stack.applyCss();
+            stack.layout();
+            stack.layout();
+            return stack;
+        });
+    }
+
+    private static FxDrawerGroup groupIn(StackPane root) {
+        return onFx(() -> root.getChildren().stream()
+                .filter(n -> n.getStyleClass().contains("sui-drawer-layer"))
+                .flatMap(layer -> ((Pane) layer).getChildren().stream())
+                .filter(n -> n instanceof FxDrawerGroup).map(n -> (FxDrawerGroup) n)
+                .findFirst().orElse(null));
+    }
+
+    private static void relayout(StackPane root) {
+        onFx(() -> { root.applyCss(); root.layout(); root.layout(); return null; });
+    }
+
+    private static Color pixel(StackPane root, int x, int y) {
+        return onFx(() -> {
+            WritableImage shot = root.getScene().snapshot(null);
+            return shot.getPixelReader().getColor(x, y);
+        });
+    }
+
+    /** Whether anything but {@code bg} is painted in the rectangle — a handle's text and frame are. */
+    private static boolean painted(StackPane root, Color bg, int x, int y, int w, int h) {
+        return onFx(() -> {
+            var reader = root.getScene().snapshot(null).getPixelReader();
+            for (int i = x; i < x + w; i += 2) {
+                for (int j = y; j < y + h; j += 2) {
+                    if (!reader.getColor(i, j).equals(bg)) return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    @Test
+    void aShareGroupDividesTheStripAndAMinimizedOneGivesItsRoom() {
+        var bus = new SuiFxEventBus();
+        var root = sceneOf(bus, UiStack.of(UiText.of("t", "content"),
+                dock(UiDrawerGroup.Arrange.SHARE, member("chat", "Chat"), member("files", "Files"))));
+        var group = groupIn(root);
+        assertThat(group).as("an overlay group floats in the drawer layer").isNotNull();
+        assertThat(group.arrange()).isEqualTo(UiDrawerGroup.Arrange.SHARE);
+        var drawers = group.drawers();
+        assertThat(drawers).hasSize(2);
+        var chat = drawers.get(0);
+        var files = drawers.get(1);
+
+        // The group's edge, not the drawer's own; and no grip of its own.
+        assertThat(chat.getStyleClass()).contains("sui-drawer-bottom", "sui-drawer-overlay").doesNotContain("sui-drawer-right", "sui-drawer-push");
+        assertThat(onFx(() -> chat.getChildrenUnmodifiable().stream().anyMatch(n -> n.getStyleClass().contains("sui-drawer-resize")))).isFalse();
+        assertThat(onFx(() -> group.getChildren().stream().anyMatch(n -> n.getStyleClass().contains("sui-drawer-resize")))).as("the strip's grip").isTrue();
+
+        // Side by side, each half the width, the full height of the strip: 50% of 600 on the bottom edge.
+        assertThat(onFx(group::getHeight)).isEqualTo(600.0);
+        assertThat(onFx(chat::getLayoutY)).isEqualTo(300.0);
+        assertThat(onFx(chat::getHeight)).isEqualTo(300.0);
+        assertThat(onFx(chat::getLayoutX)).isEqualTo(0.0);
+        assertThat(onFx(chat::getWidth)).isEqualTo(400.0);
+        assertThat(onFx(files::getLayoutX)).isEqualTo(400.0);
+        assertThat(onFx(files::getWidth)).isEqualTo(400.0);
+        // And painted there: the header's surface-alt in the strip, the page above it.
+        Color bg = pixel(root, 700, 100);
+        assertThat(pixel(root, 200, 290)).as("above the strip").isEqualTo(bg);
+        assertThat(pixel(root, 200, 312)).as("chat's header").isNotEqualTo(bg);
+        assertThat(pixel(root, 600, 312)).as("files' header").isNotEqualTo(bg);
+
+        onFx(() -> { files.setState(UiDrawer.State.MINIMIZED, true); return null; });
+        relayout(root);
+        assertThat(onFx(chat::getWidth)).as("the other takes its room").isEqualTo(800.0);
+        assertThat(onFx(() -> files.getLayoutY() + files.getHeight())).as("its handle at the edge").isEqualTo(600.0);
+        assertThat(onFx(files::getWidth)).isEqualTo(onFx(() -> files.handle().prefWidth(-1)));
+        assertThat(onFx(files::getViewOrder)).as("a handle above the open panels").isLessThan(onFx(chat::getViewOrder));
+
+        onFx(() -> { chat.setState(UiDrawer.State.MINIMIZED, true); return null; });
+        relayout(root);
+        assertThat(pixel(root, 200, 312)).as("nothing open: no strip").isEqualTo(bg);
+        int hx = onFx(files::getLayoutX).intValue(), hy = onFx(files::getLayoutY).intValue();
+        int hw = onFx(files::getWidth).intValue(), hh = onFx(files::getHeight).intValue();
+        assertThat(painted(root, bg, hx, hy, hw, hh)).as("the handle is").isTrue();
+        assertThat(onFx(files::getLayoutX)).as("handles line up from the far end, the second beside the first").isLessThan(onFx(chat::getLayoutX));
+    }
+
+    @Test
+    void aStackShowsTheFrontDrawerAndTheBarsOfTheOthers() {
+        var bus = new SuiFxEventBus();
+        var sent = new ArrayList<String>();
+        onFx(() -> bus.registerBehavior("APPLY_RESPONSE", ctx -> {
+            sent.add(ctx.trigger().getMethod() + " " + ctx.trigger().getUrl());
+            return CompletableFuture.completedFuture(null);
+        }));
+        var root = sceneOf(bus, UiStack.of(UiText.of("t", "content"),
+                dock(UiDrawerGroup.Arrange.STACK, member("a", "A"), member("b", "B"), member("c", "C")).active("b")));
+        var group = groupIn(root);
+        var a = group.drawers().get(0);
+        var b = group.drawers().get(1);
+        var c = group.drawers().get(2);
+
+        // The active one in front with its content, the others as bars above it.
+        assertThat(group.front()).isSameAs(b);
+        assertThat(a.isPeeking()).isTrue();
+        assertThat(b.isPeeking()).isFalse();
+        assertThat(c.isPeeking()).isTrue();
+        double barA = onFx(a::getHeight), barC = onFx(c::getHeight);
+        assertThat(barA).isGreaterThan(0).isLessThan(100);
+        assertThat(onFx(a::getLayoutY)).isEqualTo(300.0);
+        assertThat(onFx(c::getLayoutY)).isEqualTo(300.0 + barA);
+        assertThat(onFx(b::getLayoutY)).isEqualTo(300.0 + barA + barC);
+        assertThat(onFx(b::getHeight)).isEqualTo(300.0 - barA - barC);
+        assertThat(onFx(() -> a.content().isVisible())).as("a bar hides its body").isFalse();
+        assertThat(onFx(() -> b.content().isVisible())).isTrue();
+
+        // Pressing a bar brings that drawer forward and tells the server.
+        onFx(() -> group.front(a, true));
+        relayout(root);
+        assertThat(group.front()).isSameAs(a);
+        assertThat(group.getActive()).isEqualTo("a");
+        assertThat(b.isPeeking()).isTrue();
+        assertThat(onFx(() -> a.content().isVisible())).isTrue();
+        waitFor(() -> sent.size() == 1);
+        assertThat(sent).containsExactly("POST /dock/front/a");
+
+        // Minimizing the front one leaves the next open one in front — without a word.
+        onFx(() -> { a.setState(UiDrawer.State.MINIMIZED, true); return null; });
+        assertThat(group.front()).isSameAs(b);
+        assertThat(b.isPeeking()).isFalse();
+        waitFor(() -> sent.size() == 2);
+        assertThat(sent.get(1)).isEqualTo("POST /a/MINIMIZED");
+
+        // Opening from the handle puts it in front.
+        onFx(() -> { a.setState(UiDrawer.State.OPEN, true); return null; });
+        assertThat(group.front()).isSameAs(a);
+        waitFor(() -> sent.size() == 4);
+        assertThat(sent.subList(2, 4)).containsExactlyInAnyOrder("POST /a/OPEN", "POST /dock/front/a");
+
+        // Not the user (a patch): who is in front settles, nothing is sent.
+        onFx(() -> { c.setState(UiDrawer.State.MINIMIZED, false); c.setState(UiDrawer.State.OPEN, false); return null; });
+        assertThat(group.front()).isSameAs(a);
+        assertThat(c.isPeeking()).isTrue();
+        assertThat(sent).hasSize(4);
+    }
+
+    @Test
+    void aReplaceKeepsWhoIsInFrontAndPaintsAReplacedDrawerAsAnItemOfTheStrip() {
+        var bus = new SuiFxEventBus();
+        var root = sceneOf(bus, UiStack.of(UiText.of("t", "content"),
+                dock(UiDrawerGroup.Arrange.STACK, member("a", "A"), member("b", "B"))));
+        var group = groupIn(root);
+        onFx(() -> { group.front(group.drawers().get(1), true); group.drawers().get(0).setState(UiDrawer.State.MINIMIZED, true); return null; });
+
+        // The group replaced without naming a front: the user's choice stands, and so do the states.
+        onFx(() -> { bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.replace("dock",
+                dock(UiDrawerGroup.Arrange.STACK, member("a", "A"), member("b", "B"))))); return null; });
+        waitFor(() -> FxDrawerGroup.of(bus.context().byId("dock")) != group);
+        var again = onFx(() -> FxDrawerGroup.of(bus.context().byId("dock")));
+        assertThat(again.getActive()).isEqualTo("b");
+        assertThat(again.drawers().get(0).getState()).isEqualTo(UiDrawer.State.MINIMIZED);
+        assertThat(again.drawers().get(1).getState()).isEqualTo(UiDrawer.State.OPEN);
+
+        // Named, it wins.
+        onFx(() -> { bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.replace("dock",
+                dock(UiDrawerGroup.Arrange.STACK, member("a", "A").open(), member("b", "B")).active("a")))); return null; });
+        var named = onFx(() -> FxDrawerGroup.of(bus.context().byId("dock")));
+        assertThat(named.getActive()).isEqualTo("a");
+        assertThat(named.front().id()).isEqualTo("a");
+
+        // One drawer replaced, on its own terms (RIGHT, overlay): painted again as one of the strip.
+        onFx(() -> { bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.replace("b",
+                UiDrawer.of("b", "B2", UiText.of("b-t2", "new"))))); return null; });
+        waitFor(() -> {
+            var d = FxDrawer.of(bus.context().byId("b"));
+            return d != null && d.group() == named && d.getParent() == named;
+        });
+        var b2 = onFx(() -> FxDrawer.of(bus.context().byId("b")));
+        assertThat(b2.getStyleClass()).contains("sui-drawer-bottom").doesNotContain("sui-drawer-right");
+        assertThat(named.drawers()).hasSize(2);
+        assertThat(named.drawers().get(1)).isSameAs(b2);
+        assertThat(b2.isPeeking()).as("behind a, which is in front").isTrue();
+    }
+
+    @Test
+    void aPushGroupTakesTheStripsRoomAndOnlyItsHandlesWhenNothingIsOpen() {
+        var bus = new SuiFxEventBus();
+        var root = sceneOf(bus, UiStack.of(UiText.of("t", "content"),
+                dock(UiDrawerGroup.Arrange.SHARE, member("chat", "Chat"), member("files", "Files").minimized())
+                        .mode(UiDrawer.Mode.PUSH)));
+        var group = onFx(() -> find(root, FxDrawerGroup.class));
+        assertThat(group).isNotNull();
+        assertThat(onFx(() -> group.getParent() instanceof VBox)).as("in the layout, not in the layer").isTrue();
+        var chat = group.drawers().get(0);
+        var files = group.drawers().get(1);
+        double column = onFx(() -> ((Pane) group.getParent()).getHeight());
+        assertThat(onFx(group::getHeight)).isEqualTo(column / 2);
+        // The handle stands in the row at its own size; the open one has the rest.
+        double hw = onFx(() -> files.handle().prefWidth(-1));
+        assertThat(onFx(files::getWidth)).isEqualTo(hw);
+        assertThat(onFx(chat::getWidth)).isEqualTo(800.0 - hw);
+        assertThat(files.getStyleClass()).contains("sui-drawer-push");
+
+        onFx(() -> { chat.setState(UiDrawer.State.MINIMIZED, true); return null; });
+        relayout(root);
+        double hh = onFx(() -> files.handle().prefHeight(-1));
+        assertThat(onFx(group::getHeight)).as("nothing open: the strip is its handles").isEqualTo(hh);
+        assertThat(onFx(chat::getLayoutX)).isEqualTo(0.0);
+        assertThat(onFx(files::getLayoutX)).isEqualTo(onFx(chat::getWidth));
     }
 
     // ── RICHTEXT ──────────────────────────────────────────────────────────

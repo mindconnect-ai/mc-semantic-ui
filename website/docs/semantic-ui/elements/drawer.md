@@ -95,8 +95,8 @@ which is the strip's extent along the edge's axis; the drawers share the
 other axis. A drawer keeps its title, icon and badge, its content, `closable`
 and `onClose`, and its own state with the same rules as outside a group.
 
-The browser and the server render a group alike. The JavaFX painter is
-still to come: the desktop client shows nothing for it yet.
+The browser, the server and the JavaFX client render a group alike — see
+[the JavaFX renderer](../javafx.md#drawers) for what the desktop does with it.
 
 **Look.** The drawer uses the theme's tokens, so it follows dark mode as well.
 The handle is as tall as a button. It slides in and folds away softly, and

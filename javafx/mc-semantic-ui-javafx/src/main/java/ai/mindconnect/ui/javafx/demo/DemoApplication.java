@@ -24,6 +24,7 @@ import ai.mindconnect.ui.model.UiStack;
 import ai.mindconnect.ui.model.UiTable;
 import ai.mindconnect.ui.model.UiText;
 import ai.mindconnect.ui.model.UiDrawer;
+import ai.mindconnect.ui.model.UiDrawerGroup;
 import ai.mindconnect.ui.model.UiCustom;
 import ai.mindconnect.ui.model.UiToast;
 import ai.mindconnect.ui.model.UiTree;
@@ -108,6 +109,8 @@ public class DemoApplication extends Application {
     private final SuiFxRenderer renderer = SuiFxRenderer.createDefaultRenderer(overlay);
     private final SuiFxEventBus bus = new SuiFxEventBus(renderer);
     private DemoServer server;
+    /** How the composer's dock arranges its drawers; the Dock button flips it. */
+    private UiDrawerGroup.Arrange dockArrange = UiDrawerGroup.Arrange.STACK;
 
     @Override
     public void start(Stage stage) throws Exception {
@@ -171,9 +174,9 @@ public class DemoApplication extends Application {
     /**
      * The newer elements together, as mc-commercial's mail composer uses them:
      * a RICHTEXT body with a fixed height, a button bar whose AI actions sit
-     * behind one menu, the AI chat as a drawer rising from the bottom of the
-     * composer — its content a plugin's own node type — and a PUSH drawer
-     * beside it.
+     * behind one menu, the AI chat and the attachments as a group of drawers
+     * rising from the bottom of the composer — the chat's content a plugin's
+     * own node type — and a PUSH drawer beside it.
      */
     private UiNode composer() {
         var form = UiForm.of("mail", "New mail")
@@ -191,23 +194,41 @@ public class DemoApplication extends Application {
                                 UiMenuItem.of("ai-summary", "Summarize").icon("list-collapse").onClick(UiTrigger.invoke("ai")),
                                 UiMenuItem.of("ai-translate", "Translate").icon("file-text").disabled("Not in this demo"))
                         .icon("sparkles"))
-                .action(UiAction.secondary("check", "Check").onClick(UiTrigger.invoke("ai")));
-
-        var chat = UiDrawer.of("ai-chat", "Draft with AI", UiCustom.of("chat-widget").prop("greeting",
-                        "Here is a first draft. Shall I make it shorter or more formal?"))
-                .edge(UiDrawer.Edge.BOTTOM).scope(UiDrawer.Scope.CONTAINER)
-                .size("55%").minSize("140px").maxSize("90%").resizable()
-                .icon("sparkles").badge("1").closable()
-                .onClose(UiTrigger.toast(UiToast.info("Chat closed — onClose lets the server clean up.")));
+                .action(UiAction.secondary("check", "Check").onClick(UiTrigger.invoke("ai")))
+                .action(UiAction.secondary("dock-arrange", "Dock ⇄").icon("layout")
+                        .onClick(UiTrigger.invoke("dockArrange")));
 
         var details = UiDrawer.of("mail-details", "Details",
                         UiStack.of(UiText.of("Thread: 4 mails"), UiText.of("Last reply: yesterday"), UiText.of("Labels: work")))
                 .edge(UiDrawer.Edge.RIGHT).mode(UiDrawer.Mode.PUSH).size("220px").icon("info");
 
         return UiStack.of(
-                UiText.of("A button bar with an AI menu, a rich-text body, the AI chat as a drawer from the bottom "
-                        + "(minimize it: what you type in it stays) and a drawer beside the mail that takes room (PUSH)."),
-                UiStack.of(UiStack.of(form, chat).gap(8), details).direction(UiStack.Direction.HORIZONTAL).gap(12));
+                UiText.of("A button bar with an AI menu, a rich-text body, the AI chat and the attachments as a group "
+                        + "of drawers at the bottom — stacked: the front one shows, the other is a bar; press the bar "
+                        + "or its handle to bring it forward, minimize the front one and the next takes its place. "
+                        + "“Dock ⇄” puts them side by side instead. And a drawer beside the mail that takes room (PUSH)."),
+                UiStack.of(UiStack.of(form, composerDock()).gap(8), details).direction(UiStack.Direction.HORIZONTAL).gap(12));
+    }
+
+    /**
+     * The composer's dock: two drawers in one strip at the bottom. The group
+     * owns the edge, the scope and the strip's size; the drawers keep their
+     * title, icon, badge, content and state. A REPLACE of the group (the Dock
+     * button) keeps the states the user left them in and, for a stack, who
+     * is in front.
+     */
+    private UiDrawerGroup composerDock() {
+        var chat = UiDrawer.of("ai-chat", "Draft with AI", UiCustom.of("chat-widget").prop("greeting",
+                        "Here is a first draft. Shall I make it shorter or more formal?"))
+                .icon("sparkles").badge("1").closable()
+                .onClose(UiTrigger.toast(UiToast.info("Chat closed — onClose lets the server clean up.")));
+        var attachments = UiDrawer.of("attachments", "Attachments",
+                        UiStack.of(UiText.of("agenda.pdf — 240 KB"), UiText.of("minutes.docx — 88 KB")))
+                .icon("paperclip").badge("2");
+        return UiDrawerGroup.of("composer-dock", chat, attachments)
+                .edge(UiDrawer.Edge.BOTTOM).scope(UiDrawer.Scope.CONTAINER).arrange(dockArrange)
+                .size("55%").minSize("140px").maxSize("90%").resizable()
+                .onActiveChange(UiTrigger.invoke("dockFront"));
     }
 
     private UiNode ordersToolbar() {
@@ -606,6 +627,18 @@ public class DemoApplication extends Application {
             var row = new javafx.scene.layout.HBox(8, ask, send);
             javafx.scene.layout.HBox.setHgrow(ask, javafx.scene.layout.Priority.ALWAYS);
             return new javafx.scene.layout.VBox(10, greeting, row);
+        });
+        bus.registerClientHandler("dockArrange", ctx -> {
+            dockArrange = dockArrange == UiDrawerGroup.Arrange.STACK ? UiDrawerGroup.Arrange.SHARE : UiDrawerGroup.Arrange.STACK;
+            bus.applyPatch(UiPatch.of().patch(UiPatch.Operation.replace("composer-dock", composerDock())));
+        });
+        // onActiveChange: the group is the source, and its active is the
+        // drawer the user brought to the front (a server would read {id}).
+        bus.registerClientHandler("dockFront", ctx -> {
+            if (ctx.source() instanceof UiDrawerGroup g) {
+                g.getDrawers().stream().filter(d -> d.getId().equals(g.getActive())).findFirst().ifPresent(d ->
+                        bus.toast(UiToast.info("In front: " + d.getTitle() + " — onActiveChange fired with {id} = " + d.getId())));
+            }
         });
         bus.registerClientHandler("sendMail", ctx -> bus.toast(UiToast.success(
                 "To " + ctx.payload().get("to") + ": " + ctx.payload().get("subject")).title("Sent")));
