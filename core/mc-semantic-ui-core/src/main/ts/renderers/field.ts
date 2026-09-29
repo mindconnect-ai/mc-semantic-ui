@@ -5,8 +5,9 @@ import { escapeHtml, encodeTrigger, type SuiRenderer } from "../renderer.js";
 import { renderIcon } from "./icon.js";
 import { renderActions } from "./shared.js";
 import { cls, evt } from "./util.js";
-import { choicesInDisplayOrder } from "./choices.js";
+import { choicesInDisplayOrder, selectedValues } from "./choices.js";
 import { renderRichTextToolbar, sanitizeRichText } from "./richtext.js";
+import { renderChip } from "./suggest.js";
 
 /**
  * A time as `HH:mm`, rounded to the nearest multiple of `stepSeconds`
@@ -133,7 +134,7 @@ function renderInput(f: UiField): string {
             // wiring itself lives in the bus so apps don't have to add a
             // per-textarea listener of their own.
             const submitOnEnter = f.submitOnEnter ? ' data-submit-on-enter="true"' : "";
-            return `<textarea id="${id}" name="${name}" rows="4"${submitOnEnter}${changeAttrs}>${valueAttr}</textarea>`;
+            return `<textarea id="${id}" name="${name}" rows="4"${suggestAttrs(f)}${submitOnEnter}${changeAttrs}>${valueAttr}</textarea>`;
         }
         case "RICHTEXT": {
             // An editable area carrying the HTML as-is, a toolbar above it,
@@ -159,10 +160,12 @@ function renderInput(f: UiField): string {
             return `<input type="checkbox" id="${id}" name="${name}"${changeAttrs} ${f.value ? "checked" : ""}>`;
         case "SELECT": {
             if (f.expanded) return renderChoices(f, id, name, changeAttrs);
+            if (suggestMode(f) === "one") return renderSuggestOne(f, id, name, changeAttrs);
             return `<select id="${id}" name="${name}"${changeAttrs}>${renderOptions(f)}</select>`;
         }
         case "MULTISELECT": {
             if (f.expanded) return renderChoices(f, id, name, changeAttrs);
+            if (suggestMode(f) === "many") return renderSuggestMany(f, id, name, changeAttrs);
             const size = Math.min((f.options || []).length + 1, 6);
             return `<select id="${id}" name="${name}"${changeAttrs} multiple size="${size}">${renderOptions(f)}</select>`;
         }
@@ -203,8 +206,75 @@ function renderInput(f: UiField): string {
                 + `<span class="sui-reveal-hide">${renderIcon("hide")}</span>`
                 + `</button></div>`;
         default:
-            return `<input type="text" id="${id}" name="${name}" value="${valueAttr}" placeholder="${escapeHtml(f.placeholder ?? "")}"${changeAttrs}>`;
+            return `<input type="text" id="${id}" name="${name}" value="${valueAttr}" placeholder="${escapeHtml(f.placeholder ?? "")}"${suggestAttrs(f)}${changeAttrs}>`;
     }
+}
+
+/**
+ * How a field takes suggestions — twin of {@code UiField#getSuggestMode}:
+ * {@code "text"} for TEXT and TEXTAREA (and a field without a type), {@code
+ * "one"} for a SELECT, {@code "many"} for a MULTISELECT; null without a
+ * suggest url, for other types, an expanded choice or a read-only field.
+ */
+export function suggestMode(f: UiField): "text" | "one" | "many" | null {
+    const url = f.suggest?.url;
+    if (f.editable !== true || typeof url !== "string" || url.trim() === "") return null;
+    const t = f.fieldType;
+    if (t == null || t === "TEXT" || t === "TEXTAREA") return "text";
+    if (f.expanded) return null;
+    if (t === "SELECT") return "one";
+    if (t === "MULTISELECT") return "many";
+    return null;
+}
+
+/**
+ * The attributes that hand a typing control to the suggestion enhancer
+ * (renderers/suggest.ts). Twin of the {@code suggestAttrs} SSR helper,
+ * attribute for attribute; nothing when the field takes no suggestions.
+ */
+export function suggestAttrs(f: UiField): string {
+    const mode = suggestMode(f);
+    if (!mode) return "";
+    let out = ` autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false"`
+        + ` data-sui-suggest="${escapeHtml(f.suggest!.url!)}"`;
+    if (mode === "text" && f.suggestSeparator) out += ` data-sui-suggest-separator="${escapeHtml(f.suggestSeparator)}"`;
+    if (f.suggestMinChars != null) out += ` data-sui-suggest-min="${Number(f.suggestMinChars)}"`;
+    if (f.suggestDebounceMs != null) out += ` data-sui-suggest-debounce="${Number(f.suggestDebounceMs)}"`;
+    if (mode !== "text") out += ` data-sui-suggest-mode="${mode}"`;
+    return out;
+}
+
+/**
+ * What a SELECT or MULTISELECT with suggestions shows as picked: each chosen
+ * value with the label of the option that has it, else the value itself.
+ * Twin of {@code UiField#getSuggestPicks}.
+ */
+export function suggestPicks(f: UiField): Array<{ value: string; label: string }> {
+    const values = f.fieldType === "MULTISELECT" ? selectedValues(f.value)
+        : f.value == null || String(f.value) === "" ? [] : [String(f.value)];
+    return values.map(v => {
+        const option = (f.options ?? []).find(o => o != null && o.value === v && o.label != null);
+        return { value: v, label: option ? String(option.label) : v };
+    });
+}
+
+/**
+ * A SELECT with suggestions: a search box showing the picked label (and
+ * carrying the change markers) and the hidden input the form submits. Twin of
+ * suggest-one.hbs.
+ */
+function renderSuggestOne(f: UiField, id: string, name: string, changeAttrs: string): string {
+    const pick = suggestPicks(f)[0];
+    const label = escapeHtml(pick?.label ?? "");
+    return `<input type="text" id="${id}" value="${label}" placeholder="${escapeHtml(f.placeholder ?? "")}" data-sui-suggest-label="${label}"${suggestAttrs(f)}${changeAttrs}>`
+        + `<input type="hidden" name="${name}" value="${escapeHtml(pick?.value ?? "")}" data-sui-type="SELECT">`;
+}
+
+/** A MULTISELECT with suggestions: a chip per picked value and a search box after them. Twin of suggest-many.hbs. */
+function renderSuggestMany(f: UiField, id: string, name: string, changeAttrs: string): string {
+    const chips = suggestPicks(f).map(p => renderChip(f.id, p.value, p.label)).join("");
+    return `<div class="sui-chips" data-sui-chips="${name}">${chips}`
+        + `<input type="text" id="${id}" class="sui-chips-input" placeholder="${escapeHtml(f.placeholder ?? "")}"${suggestAttrs(f)}${changeAttrs}></div>`;
 }
 
 /**

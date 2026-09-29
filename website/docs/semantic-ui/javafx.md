@@ -146,6 +146,10 @@ the client replaces exactly that panel. The demo does this over a real socket.
 Anything else paints a visible placeholder instead of throwing, so an unknown
 node degrades rather than taking the window down.
 
+A field's `suggest` (suggestions while typing) is a browser feature: the
+desktop client shows the field without them, and a SELECT or MULTISELECT
+offers the `options` it was given.
+
 `UiIFrame` needs a WebView, so it lives in a second artifact — see
 [`iframe`, in its own artifact](#iframe-in-its-own-artifact) below. `UiPage` is a response envelope
 rather than a visual node, and belongs to the event bus — see

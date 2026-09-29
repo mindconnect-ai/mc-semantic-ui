@@ -348,6 +348,29 @@ function dataTab() {
     ], { gap: 16 });
 }
 
+// ── Suggestions (UiField.suggest) — the demo's stand-in for a server ─────────
+const DEMO_CONTACTS = [
+    ["Anna Muster", "anna@example.com", "Sales"], ["Andreas Brunner", "andreas@example.com", "Support"],
+    ["Bert Keller", "bert@example.com", "Engineering"], ["Beatrice Roth", "beatrice@example.com", "Finance"],
+    ["Carla Meier", "carla@example.com", "Marketing"], ["Daniel Frei", "daniel@example.com", "Engineering"],
+    ["Eva Schmid", "eva@example.com", "Legal"], ["Fabian Huber", "fabian@example.com", "Sales"],
+];
+const DEMO_LABELS = ["Urgent", "Later", "Invoice", "Travel", "Personal", "Newsletter", "Waiting", "Done"];
+
+/** The answer a server would give to GET /demo/suggest/<kind>?q=…, or null for any other url. */
+function demoSuggestions(url) {
+    const m = /^\/demo\/suggest\/(contacts|people|labels)\?q=([^&#]*)/.exec(url);
+    if (!m) return null;
+    const q = decodeURIComponent(m[2]).toLowerCase();
+    const hit = (...words) => words.some(w => w.toLowerCase().includes(q));
+    if (m[1] === "labels") {
+        return DEMO_LABELS.filter(l => hit(l)).map(l => ({ value: l.toLowerCase(), label: l }));
+    }
+    return DEMO_CONTACTS.filter(([name, mail]) => hit(name, mail)).map(([name, mail, team], i) => m[1] === "contacts"
+        ? { value: mail, label: `${name} <${mail}>`, detail: team }
+        : { value: "u" + (DEMO_CONTACTS.findIndex(c => c[1] === mail) + 1), label: name, detail: team });
+}
+
 // ── Tab: Forms ──────────────────────────────────────────────────────────────
 function formsTab() {
     const form = {
@@ -422,10 +445,40 @@ function formsTab() {
     .field(UiField.bool("d-active", "Active", true))
     .link(UiLink.of("ref", "#", "View history"));`;
 
+    // Suggestions while typing (UiField.suggest). The three urls are answered
+    // by the demo's fetcher from DEMO_CONTACTS / DEMO_LABELS — a real server
+    // answers GET <url>?q=<token> with the same JSON array.
+    const suggestForm = {
+        type: "form", id: "demo-suggest", title: "New message",
+        fields: [
+            { type: "field", id: "s-to", label: "To", fieldType: "TEXT", editable: true, value: "",
+              placeholder: "Type a name — pick with ↓ and Enter", suggest: { url: "/demo/suggest/contacts" }, suggestSeparator: "," },
+            { type: "field", id: "s-owner", label: "Owner", fieldType: "SELECT", editable: true, value: "u2",
+              options: [{ value: "u2", label: "Bert Keller" }], suggest: { url: "/demo/suggest/people" } },
+            { type: "field", id: "s-labels", label: "Labels", fieldType: "MULTISELECT", editable: true, value: ["urgent"],
+              options: [{ value: "urgent", label: "Urgent" }], placeholder: "Add a label…", suggest: { url: "/demo/suggest/labels" } },
+        ],
+    };
+    const suggestJava =
+`UiForm.of("demo-suggest", "New message")
+    // A recipient line: suggestions for the address under the caret, "," between them.
+    .field(UiField.text("s-to", "To", "").asEditable()
+        .suggest(UiTrigger.go("/contacts/suggest")).suggestSeparator(","))
+    // A searchable dropdown: the options come from the server as the user types.
+    .field(UiField.select("s-owner", "Owner", "u2", List.of(UiField.Option.of("u2", "Bert Keller")))
+        .asEditable().suggest(UiTrigger.go("/people/suggest")))
+    // Several picks, each a chip.
+    .field(UiField.multiselect("s-labels", "Labels", List.of("urgent"), List.of(UiField.Option.of("urgent", "Urgent")))
+        .asEditable().suggest(UiTrigger.go("/labels/suggest")));
+
+// The server answers GET /contacts/suggest?q=an with:
+// [{ "value": "anna@example.com", "label": "Anna Muster <anna@example.com>", "detail": "Sales" }]`;
+
     return stack("tab-forms", [
         text("forms-intro", "The form loads with every field flagged. Save re-flags them all, Cancel clears them — no backend involved: each button carries an inline PATCH trigger that the bus applies client-side. That's why it works unchanged in an exported CodePen."),
         specimen("sp-form",   "Form — field types, action styles, links", form, formJava),
         specimen("sp-detail", "Detail — a read-only definition list", detail, detailJava),
+        specimen("sp-suggest", "Field — suggestions while typing (recipients, a searchable select, chips)", suggestForm, suggestJava),
     ], { gap: 16 });
 }
 
@@ -1699,6 +1752,8 @@ async function boot() {
     bus.setFetcher((input, init = {}) => {
         const url = typeof input === "string" ? input : (input && input.url) || "";
         const method = (init && init.method) || "GET";
+        const suggestions = demoSuggestions(url);
+        if (suggestions) return Promise.resolve(new Response(JSON.stringify(suggestions), { headers: { "Content-Type": "application/json" } }));
         showToast(`${method} ${url} — no backend (demo)`);
         return jsonResponse({ patches: [] });
     });

@@ -4,6 +4,7 @@ import { applyMenuState, nextMenuState, restoreMenuState, wireRailFlyouts } from
 import { renderIcon } from "./renderers/icon.js";
 import { wireOverflow } from "./renderers/overflow.js";
 import { wireMenuButtons } from "./renderers/menu-button.js";
+import { wireSuggest, setSuggestPicks } from "./renderers/suggest.js";
 import { wireDrawers, type DrawerState } from "./renderers/drawer.js";
 import { wireAutoScroll } from "./renderers/autoscroll.js";
 import { wireRichText } from "./renderers/richtext.js";
@@ -682,6 +683,13 @@ export class SuiEventBus {
             this.fireOn(editor, "change");
             return true;
         }
+        // A SELECT or MULTISELECT with suggestions: the picks are chips or a
+        // hidden input behind a search box, and the search box speaks for them.
+        const picked = setSuggestPicks(el, value);
+        if (picked !== undefined) {
+            if (picked) { this.fireOn(picked, "input"); this.fireOn(picked, "change"); }
+            return true;
+        }
         const controls = this.controlsNamed(el, id);
         if (controls.length === 0) return false;
         // Only what actually moved reports itself, and only the way a browser
@@ -1116,6 +1124,8 @@ export class SuiEventBus {
         // the same bound handlers every time, and addEventListener ignores a
         // duplicate.
         this.installListenersOn(host);
+        // A field in a dialog asks for its suggestions with this bus's fetch too.
+        try { wireSuggest(host, () => this.fetcher); } catch { /* ignore */ }
         host.setAttribute?.("data-sui-live", "");
         // inScope() consults this so events from within dialogs are handled.
         this.dialogListenerHost = host;
@@ -1196,6 +1206,9 @@ export class SuiEventBus {
         // tab bars, header extras, application toolbars.
         try { wireOverflow(this.root); } catch { /* ignore */ }
         try { wireMenuButtons(this.root); } catch { /* ignore */ }
+        // Suggestions while typing (UiField.suggest): document listeners, set
+        // up once; each pass hands over this bus's fetch for its fields.
+        try { wireSuggest(this.root, () => this.fetcher); } catch { /* ignore */ }
         // Drawers: handle, minimize, close, Escape, resize — and the user's
         // changes reported to the server through onStateChange / onClose.
         try {
@@ -2682,7 +2695,20 @@ function harvestNamedControls(root: HTMLElement): Record<string, unknown> {
             if (suiType === "SELECT" && !(name in out)) out[name] = null;
             continue;
         }
+        // A MULTISELECT with suggestions: a hidden input per chip.
+        if (ctrl instanceof HTMLInputElement && ctrl.type === "hidden" && suiType === "MULTISELECT") {
+            const picked = Array.isArray(out[name]) ? out[name] as string[] : (out[name] = []) as string[];
+            picked.push(ctrl.value);
+            continue;
+        }
         out[name] = readInputValue(ctrl, ctrl.dataset.suiType);
+    }
+    // …and one without chips still says so: an empty list, not a missing key.
+    const chipLists = Array.from(root.querySelectorAll<HTMLElement>("[data-sui-chips]"));
+    if (root.getAttribute?.("data-sui-chips") != null) chipLists.unshift(root);
+    for (const list of chipLists) {
+        const name = list.getAttribute("data-sui-chips");
+        if (name && !(name in out)) out[name] = [];
     }
     return out;
 }

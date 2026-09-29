@@ -30,7 +30,7 @@
     {{~#if trailing}}<div class="sui-field-row">{{/if~}}
     {{~#unless (expandedChoice this)}}{{#if icon}}<div class="sui-input-icon">{{{icon icon}}}{{/if}}{{/unless~}}
     {{~#if (eq fieldType "TEXTAREA")~}}
-      <textarea id="{{id}}__input" name="{{id}}" rows="4" data-sui-type="{{fieldType}}"{{#if submitOnEnter}} data-submit-on-enter="true"{{/if}}{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>{{value}}</textarea>
+      <textarea id="{{id}}__input" name="{{id}}" rows="4" data-sui-type="{{fieldType}}"{{{suggestAttrs this}}}{{#if submitOnEnter}} data-submit-on-enter="true"{{/if}}{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>{{value}}</textarea>
     {{~else if (eq fieldType "RICHTEXT")~}}
       {{!-- Formatted text: the HTML, sanitised by the `richtext` helper
            (RichTextSanitizer), in an editable area with a toolbar above it,
@@ -42,9 +42,9 @@
     {{~else if (eq fieldType "BOOLEAN")~}}
       <input type="checkbox" id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}{{#if value}} checked{{/if}}>
     {{~else if (eq fieldType "SELECT")~}}
-      {{~#if expanded}}{{> choice-group this}}{{else}}<select id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>{{#each (choices this)}}<option value="{{value}}"{{#if checked}} selected{{/if}}>{{label}}</option>{{/each}}</select>{{/if~}}
+      {{~#if expanded}}{{> choice-group this}}{{else if (eq suggestMode "one")}}{{> suggest-one this}}{{else}}<select id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>{{#each (choices this)}}<option value="{{value}}"{{#if checked}} selected{{/if}}>{{label}}</option>{{/each}}</select>{{/if~}}
     {{~else if (eq fieldType "MULTISELECT")~}}
-      {{~#if expanded}}{{> choice-group this}}{{else}}<select id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}} multiple size="{{min (add (len options) 1) 6}}">{{#each (choices this)}}<option value="{{value}}"{{#if checked}} selected{{/if}}>{{label}}</option>{{/each}}</select>{{/if~}}
+      {{~#if expanded}}{{> choice-group this}}{{else if (eq suggestMode "many")}}{{> suggest-many this}}{{else}}<select id="{{id}}__input" name="{{id}}" data-sui-type="{{fieldType}}"{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}} multiple size="{{min (add (len options) 1) 6}}">{{#each (choices this)}}<option value="{{value}}"{{#if checked}} selected{{/if}}>{{label}}</option>{{/each}}</select>{{/if~}}
     {{~else if (eq fieldType "NUMBER")~}}
       <input type="number" id="{{id}}__input" name="{{id}}" value="{{value}}" data-sui-type="{{fieldType}}"{{#if this.min}} min="{{this.min}}"{{/if}}{{#if max}} max="{{max}}"{{/if}}{{#if step}} step="{{step}}"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
     {{~else if (eq fieldType "CURRENCY")~}}
@@ -65,7 +65,7 @@
            wrapper's .is-revealed class; CSS swaps the show/hide glyphs. --}}
       <div class="sui-input-reveal"><input type="password" id="{{id}}__input" name="{{id}}" value="{{value}}" placeholder="{{placeholder}}" data-sui-type="{{fieldType}}"{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}><button type="button" class="sui-input-reveal-btn" data-sui-password-toggle aria-label="Show password"><span class="sui-reveal-show">{{{icon "show"}}}</span><span class="sui-reveal-hide">{{{icon "hide"}}}</span></button></div>
     {{~else~}}
-      <input type="text" id="{{id}}__input" name="{{id}}" value="{{value}}" placeholder="{{placeholder}}" data-sui-type="{{fieldType}}"{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
+      <input type="text" id="{{id}}__input" name="{{id}}" value="{{value}}" placeholder="{{placeholder}}" data-sui-type="{{fieldType}}"{{{suggestAttrs this}}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}>
     {{~/if~}}
     {{~#unless (expandedChoice this)}}{{#if icon}}</div>{{/if}}{{/unless~}}
     {{~#if trailing}}{{> action trailing}}</div>{{/if~}}

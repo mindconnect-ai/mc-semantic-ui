@@ -71,6 +71,7 @@ export {
 // dispatcher like any other; the handler slot is the older way of replacing
 // how a row is drawn, and the "item" handler delegates to it.
 import { defaultRenderItem } from "./renderers/shared.js";
+import { suggestPicksUnder } from "./renderers/suggest.js";
 import type { OutlineHandler } from "./snapshot.js";
 import { renderAppShell } from "./renderers/app-shell.js";
 
@@ -1226,7 +1227,11 @@ export class SuiRenderer {
         try { live = this.inputReader(target); } catch { return merged; }
         if (!live || Object.keys(live).length === 0) return merged;
 
-        const withLive = (node: unknown, replacedByMerge: (key: string) => boolean): unknown => {
+        // A field whose picks came from the server as suggestions knows their
+        // labels only on the page: they are added to its options, or the redraw
+        // would show the ids the picks stand for.
+        const picks = suggestPicksUnder(target);
+                const withLive = (node: unknown, replacedByMerge: (key: string) => boolean): unknown => {
             if (node == null || typeof node !== "object") return node;
             if (Array.isArray(node)) {
                 let changed = false;
@@ -1243,6 +1248,12 @@ export class SuiRenderer {
                 && record.fieldType !== "FILE" && Object.prototype.hasOwnProperty.call(live, record.id)
                 && !replacedByMerge("value")) {
                 copy = { ...record, value: live[record.id] };
+                const shown = record.suggest && !replacedByMerge("options") ? picks.get(record.id) : undefined;
+                if (shown && shown.length > 0) {
+                    const known = Array.isArray(record.options) ? record.options as Array<{ value?: string }> : [];
+                    const added = shown.filter(p => !known.some(o => o?.value === p.value));
+                    if (added.length > 0) copy.options = [...known, ...added];
+                }
             }
             for (const [key, value] of Object.entries(record)) {
                 if (value == null || typeof value !== "object" || replacedByMerge(key)) continue;

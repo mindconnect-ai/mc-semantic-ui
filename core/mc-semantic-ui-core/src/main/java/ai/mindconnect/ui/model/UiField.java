@@ -165,6 +165,38 @@ public class UiField extends UiNode {
     @JsonInclude(JsonInclude.Include.NON_DEFAULT)
     private boolean fill;
 
+    /**
+     * Suggestions while typing, fetched from the server. On {@link FieldType#TEXT}
+     * and {@link FieldType#TEXTAREA} the browser asks {@code GET <url>?q=<token>}
+     * for the token under the caret and offers what comes back in a dropdown
+     * under the field; picking one writes its {@code value} over the token. On
+     * {@link FieldType#SELECT} the field becomes a searchable dropdown whose
+     * options come from the server as the user types; on
+     * {@link FieldType#MULTISELECT} each pick becomes a chip. An expanded
+     * choice (radios, checkboxes) ignores it.
+     *
+     * <p>Only the trigger's {@code url} is used; the request is a plain
+     * same-origin GET that neither marks the field busy nor shows the loading
+     * indicator, and the latest request wins. The answer is a JSON array:
+     * {@code [{"value": "anna@example.com", "label": "Anna Muster <anna@example.com>",
+     * "detail": "optional second line"}]} — {@code label} defaults to the value.
+     * Needs the browser bundle; the JavaFX client shows the field without
+     * suggestions.
+     */
+    private UiTrigger suggest;
+    /**
+     * TEXT / TEXTAREA with {@link #suggest}: what separates the entries of a
+     * list the user types — {@code ","} for a recipient line. Suggestions are
+     * asked for the entry under the caret, and picking one appends the
+     * separator and a space so the next can be typed. Null: the whole value is
+     * one entry.
+     */
+    private String suggestSeparator;
+    /** How many characters the token needs before suggestions are asked for. Null means 1. */
+    private Integer suggestMinChars;
+    /** How long typing has to pause before suggestions are asked for, in milliseconds. Null means 200. */
+    private Integer suggestDebounceMs;
+
     /** A CSS length: a number and a unit, nothing else can reach the style attribute. */
     public static final java.util.regex.Pattern CSS_LENGTH =
             java.util.regex.Pattern.compile("\\d{1,5}(?:\\.\\d{1,3})?(?:px|rem|em|vh|dvh|svh|lvh|%)");
@@ -319,6 +351,73 @@ public class UiField extends UiNode {
     public UiField onChange(UiTrigger trigger) {
         setOnChange(trigger);
         return this;
+    }
+
+    /** Suggestions from {@code trigger}'s url as the user types. See {@link #suggest}. */
+    public UiField suggest(UiTrigger trigger) {
+        this.suggest = trigger;
+        return this;
+    }
+
+    /** Entries in the value are separated by {@code separator} ({@code ","} for recipients). See {@link #suggestSeparator}. */
+    public UiField suggestSeparator(String separator) {
+        this.suggestSeparator = separator;
+        return this;
+    }
+
+    /** Ask for suggestions from {@code chars} typed characters on (default 1). */
+    public UiField suggestMinChars(int chars) {
+        if (chars < 0) throw new IllegalArgumentException("suggestMinChars must not be negative: " + chars);
+        this.suggestMinChars = chars;
+        return this;
+    }
+
+    /** Wait {@code millis} after the last keystroke before asking (default 200). */
+    public UiField suggestDebounceMs(int millis) {
+        if (millis < 0) throw new IllegalArgumentException("suggestDebounceMs must not be negative: " + millis);
+        this.suggestDebounceMs = millis;
+        return this;
+    }
+
+    /**
+     * How the field takes {@link #suggest suggestions} — the rule every
+     * renderer shares (field.hbs, {@code suggestMode} in renderers/field.ts):
+     * {@code "text"} for TEXT and TEXTAREA (and a field without a type, which
+     * renders as TEXT), {@code "one"} for a SELECT, {@code "many"} for a
+     * MULTISELECT; null without a suggest url, for any other type, for an
+     * expanded choice and for a field that is not editable.
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public String getSuggestMode() {
+        if (!editable || suggest == null || suggest.getUrl() == null || suggest.getUrl().isBlank()) return null;
+        if (fieldType == null || fieldType == FieldType.TEXT || fieldType == FieldType.TEXTAREA) return "text";
+        if (expanded) return null;
+        if (fieldType == FieldType.SELECT) return "one";
+        if (fieldType == FieldType.MULTISELECT) return "many";
+        return null;
+    }
+
+    /**
+     * What a SELECT or MULTISELECT with suggestions shows as picked: each
+     * chosen value with the label of the option that has it, or the value
+     * itself when no option does — the suggestions came from the server, so
+     * {@link #options} need only hold the ones the page already knows.
+     */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public List<Option> getSuggestPicks() {
+        List<String> values = fieldType == FieldType.MULTISELECT ? selectedValues()
+                : valueText(value) == null || valueText(value).isEmpty() ? List.of() : List.of(valueText(value));
+        var picks = new ArrayList<Option>(values.size());
+        for (String v : values) {
+            String label = v;
+            if (options != null) {
+                for (Option o : options) {
+                    if (o != null && v.equals(o.getValue()) && o.getLabel() != null) { label = o.getLabel(); break; }
+                }
+            }
+            picks.add(Option.of(v, label));
+        }
+        return picks;
     }
 
     /** Restricts the file picker (FILE fields). See {@link #accept}. */

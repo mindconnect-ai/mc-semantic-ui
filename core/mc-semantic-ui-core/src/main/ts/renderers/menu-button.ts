@@ -339,7 +339,7 @@ function openMenuButton(details: HTMLDetailsElement): void {
  * its start/end edge, flipping up when there's no room below and clamping into
  * the viewport. position:fixed means no ancestor's overflow can clip it.
  */
-function positionPopover(trigger: HTMLElement, pop: HTMLElement, alignStart: boolean): void {
+export function positionPopover(trigger: HTMLElement, pop: HTMLElement, alignStart: boolean): void {
     const gap = 6, margin = 8;
     const r = trigger.getBoundingClientRect();
     // Measure at a neutral spot first so offsetWidth/Height are the natural size.

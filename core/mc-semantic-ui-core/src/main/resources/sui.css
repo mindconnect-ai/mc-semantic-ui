@@ -1541,6 +1541,60 @@ details.sui-section--collapsible > summary.sui-section-summary:hover { backgroun
 .sui-tab-more-menu .sui-tab:hover { background: var(--sui-color-border-soft); }
 .sui-tab-more-menu .sui-tab.active { background: var(--sui-color-primary-soft); }
 
+/* ── Suggestions while typing (UiField.suggest) ────────────────────────────
+   The list hangs off <body> with position:fixed (renderers/suggest.ts places
+   it like a menu popover), so no scrolling dialog body or overflow:hidden
+   card can cut it; above the dialog host (500), below the toasts (1000).
+   Tokens only, so it follows the dark themes. */
+.sui-suggest-list {
+    position: fixed; z-index: 600;
+    margin: 0; padding: 4px; list-style: none; box-sizing: border-box;
+    max-width: min(480px, calc(100vw - 16px)); max-height: 320px; overflow-y: auto;
+    background: var(--sui-color-surface); color: var(--sui-color-text-body);
+    border: 1px solid var(--sui-color-border); border-radius: var(--sui-radius-md);
+    box-shadow: var(--sui-shadow-pop);
+    font-size: 14px;
+    animation: sui-menu-pop-in var(--sui-duration-fast) ease-out;
+}
+.sui-suggest-option {
+    display: flex; flex-direction: column; gap: 1px;
+    padding: 7px 10px; border-radius: var(--sui-radius-sm); cursor: pointer;
+}
+.sui-suggest-option:hover,
+.sui-suggest-option[aria-selected="true"] { background: var(--sui-color-surface-alt); color: var(--sui-color-text-strong); }
+.sui-suggest-label, .sui-suggest-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sui-suggest-detail { font-size: 12px; color: var(--sui-color-text-muted); }
+
+/* A MULTISELECT with suggestions: the chips and the search box share one
+   field-looking box, which takes the focus ring when the box inside has it. */
+.sui-chips {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    min-height: 40px; padding: 4px 8px; box-sizing: border-box; width: 100%;
+    border: 1px solid var(--sui-color-border); border-radius: var(--sui-radius-md);
+    background: var(--sui-color-surface); cursor: text;
+    transition: border-color var(--sui-duration-fast), box-shadow var(--sui-duration-fast);
+}
+.sui-chips:focus-within { border-color: var(--sui-color-primary); box-shadow: var(--sui-focus-ring); }
+.sui-field .sui-chips .sui-chips-input,
+.sui-field .sui-chips .sui-chips-input:focus {
+    flex: 1 1 120px; min-width: 80px; width: auto;
+    padding: 4px 2px; border: 0; background: transparent; box-shadow: none;
+}
+.sui-chip {
+    display: inline-flex; align-items: center; gap: 2px; max-width: 100%;
+    padding: 2px 2px 2px 10px; border-radius: 999px;
+    background: var(--sui-color-primary-soft); color: var(--sui-color-text-strong);
+    font-size: 13px; line-height: 20px;
+}
+.sui-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sui-chip-remove {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px; padding: 0; border: 0; border-radius: 999px;
+    background: none; color: inherit; opacity: .65; cursor: pointer;
+}
+.sui-chip-remove:hover { opacity: 1; background: var(--sui-color-surface-alt); }
+.sui-chip-remove .sui-icon { width: 12px; height: 12px; }
+
 /* ── Menu button (dropdown / context / "kebab" menu) ────────────────────── */
 
 /* Wrapper is a native <details> so it opens with no JS; the SPA repositions the

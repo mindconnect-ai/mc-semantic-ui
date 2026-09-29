@@ -1,0 +1,8 @@
+{{!--
+  A SELECT with suggestions: a searchable dropdown. The text input is what the
+  user types into — it shows the picked option's label and carries the change
+  markers; the hidden input is what the form submits. renderers/suggest.ts
+  fills both when an option is picked. Twin of renderSuggestOne() in
+  renderers/field.ts.
+--}}
+<input type="text" id="{{id}}__input" value="{{#each suggestPicks}}{{label}}{{/each}}" placeholder="{{placeholder}}" data-sui-suggest-label="{{#each suggestPicks}}{{label}}{{/each}}"{{{suggestAttrs this}}}{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}><input type="hidden" name="{{id}}" value="{{#each suggestPicks}}{{value}}{{/each}}" data-sui-type="SELECT">

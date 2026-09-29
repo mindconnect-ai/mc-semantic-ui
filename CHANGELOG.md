@@ -21,6 +21,22 @@ fresh empty one, so nothing has to be moved by hand at release time.
 
 ## [Unreleased]
 
+### Added
+
+- **Suggestions while typing: `UiField.suggest(UiTrigger)`.** A `TEXT` or
+  `TEXTAREA` asks `GET <url>?q=<token>` for the entry under the caret once
+  typing pauses, and offers the answer — a JSON array of
+  `{value, label?, detail?}` — in a dropdown under the field (combobox
+  semantics: arrows, Enter/Tab, Escape, click). A pick replaces only that
+  entry; with `suggestSeparator(",")` it appends `", "`, which makes a
+  recipient line. A `SELECT` with `suggest` becomes a searchable dropdown
+  whose options come from the server, a `MULTISELECT` a row of chips. Then
+  the field's own `input` and `change` fire, so `onChange` and form
+  harvesting see the value. The request is a plain same-origin GET — no busy
+  field, no loading indicator — and the latest one wins. `suggestMinChars`
+  (default 1) and `suggestDebounceMs` (default 200) tune it. The JavaFX
+  client shows such a field without suggestions.
+
 ## [0.4.4] - 2026-09-25
 
 ### Added

@@ -43,6 +43,18 @@ export class El {
     removeAttribute(n) { delete this.attrs[n]; }
     hasAttribute(n) { return n in this.attrs; }
     appendChild(c) { c.parentElement = this; this.children.push(c); return c; }
+    insertBefore(c, ref) {
+        if (c.parentElement) c.remove();
+        const at = ref ? this.children.indexOf(ref) : -1;
+        c.parentElement = this;
+        if (at < 0) this.children.push(c); else this.children.splice(at, 0, c);
+        return c;
+    }
+    get firstElementChild() { return this.children[0] ?? null; }
+    get nextElementSibling() {
+        const siblings = this.parentElement?.children ?? [];
+        return siblings[siblings.indexOf(this) + 1] ?? null;
+    }
     remove() {
         const p = this.parentElement;
         if (!p) return;
@@ -81,7 +93,8 @@ export class El {
     querySelector(sel) { return this.querySelectorAll(sel)[0] ?? null; }
     getBoundingClientRect() { return { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 }; }
     focus() { }
-    get textContent() { return ""; }
+    get textContent() { return this._text ?? ""; }
+    set textContent(v) { this._text = String(v); }
 }
 
 /** "A B > C": the last compound matches the element, the rest its ancestors. */

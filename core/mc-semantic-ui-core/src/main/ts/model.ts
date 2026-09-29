@@ -133,6 +133,19 @@ export interface UiField {
      */
     fill?: boolean;
     /**
+     * Suggestions while typing: `GET <suggest.url>?q=<token>` answers a JSON
+     * array of `{ value, label?, detail? }`, offered in a dropdown under the
+     * field. TEXT / TEXTAREA write the pick over the token under the caret;
+     * a SELECT becomes a searchable dropdown, a MULTISELECT a row of chips.
+     */
+    suggest?: UiTrigger;
+    /** TEXT / TEXTAREA: what separates entries ("," for recipients); absent = the whole value is one entry. */
+    suggestSeparator?: string;
+    /** Characters the token needs before suggestions are asked for; absent = 1. */
+    suggestMinChars?: number;
+    /** Pause after typing before they are asked for, in ms; absent = 200. */
+    suggestDebounceMs?: number;
+    /**
      * Only meaningful for {@code TEXTAREA}: when true, pressing Enter
      * inside the textarea submits the surrounding form; Shift+Enter
      * still inserts a newline. Used for chat-style inputs.

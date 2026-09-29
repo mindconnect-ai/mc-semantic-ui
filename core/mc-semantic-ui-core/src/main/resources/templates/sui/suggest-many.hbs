@@ -1,0 +1,8 @@
+{{!--
+  A MULTISELECT with suggestions: each picked value a chip with its own hidden
+  input, and a text input at the end to search for the next. The chip list is
+  what the form submits (an empty one submits an empty list); the text input
+  carries the change markers. Twin of renderSuggestMany() in
+  renderers/field.ts.
+--}}
+<div class="sui-chips" data-sui-chips="{{id}}">{{#each suggestPicks}}<span class="sui-chip" data-value="{{value}}"><span class="sui-chip-label">{{label}}</span><button type="button" class="sui-chip-remove" data-sui-chip-remove aria-label="Remove {{label}}">{{{icon "x"}}}</button><input type="hidden" name="{{../id}}" value="{{value}}" data-sui-type="MULTISELECT"></span>{{/each}}<input type="text" id="{{id}}__input" class="sui-chips-input" placeholder="{{placeholder}}"{{{suggestAttrs this}}}{{#if submitOnChange}} data-submit-on-change="true"{{/if}}{{#if onChange}} data-change-trigger='{{{trigger onChange}}}'{{/if}}></div>

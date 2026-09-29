@@ -342,6 +342,16 @@ public final class SuiHandlebarsHelpers {
         hb.registerHelper("choices", (ctx, opts) ->
                 ctx instanceof ai.mindconnect.ui.model.UiField f ? choiceMaps(f) : java.util.List.of());
 
+        // {{{suggestAttrs this}}} → the attributes that hand a field's typing
+        // control to the browser's suggestion enhancer (renderers/suggest.ts):
+        // combobox semantics, the url, and the separator, minimum and debounce
+        // when the model sets them; nothing when the field takes no
+        // suggestions (UiField#getSuggestMode). Twin of suggestAttrs() in
+        // renderers/field.ts, attribute for attribute.
+        hb.registerHelper("suggestAttrs", (ctx, opts) ->
+                ctx instanceof ai.mindconnect.ui.model.UiField f && f.getSuggestMode() != null
+                        ? new com.github.jknack.handlebars.Handlebars.SafeString(suggestAttrs(f)) : "");
+
         // {{{richtext value}}} / {{richtext value}} → a RICHTEXT value reduced to
         // what the editor itself produces (RichTextSanitizer). A plain string:
         // raw in triple braces, escaped in double. Twin of sanitizeRichText().
@@ -786,6 +796,19 @@ public final class SuiHandlebarsHelpers {
 
     /** Truthiness for the {@code or} helper: non-null, non-false, non-empty. */
     /** A field's choices as template maps; value and label never null (see the `choices` helper). */
+    private static String suggestAttrs(ai.mindconnect.ui.model.UiField f) {
+        var b = new StringBuilder(" autocomplete=\"off\" role=\"combobox\" aria-autocomplete=\"list\" aria-expanded=\"false\"");
+        b.append(" data-sui-suggest=\"").append(com.github.jknack.handlebars.Handlebars.Utils.escapeExpression(f.getSuggest().getUrl())).append('"');
+        String sep = f.getSuggestSeparator();
+        if ("text".equals(f.getSuggestMode()) && sep != null && !sep.isEmpty()) {
+            b.append(" data-sui-suggest-separator=\"").append(com.github.jknack.handlebars.Handlebars.Utils.escapeExpression(sep)).append('"');
+        }
+        if (f.getSuggestMinChars() != null) b.append(" data-sui-suggest-min=\"").append(f.getSuggestMinChars()).append('"');
+        if (f.getSuggestDebounceMs() != null) b.append(" data-sui-suggest-debounce=\"").append(f.getSuggestDebounceMs()).append('"');
+        if (!"text".equals(f.getSuggestMode())) b.append(" data-sui-suggest-mode=\"").append(f.getSuggestMode()).append('"');
+        return b.toString();
+    }
+
     private static java.util.List<java.util.Map<String, Object>> choiceMaps(ai.mindconnect.ui.model.UiField f) {
         return f.choicesInDisplayOrder().stream().map(c -> java.util.Map.<String, Object>of(
                 "value", c.option().getValue() == null ? "" : c.option().getValue(),

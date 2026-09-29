@@ -56,6 +56,10 @@ which reports the new value without submitting anything.*
 | `editorHeight` | `string` | `RICHTEXT` only: the height of the whole editor, toolbar included, as a CSS length (`"320px"`, `"20rem"`, `"40vh"`). The toolbar stays, the text scrolls. Set with `.editorHeight("320px")`; anything but a length is refused. |
 | `fill` | `boolean` | `RICHTEXT` only: the field fills the height of its flex parent, toolbar fixed, text scrolling. Set with `.fill()`. |
 | `orderable` | `boolean` | Expanded `MULTISELECT` only: checked options lead the list with move-up/down buttons, and the list is submitted in the order shown. Set with `.orderable()`, which implies `.asCheckboxes()`. The buttons need the SPA EventBus or JavaFX. |
+| `suggest` | `UiTrigger` | Suggestions while typing, from `GET <url>?q=<token>`. `TEXT`, `TEXTAREA`, `SELECT` and `MULTISELECT`; see [suggestions](#suggestions-while-typing). Only the trigger's `url` is used. |
+| `suggestSeparator` | `String` | `TEXT` / `TEXTAREA` with `suggest`: what separates entries (`","` for recipients). Unset: the whole value is one entry. |
+| `suggestMinChars` | `int` | Characters the entry needs before suggestions are asked for. Default `1`. |
+| `suggestDebounceMs` | `int` | Pause after the last keystroke before they are asked for, in milliseconds. Default `200`. |
 | `cssClass` | `String` | Extra CSS class on the field wrapper. |
 
 ### Field types
@@ -135,6 +139,95 @@ they are not shown, and the order is the one the server rendered.
 every single-line control — not with `HIDDEN` or a radio / checkbox group. `CURRENCY` and
 `PERCENT` are semantic labels only: the renderer emits the same number input as
 `NUMBER`, so format the display value yourself for the read-only case.
+
+### Suggestions while typing
+
+A field with `suggest` asks the server what fits what the user is typing and
+offers it in a dropdown under the field. A recipient line is the classic case:
+
+```java
+UiField.text("to", "To", "").asEditable()
+    .suggest(UiTrigger.go("/contacts/suggest"))
+    .suggestSeparator(",");
+```
+
+The browser sends `GET /contacts/suggest?q=an` for the entry under the caret,
+once typing has paused (`suggestDebounceMs`, 200 by default) and the entry
+has `suggestMinChars` characters (1 by default). The server answers a plain
+JSON array — `label` defaults to the value, `detail` is an optional second
+line:
+
+```json
+[
+  { "value": "anna@example.com",    "label": "Anna Muster <anna@example.com>", "detail": "Sales" },
+  { "value": "andreas@example.com", "label": "Andreas Brunner <andreas@example.com>" }
+]
+```
+
+```java
+@GetMapping("/contacts/suggest")
+List<Map<String, String>> suggest(@RequestParam String q) {
+    return contacts.search(q, 8).stream()
+            .map(c -> Map.of("value", c.email(), "label", c.name() + " <" + c.email() + ">"))
+            .toList();
+}
+```
+
+Up to eight are shown. The arrow keys move through them, Enter or Tab takes
+the highlighted one, Escape closes the list, a click takes one too;
+Shift+Tab goes back to the field before as usual, and with no suggestions
+there is no list. In a text field nothing is highlighted until an arrow key
+says so — an address the user typed that is not among the suggestions
+survives Enter and Tab. A pick replaces only the entry under the caret, and
+with a separator it appends `", "` so the next address can be typed — the
+line reads `anna@example.com, andreas@example.com, ` and is submitted as
+that one string. A separator that is itself whitespace (`"\n"`, one entry
+per line) gets no space after it. Then the field's ordinary `input` and `change` fire, so `onChange`,
+`submitOnChange` and every harvest of the form see the new value.
+
+The request is a same-origin GET with the page's credentials, like the bus's
+own requests, but it neither marks the field busy nor shows the loading
+indicator, and the latest request wins: a newer question aborts the one still
+out, and a late answer to an older one is dropped.
+
+**A searchable dropdown.** On a `SELECT` the options come from the server as
+the user types. The field shows the picked option's label in a text box and
+submits its value from a hidden input, exactly like a `<select>`. The first
+suggestion is highlighted, so typing a few letters and pressing Enter picks
+it; Enter in the box never submits the form. Typed text that was not picked
+is undone when the field loses focus, and a box the user emptied clears the
+pick. `options` need hold only what the page already knows — the current
+pick, so its label shows:
+
+```java
+UiField.select("owner", "Owner", "u2", List.of(UiField.Option.of("u2", "Bert Keller")))
+    .asEditable().suggest(UiTrigger.go("/people/suggest"));
+```
+
+**Chips.** On a `MULTISELECT` each pick becomes a chip with a remove button,
+and the text box after the chips searches for the next one; Backspace in the
+empty box takes the last chip back out, and a value already picked is not
+offered again. The field submits a list of values, an empty list when there
+are no chips. A picked value no option knows shows as its own label.
+
+The labels of picks that came from the server live on the page. A `MERGE`
+that redraws the field keeps them; a server that redraws the field itself
+(`REPLACE`, a new page) sends `options` for the values it holds, as for any
+select.
+
+```java
+UiField.multiselect("labels", "Labels", List.of("urgent"), List.of(UiField.Option.of("urgent", "Urgent")))
+    .asEditable().suggest(UiTrigger.go("/labels/suggest"));
+```
+
+It works the same inside a form and inside a dialog — there too the request
+goes out with the bus's fetch, so a fetcher set with `setFetcher` applies —
+and the list hangs off the page with fixed positioning, above dialogs, so no
+scrolling container cuts it. An expanded choice (radios, checkboxes) and a read-only field ignore
+`suggest`. It needs the browser bundle; without JavaScript a text field is
+a text field and a SELECT or MULTISELECT keeps its current value. **JavaFX**
+shows the field without suggestions: a SELECT or MULTISELECT offers the
+`options` it was given.
 
 ### Rich text
 
